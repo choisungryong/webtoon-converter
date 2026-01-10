@@ -1,5 +1,7 @@
 'use client';
 
+export const runtime = 'edge';
+
 import React from 'react';
 import { Upload, Button, Tag, ConfigProvider, theme } from 'antd';
 import { InboxOutlined, RocketOutlined } from '@ant-design/icons';
