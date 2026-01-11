@@ -176,7 +176,8 @@ export default function Home() {
 
                         // 3. Poll
                         let finalUrl = null;
-                        for (let k = 0; k < 45; k++) {
+                        // Increase timeout to 300s (5 mins) for Cold Boots
+                        for (let k = 0; k < 150; k++) {
                             await new Promise(r => setTimeout(r, 2000));
                             const statusRes = await axios.get(`/api/ai/status?id=${predictionId}&prompt=webtoon`);
                             if (statusRes.data.status === 'succeeded') {
