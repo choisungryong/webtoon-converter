@@ -23,10 +23,12 @@ export async function POST(request: NextRequest) {
 
         // Prepare Image
         const arrayBuffer = await (image as Blob).arrayBuffer();
-        const base64 = btoa(
-            new Uint8Array(arrayBuffer)
-                .reduce((data, byte) => data + String.fromCharCode(byte), '')
-        );
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
         const mimeType = (image as File).type || 'image/png';
         const dataUri = `data:${mimeType};base64,${base64}`;
 

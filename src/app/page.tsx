@@ -260,14 +260,18 @@ export default function Home() {
                     {/* 2. Scene Selection (Google Photos Style) - Stacked Below */}
                     {extractedFrames.length > 0 && (
                         <Card title={<span className="text-[#CCFF00]">장면 선택 ({selectedFrameIndices.length})</span>} size="small" bordered={false} style={{ background: '#1c1c1c' }}>
-                            <div className="flex flex-wrap gap-2 mb-4">
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                                gap: '8px',
+                                marginBottom: '16px'
+                            }}>
                                 {extractedFrames.map((frame, idx) => {
                                     const isSelected = selectedFrameIndices.includes(idx);
                                     return (
                                         <div
                                             key={idx}
                                             className="relative aspect-square cursor-pointer group"
-                                            style={{ width: 'calc(16.66% - 8px)', minWidth: '80px', flexGrow: 1 }}
                                             onClick={() => toggleFrameSelection(idx)}
                                         >
                                             <img
