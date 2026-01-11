@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         // 3. Poll for Completion
         let outputUrl = null;
         let attempts = 0;
-        const maxAttempts = 30; // 30 seconds
+        const maxAttempts = 90; // Increased to 90 seconds
 
         while (attempts < maxAttempts) {
             await new Promise(r => setTimeout(r, 1000));
