@@ -37,9 +37,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: cjwbw/anything-v4.0 (Anime Specialized) with 512px Input
-        // This prevents "Abstract Art" and guarantees "Webtoon" output.
-        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
+        // Model: stability-ai/stable-diffusion (v2.1) - Reliable Img2Img Support
+        // We switched back because "Anything v4" was ignoring the input image.
+        // We now use SD 2.1 with 512px resolution to prevent "Abstract Art".
+        const modelVersion = "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -50,13 +51,13 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 version: modelVersion,
                 input: {
-                    image: dataUri,     // Standard Key
-                    init_image: dataUri, // Legacy Key redundancy (Forces Img2Img)
-                    prompt: prompt || "faithful to source, preserve exact composition, accurate details, masterpiece, best quality, webtoon style, anime style, manhwa, distinct lines, cel shaded",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark, grainy, ugly, deformed, distorted, changing composition, hallucinations",
+                    image: dataUri,
+                    // SD 2.1 uses 'image' but we keep redundancy just in case
+                    prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, bold lines, masterpiece, best quality, faithful to source, preserve exact composition",
+                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark, grainy, ugly, deformed, distorted, hallucinations",
                     num_inference_steps: 50,
                     guidance_scale: 7.5,
-                    strength: 0.35, // Restoration: 0.35 = Best Balance for Webtoon Filter
+                    strength: 0.30, // 0.30 = Strict Filter Mode (SD 2.1 is sensitive)
                     scheduler: "DPMSolverMultistep"
                 }
             })
