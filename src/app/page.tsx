@@ -158,7 +158,12 @@ export default function Home() {
                                 canvas.height = height;
                                 const ctx = canvas.getContext('2d');
                                 ctx?.drawImage(img, 0, 0, width, height);
-                                resolve(canvas.toDataURL('image/jpeg', 0.8));
+                                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                                if (dataUrl.length < 5000) {
+                                    reject(new Error("이미지 캡처 오류 (데이터 없음) - 다시 시도해주세요."));
+                                } else {
+                                    resolve(dataUrl);
+                                }
                             };
                             img.onerror = reject;
                             img.src = imgSrc;
