@@ -260,7 +260,21 @@ export default function Home() {
                     {/* 2. Scene Selection (Google Photos Style) - Stacked Below */}
                     {extractedFrames.length > 0 && (
                         <Card title={<span className="text-[#CCFF00]">장면 선택 ({selectedFrameIndices.length})</span>} size="small" bordered={false} style={{ background: '#1c1c1c' }}>
-                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+                            <style dangerouslySetInnerHTML={{
+                                __html: `
+                                .custom-scene-grid {
+                                    display: grid;
+                                    grid-template-columns: repeat(3, 1fr);
+                                    gap: 8px;
+                                    margin-bottom: 16px;
+                                }
+                                @media (min-width: 768px) {
+                                    .custom-scene-grid {
+                                        grid-template-columns: repeat(6, 1fr);
+                                    }
+                                }
+                            `}} />
+                            <div className="custom-scene-grid">
                                 {extractedFrames.map((frame, idx) => {
                                     const isSelected = selectedFrameIndices.includes(idx);
                                     return (
