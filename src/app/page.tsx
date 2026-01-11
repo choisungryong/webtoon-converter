@@ -343,21 +343,28 @@ export default function Home() {
                                     bordered={false}
                                     style={{ background: '#1c1c1c', height: '100%' }}
                                 >
-                                    <div className="grid grid-cols-3 gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 mb-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar p-1">
                                         {extractedFrames.map((frame, idx) => {
                                             const isSelected = selectedFrameIndices.includes(idx);
                                             return (
                                                 <div
                                                     key={idx}
-                                                    className={`relative rounded-lg overflow-hidden cursor-pointer transition-all ${isSelected ? 'ring-2 ring-[#CCFF00] scale-95 opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                                                    className={`relative aspect-square cursor-pointer group transition-all ${isSelected ? 'scale-95' : ''}`}
                                                     onClick={() => toggleFrameSelection(idx)}
                                                 >
-                                                    <Image src={frame} alt={`Scene ${idx}`} preview={false} />
-                                                    {isSelected && (
-                                                        <div className="absolute top-1 right-1 bg-[#CCFF00] text-black w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs">
-                                                            ✓
-                                                        </div>
-                                                    )}
+                                                    <img
+                                                        src={frame}
+                                                        alt={`Scene ${idx}`}
+                                                        className={`w-full h-full object-cover rounded-md transition-all duration-300 ${isSelected ? 'brightness-100 ring-2 ring-[#CCFF00]' : 'brightness-90 hover:brightness-100'}`}
+                                                    />
+
+                                                    {/* Selection Indicator (Google Photos Style) */}
+                                                    <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-[#CCFF00] border-[#CCFF00]' : 'border-white/70 bg-black/20 group-hover:bg-black/40'}`}>
+                                                        {isSelected && <span className="text-black font-bold text-xs">✓</span>}
+                                                    </div>
+
+                                                    {/* Hover Overlay */}
+                                                    <div className={`absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity ${isSelected ? 'hidden' : ''}`} />
                                                 </div>
                                             );
                                         })}

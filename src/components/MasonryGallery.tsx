@@ -34,20 +34,27 @@ export default function MasonryGallery({ images }: Props) {
                         />
 
                         {/* Overlay */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4">
                             <div className="flex justify-end">
                                 <Button
                                     shape="circle"
                                     icon={<DownloadOutlined />}
                                     ghost
+                                    size="small"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         window.open(img.url, '_blank');
                                     }}
                                 />
                             </div>
+
+                            {/* Center Zoom Icon */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <EyeOutlined className="text-white text-3xl opacity-80 drop-shadow-lg" />
+                            </div>
+
                             <div>
-                                <p className="text-white/90 text-sm line-clamp-2 font-light">
+                                <p className="text-white/90 text-sm line-clamp-2 font-light text-shadow">
                                     {img.prompt}
                                 </p>
                                 <p className="text-[#CCFF00] text-xs mt-1 font-mono">

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
                     negative_prompt: negativePrompt,
                     num_inference_steps: 20,
                     guidance_scale: 7.5,
-                    strength: 0.55, // Preserve original composition
+                    strength: 0.45, // Lowered to 0.45 to strictly preserve face/pose
                     scheduler: "DPMSolverMultistep"
                 }
             })
