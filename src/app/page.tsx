@@ -162,6 +162,10 @@ export default function Home() {
                                 if (dataUrl.length < 5000) {
                                     reject(new Error("이미지 캡처 오류 (데이터 없음) - 다시 시도해주세요."));
                                 } else {
+                                    /// DEBUG: Verify Size
+                                    const compressedSizeKB = Math.round(dataUrl.length / 1024);
+                                    console.log("AI Input Size:", compressedSizeKB, "KB");
+                                    message.info({ content: `이미지 압축 완료. 크기: ${compressedSizeKB} KB`, key: 'compress-info', duration: 3 });
                                     resolve(dataUrl);
                                 }
                             };

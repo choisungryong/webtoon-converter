@@ -29,9 +29,11 @@ export async function POST(request: NextRequest) {
         console.log("DEBUG: Image Length:", dataUri ? dataUri.length : "NULL");
         console.log("DEBUG: Image Prefix:", dataUri ? dataUri.substring(0, 50) : "NULL");
 
-        if (dataUri.length < 100) {
-            console.error("DEBUG ERROR: Image data too short, likely invalid.");
-            return NextResponse.json({ error: 'Image data invalid (too short)' }, { status: 400 });
+        // Verify Payload Size
+        console.log(`[AI-START] Payload Length: ${dataUri?.length || 0} chars`);
+        if (!dataUri || dataUri.length < 100) {
+            console.error("[AI-START] Critical: Image Data Missing or Too Short!");
+            return new Response(JSON.stringify({ error: "Image Data Missing" }), { status: 400 });
         }
 
         // Call Replicate (Start Only)
@@ -48,7 +50,8 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 version: modelVersion,
                 input: {
-                    image: dataUri,
+                    image: dataUri,     // Standard Key
+                    init_image: dataUri, // Legacy Key redundancy (Forces Img2Img)
                     prompt: prompt || "faithful to source, preserve exact composition, accurate details, masterpiece, best quality, webtoon style, anime style, manhwa, distinct lines, cel shaded",
                     negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark, grainy, ugly, deformed, distorted, changing composition, hallucinations",
                     num_inference_steps: 50, // Max Quality
