@@ -5,11 +5,18 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export const runtime = 'edge';
 
+// NOTE: Please set REPLICATE_API_TOKEN in Cloudflare Dashboard.
+// GitHub Secret Scanning prevents hardcoding tokens in deployed code.
+
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const image = formData.get('image');
-        const prompt = formData.get('prompt') || "korean webtoon style, vibrant colors, clean lines, anime style, high quality";
+        // Default to a high-quality Anime prompt if none provided
+        const prompt = formData.get('prompt') || "masterpiece, best quality, ultra-detailed, anime style, webtoon style, vibrant colors, clean lines, high quality, 2d anime";
+
+        // Negative prompt to avoid bad quality
+        const negativePrompt = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
 
         if (!image) {
             return NextResponse.json({ error: 'Image is required' }, { status: 400 });
@@ -17,51 +24,94 @@ export async function POST(request: NextRequest) {
 
         const { env } = getRequestContext<CloudflareEnv>();
 
-        if (!env.AI) {
-            return NextResponse.json({ error: 'AI binding is missing. Check Cloudflare Dashboard.' }, { status: 500 });
+        // REQUIREMENT: Valid Replicate API Token in Environment Variables
+        const apiToken = env.REPLICATE_API_TOKEN;
+
+        if (!apiToken) {
+            return NextResponse.json({ error: 'Replicate API Token is missing. Please add REPLICATE_API_TOKEN to your Cloudflare Pages variables.' }, { status: 500 });
         }
 
-        // Convert Buffer/File to ArrayBuffer
+        // 1. Prepare Input Image
+        // Replicate accepts a public URL or a data URI.
+        // Converting to Data URI (base64) is safest for direct upload without public S3 access.
         const arrayBuffer = await (image as Blob).arrayBuffer();
-        const inputs = {
-            image: [...new Uint8Array(arrayBuffer)], // Workers AI expects integer array for image input
-            prompt: prompt,
-            strength: 0.5,
-            guidance: 7.5
-        };
-
-        // Use Stable Diffusion Image-to-Image model
-        const response = await env.AI.run(
-            "@cf/runwayml/stable-diffusion-v1-5-img2img",
-            inputs
+        const base64 = btoa(
+            new Uint8Array(arrayBuffer)
+                .reduce((data, byte) => data + String.fromCharCode(byte), '')
         );
+        const mimeType = (image as File).type || 'image/png';
+        const dataUri = `data:${mimeType};base64,${base64}`;
 
-        // Response is a ReadableStream. Convert to ArrayBuffer for R2 upload.
-        const reader = response.getReader();
-        const chunks = [];
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-        }
-        const combined = new Uint8Array(chunks.reduce((acc, val) => acc + val.length, 0));
-        let offset = 0;
-        for (const chunk of chunks) {
-            combined.set(chunk, offset);
-            offset += chunk.length;
+        // 2. Call Replicate API (Start Prediction)
+        // Model: cjwbw/anything-v4.0 (A popular high-quality Anime model)
+        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191331d";
+
+        const startRes = await fetch("https://api.replicate.com/v1/predictions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Token ${apiToken}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                version: modelVersion,
+                input: {
+                    image: dataUri,
+                    prompt: prompt,
+                    negative_prompt: negativePrompt,
+                    num_inference_steps: 20,
+                    guidance_scale: 7.5,
+                    scheduler: "DPMSolverMultistep"
+                }
+            })
+        });
+
+        if (startRes.status !== 201) {
+            const err = await startRes.text();
+            console.error("Replicate API Error:", err);
+            throw new Error(`Replicate API Failed: ${err}`);
         }
 
-        // 1. Upload to R2
+        const prediction = await startRes.json();
+        let predictionId = prediction.id;
+        let outputUrl = null;
+
+        // 3. Poll for Completion
+        let status = prediction.status;
+        while (status !== "succeeded" && status !== "failed" && status !== "canceled") {
+            await new Promise(r => setTimeout(r, 1000)); // Wait 1s
+            const checkRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+                headers: {
+                    "Authorization": `Token ${apiToken}`,
+                }
+            });
+            const checkJson = await checkRes.json();
+            status = checkJson.status;
+            if (status === "succeeded") {
+                outputUrl = checkJson.output[0]; // AnythingV4 returns array
+            } else if (status === "failed") {
+                throw new Error(`Replicate generation failed: ${checkJson.error}`);
+            }
+        }
+
+        if (!outputUrl) {
+            throw new Error("No output output generated");
+        }
+
+        // 4. Download Result Image
+        const imgRes = await fetch(outputUrl);
+        const imgBlob = await imgRes.blob();
+        const imgBuffer = await imgBlob.arrayBuffer();
+
+        // 5. Upload to R2 (Persistence)
         const imageId = crypto.randomUUID();
         const r2Key = `generated/${imageId}.png`;
 
-        // R2 binding must be present (handled in env.d.ts but should verify)
         if (env.R2) {
-            await env.R2.put(r2Key, combined, {
+            await env.R2.put(r2Key, imgBuffer, {
                 httpMetadata: { contentType: 'image/png' }
             });
 
-            // 2. Save to D1
+            // 6. Save to D1
             if (env.DB) {
                 try {
                     await env.DB.prepare(
@@ -71,12 +121,9 @@ export async function POST(request: NextRequest) {
                     console.error('DB Insert Error:', dbError);
                 }
             }
-        } else {
-            console.warn("R2 binding missing, skipping persistence");
         }
 
-        // 3. Return R2 Signed URL
-        // We need AWS SDK variables for signing
+        // 7. Return Signed URL (Visual Feedback)
         if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET_NAME) {
             const S3 = new S3Client({
                 region: 'auto',
@@ -101,17 +148,10 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Fallback if credentials missing: return base64 (old behavior)
-        let binary = '';
-        const len = combined.byteLength;
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(combined[i]);
-        }
-        const base64 = btoa(binary);
-
+        // Fallback if R2 credentials missing (should not happen in prod)
         return NextResponse.json({
             success: true,
-            image: `data:image/png;base64,${base64}`
+            image: outputUrl
         });
 
     } catch (error) {

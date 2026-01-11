@@ -6,5 +6,6 @@ interface CloudflareEnv {
     R2_SECRET_ACCESS_KEY: string;
     R2_BUCKET_NAME: string;
     AI: any; // Cloudflare Workers AI Binding
+    REPLICATE_API_TOKEN: string; // Replicate API Token
     [key: string]: any;
 }
