@@ -267,6 +267,8 @@ export default function Home() {
                                     grid-template-columns: repeat(3, 1fr);
                                     gap: 8px;
                                     margin-bottom: 16px;
+                                    width: 100%;
+                                    box-sizing: border-box;
                                 }
                                 @media (min-width: 768px) {
                                     .custom-scene-grid {
@@ -280,13 +282,14 @@ export default function Home() {
                                     return (
                                         <div
                                             key={idx}
-                                            className="relative aspect-square cursor-pointer group"
+                                            className="relative aspect-square cursor-pointer group overflow-hidden rounded-md"
                                             onClick={() => toggleFrameSelection(idx)}
                                         >
                                             <img
                                                 src={frame}
                                                 alt={`Scene ${idx}`}
-                                                className={`w-full h-full object-cover rounded-md transition-all duration-200 ${isSelected ? 'brightness-110' : 'brightness-90 group-hover:brightness-100'}`}
+                                                className={`w-full h-full object-cover transition-all duration-200 ${isSelected ? 'brightness-110' : 'brightness-90 group-hover:brightness-100'}`}
+                                                style={{ width: '100%', height: '100%', display: 'block' }}
                                             />
 
                                             {/* Google Photos Style Selection Ring */}

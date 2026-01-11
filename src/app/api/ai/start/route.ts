@@ -25,9 +25,20 @@ export async function POST(request: NextRequest) {
         // Image is already Base64 Data URI from client
         const dataUri = image;
 
+        console.log("DEBUG: Received Image Payload");
+        console.log("DEBUG: Image Length:", dataUri ? dataUri.length : "NULL");
+        console.log("DEBUG: Image Prefix:", dataUri ? dataUri.substring(0, 50) : "NULL");
+
+        if (dataUri.length < 100) {
+            console.error("DEBUG ERROR: Image data too short, likely invalid.");
+            return NextResponse.json({ error: 'Image data invalid (too short)' }, { status: 400 });
+        }
+
         // Call Replicate (Start Only)
-        // Model: cjwbw/anything-v4.0
-        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
+        // Switch to Stable Diffusion 2.1 for reliable Image-to-Image
+        // Old: cjwbw/anything-v4.0 (Likely ignoring input)
+        // New: stability-ai/stable-diffusion:db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf
+        const modelVersion = "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -39,11 +50,11 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     image: dataUri,
-                    prompt: prompt,
+                    prompt: prompt, // "webtoon style..."
                     negative_prompt: negativePrompt,
-                    num_inference_steps: 12, // Faster generation (efficient for low strength)
+                    num_inference_steps: 25, // Increase slightly for quality
                     guidance_scale: 7.5,
-                    strength: 0.25, // Strong structure preservation
+                    strength: 0.3, // 0.3 is strict but allows some stylization. 0.25 might be too stiff.
                     scheduler: "DPMSolverMultistep"
                 }
             })
