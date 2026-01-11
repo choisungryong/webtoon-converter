@@ -23,9 +23,9 @@ export default function Home() {
 
     // Analyze video when file is selected
     useEffect(() => {
-        if (fileList.length > 0 && fileList[0].originFileObj) {
-            const file = fileList[0].originFileObj;
-            if (videoRef.current) {
+        if (fileList.length > 0) {
+            const file = fileList[0].originFileObj || fileList[0];
+            if (videoRef.current && file) {
                 const url = URL.createObjectURL(file);
                 videoRef.current.src = url;
                 videoRef.current.load();
