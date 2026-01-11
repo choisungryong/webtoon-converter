@@ -37,34 +37,25 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: rossjillian/controlnet (Multi-ControlModel Wrapper)
-        // We use "Canny" mode to extract lines and force composition adherence.
-        // Version: Latest Hash (795433b1...)
-        const modelVersion = "795433b19458d0f4fa172a7ccf93178d2adb1cb8ab2ad6c8fdc33fdbcd49f477";
+        // Model: black-forest-labs/flux-canny-pro (State-of-the-Art)
+        // "Nano Banana" Tier Quality. SOTA Structural Adherence + High Fidelity.
+        // Uses Official Model Endpoint (No Version Hash needed)
 
-        const startRes = await fetch("https://api.replicate.com/v1/predictions", {
+        const startRes = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-canny-pro/predictions", {
             method: "POST",
             headers: {
                 "Authorization": `Token ${apiToken}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                version: modelVersion,
+                // No 'version' key for Official Model Endpoint
                 input: {
-                    image: dataUri,
-                    structure: "canny", // REQUIRED: Tells the model to use Canny Edge Detection
-                    prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, clean lines, vector art, smooth, masterpiece, best quality, high definition, 8k",
-                    negative_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality, noisy, jpeg artifacts, dirty, muddy",
-
-                    // ControlNet Settings
-                    image_resolution: 512,
-                    low_threshold: 100,
-                    high_threshold: 200,
-                    steps: 40,          // Quality Boost (20 -> 40)
-                    scale: 7.5,         // Aesthetic Optimization (9.0 -> 7.5)
-                    scheduler: "K_EULER_ANCESTRAL", // Anime-optimized Scheduler
-                    eta: 0.0,
-                    a_prompt: "best quality, extremely detailed" // Added prompt for quality
+                    control_image: dataUri, // FLUX uses 'control_image'
+                    prompt: prompt || "A high-quality webtoon panel, anime style, manhwa, cel shaded, vibrant colors, clean lines, detailed background, masterpiece",
+                    steps: 50,
+                    guidance: 30, // Flux Pro default is 30. Controls prompt adherence.
+                    output_format: "jpg",
+                    safety_tolerance: 2
                 }
             })
         });
