@@ -25,25 +25,18 @@ export async function POST(request: NextRequest) {
         // Image is already Base64 Data URI from client
         const dataUri = image;
 
-        console.log("DEBUG: Received Image Payload");
-        console.log("DEBUG: Image Length:", dataUri ? dataUri.length : "NULL");
-        console.log("DEBUG: Image Prefix:", dataUri ? dataUri.substring(0, 50) : "NULL");
-
         // Verify Payload Size
-        console.log(`[AI-START] Payload Length: ${dataUri?.length || 0} chars`);
         if (!dataUri || dataUri.length < 100) {
             console.error("[AI-START] Critical: Image Data Missing or Too Short!");
             return new Response(JSON.stringify({ error: "Image Data Missing" }), { status: 400 });
         }
 
         // Call Replicate (Start Only)
-        // Model: xlabs-ai/flux-dev-controlnet (v3)
-        // "Nano Banana" Plan B (Replicate Hard Mode):
-        // 1. Img2Img ('image'): Preserves Colors/Identity.
-        // 2. ControlNet ('control_image'): Preserves Structure (Canny).
-        // 3. LoRA ('lora_url'): Enforces "Modern Anime" Style.
-        // Full Hash from Step 2237
-        const modelVersion = "f2c31c31d81278a91b2447a304dae654c64a5d5a70320f531d60dbd566f71ed1";
+        // Model: lucataco/flux-dev-multi-lora (Safe Fallback)
+        // Reason: xlabs-ai version was private/deprecated.
+        // Capabilities: Img2Img (Colors/Structure) + LoRA (Style).
+        // Hash: ad031456...
+        const modelVersion = "ad0314563856e714367fdc7244b19b160d25926d305fec270c9e00f64665d352";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -54,22 +47,18 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 version: modelVersion,
                 input: {
-                    // Hybrid Inputs
-                    image: dataUri,           // Color/Identity Base
-                    control_image: dataUri,   // Structure Base
-                    control_type: "canny",
-
-                    // Style Injection (The "Nano Banana" Secret)
-                    lora_url: "https://huggingface.co/alfredplpl/flux.1-dev-modern-anime-lora/resolve/main/flux.1-dev-modern-anime-lora.safetensors",
-                    lora_strength: 1.0,       // Full Anime Style
-
-                    // Tuning
-                    prompt_strength: 0.85,    // 0.85 = Mostly AI Style, 0.15 Original Colors. (Flux needs high strength to activate LoRA)
-                    control_net_strength: 0.60, // Keep pose but allow minor adjustments
-
+                    // Flux Multi-LoRA Schema
                     prompt: prompt || "modern anime style, webtoon style, manhwa, vibrant colors, detailed highlights, clean lines, masterpiece, best quality",
-                    num_inference_steps: 28,  // Flux Dev Standard
-                    guidance_scale: 3.5,      // Flux Dev Standard
+                    image: dataUri,           // Img2Img: Preserves both Color and Structure
+                    prompt_strength: 0.85,    // High strength for style transfer, but keeps 15% original pixels
+
+                    // Style Injection (LoRA)
+                    hf_loras: ["alfredplpl/flux.1-dev-modern-anime-lora"],
+                    lora_scales: [1.0],
+
+                    // Standard Flux Params
+                    num_inference_steps: 28,
+                    guidance_scale: 3.5,
                     output_format: "jpg"
                 }
             })
