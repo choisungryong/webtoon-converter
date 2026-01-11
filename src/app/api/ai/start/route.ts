@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
         // Call Gemini API (Nano Banana Pro)
         // Model: gemini-3-pro-image-preview (Nano Banana Pro Image)
         // Endpoint: generateContent with responseModalities: ["IMAGE", "TEXT"]
-        // Using gemini-2.5-flash-preview-image-generation (500 images/day free tier)
-        // gemini-3-pro-image exhausted quota quickly
-        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-image-generation:generateContent?key=${apiKey}`;
+        // Using gemini-2.5-flash-image (Nano Banana - 500 images/day free tier)
+        // Correct model name confirmed from Google docs
+        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(geminiEndpoint, {
             method: "POST",
