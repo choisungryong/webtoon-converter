@@ -31,8 +31,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: lucataco/flux-dev-multi-lora (Safe Fallback)
-        // Capabilities: Img2Img (Colors/Structure) + LoRA (Style).
+        // Model: lucataco/flux-dev-multi-lora
         // Hash: ad031456...
         const modelVersion = "ad0314563856e714367fdc7244b19b160d25926d305fec270c9e00f64665d352";
 
@@ -46,21 +45,19 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     // Flux Multi-LoRA Schema
-                    // Verified: Supports 'image', 'prompt', 'prompt_strength', 'hf_loras', 'lora_scales'.
-                    // REMOVED: Incompatible ControlNet params (control_image, control_type) which caused errors.
-
                     prompt: prompt || "modern anime style, webtoon style, manhwa, vibrant colors, detailed highlights, clean lines, masterpiece, best quality",
-                    image: dataUri,           // Img2Img: Preserves both Color and Structure
-                    prompt_strength: 0.85,    // High strength for style transfer, but keeps 15% original pixels
+                    image: dataUri,
+                    prompt_strength: 0.85,
 
-                    // Style Injection (LoRA)
-                    hf_loras: ["alfredplpl/flux.1-dev-modern-anime-lora"],
+                    // FIX: Use Full URL to ensure LoRA is found (bypasses potential cache issues)
+                    hf_loras: ["https://huggingface.co/alfredplpl/flux.1-dev-modern-anime-lora/resolve/main/flux.1-dev-modern-anime-lora.safetensors"],
                     lora_scales: [1.0],
 
                     // Standard Flux Params
                     num_inference_steps: 28,
                     guidance_scale: 3.5,
-                    output_format: "jpg"
+                    output_format: "jpg",
+                    disable_safety_checker: true
                 }
             })
         });
@@ -69,7 +66,7 @@ export async function POST(request: NextRequest) {
             const errorText = await startRes.text();
             console.error("Replicate Start Error:", errorText);
 
-            // Should catch 422 Errors for Invalid Schema
+            // Return detailed error to help debugging
             return NextResponse.json({ error: `Replicate Error: ${errorText}` }, { status: 500 });
         }
 
