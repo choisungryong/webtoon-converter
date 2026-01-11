@@ -169,8 +169,18 @@ export default function Home() {
                     if (aiRes.data.success) {
                         newAiImages.push(aiRes.data.image);
                     }
-                } catch (aiErr) {
+                } catch (aiErr: any) {
                     console.error('AI Transform Error:', aiErr);
+                    const backendMsg = aiErr.response?.data?.error;
+                    const status = aiErr.response?.status;
+
+                    if (status === 504) {
+                        message.warning({ content: `장면 ${i + 1}: AI 변환 시간 초과 (잠시 후 다시 시도)`, key: `ai_err_${i}`, duration: 5 });
+                    } else if (backendMsg) {
+                        message.error({ content: `장면 ${i + 1} 오류: ${backendMsg}`, key: `ai_err_${i}`, duration: 8 });
+                    } else {
+                        message.error({ content: `장면 ${i + 1} 변환 실패 (네트워크/서버 오류)`, key: `ai_err_${i}` });
+                    }
                 }
             }
 
