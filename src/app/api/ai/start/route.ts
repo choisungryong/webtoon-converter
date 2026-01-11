@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
                     image: dataUri,
                     prompt: prompt,
                     negative_prompt: negativePrompt,
-                    num_inference_steps: 20,
+                    num_inference_steps: 12, // Faster generation (efficient for low strength)
                     guidance_scale: 7.5,
                     strength: 0.25, // Strong structure preservation
                     scheduler: "DPMSolverMultistep"

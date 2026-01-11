@@ -125,60 +125,65 @@ export default function Home() {
             message.success({ content: '업로드 완료! AI 변환 시작...', key: 'upload' });
             setUploading(false); // Done uploading
 
-            // 2. AI Conversion Loop (Async Polling)
+            // 2. AI Conversion Loop (Parallel Batching - 3 at a time)
             const targets = selectedFrameIndices.map(idx => extractedFrames[idx]);
             const newImages: string[] = [];
 
-            for (let i = 0; i < targets.length; i++) {
-                message.loading({ content: `${i + 1}/${targets.length} 장면 변환 중... (약 20초 소요)`, key: 'ai' });
+            // Helper function for single conversion
+            const processBatch = async (batch: string[], startIndex: number) => {
+                const promises = batch.map(async (imgSrc, batchIdx) => {
+                    const globalIdx = startIndex + batchIdx;
+                    try {
+                        const blob = await (await fetch(imgSrc)).blob();
+                        const formData = new FormData();
+                        formData.append('image', blob);
 
-                // Add delay for rate limits
-                if (i > 0) await new Promise(r => setTimeout(r, 2000));
+                        // A. Start
+                        const startRes = await axios.post('/api/ai/start', formData);
+                        const { predictionId } = startRes.data;
+                        if (!predictionId) throw new Error('Start Failed');
 
-                const blob = await (await fetch(targets[i])).blob();
-                const formData = new FormData();
-                formData.append('image', blob);
-
-                try {
-                    // Step A: Start Prediction
-                    const startRes = await axios.post('/api/ai/start', formData);
-                    const { predictionId } = startRes.data;
-
-                    if (!predictionId) throw new Error('Prediction Failed to Start');
-
-                    // Step B: Poll Status
-                    let finalImageUrl = null;
-                    let retries = 0;
-                    const maxRetries = 60; // 60 * 2s = 120s max
-
-                    while (retries < maxRetries) {
-                        await new Promise(r => setTimeout(r, 2000)); // Poll every 2s
-                        const statusRes = await axios.get(`/api/ai/status?id=${predictionId}&prompt=webtoon`);
-                        const statusData = statusRes.data;
-
-                        if (statusData.status === 'succeeded') {
-                            finalImageUrl = statusData.image;
-                            break;
-                        } else if (statusData.status === 'failed') {
-                            throw new Error(statusData.error || 'AI Processing Failed');
+                        // B. Poll
+                        let finalUrl = null;
+                        for (let k = 0; k < 45; k++) { // 45 * 2s = 90s max
+                            await new Promise(r => setTimeout(r, 2000));
+                            const statusRes = await axios.get(`/api/ai/status?id=${predictionId}&prompt=webtoon`);
+                            if (statusRes.data.status === 'succeeded') {
+                                finalUrl = statusRes.data.image;
+                                break;
+                            } else if (statusRes.data.status === 'failed') {
+                                throw new Error('AI Failed');
+                            }
                         }
-                        // 'starting' or 'processing' -> continue
-                        retries++;
-                    }
-
-                    if (finalImageUrl) {
-                        newImages.push(finalImageUrl);
-                    } else {
+                        if (finalUrl) return { idx: globalIdx, url: finalUrl, success: true };
                         throw new Error('Timeout');
+                    } catch (e: any) {
+                        return { idx: globalIdx, error: e.message, success: false };
                     }
+                });
+                return await Promise.all(promises);
+            };
 
-                } catch (err: any) {
-                    console.error("Conversion Error:", err);
-                    message.error(`장면 ${i + 1} 변환 실패: ${err.message}`);
-                }
+            const BATCH_SIZE = 3;
+            for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+                const batch = targets.slice(i, i + BATCH_SIZE);
+                message.loading({ content: `배치 변환 중... (${i + 1}~${Math.min(i + BATCH_SIZE, targets.length)}/${targets.length})`, key: 'ai' });
+
+                const results = await processBatch(batch, i);
+
+                // Process results
+                results.forEach(res => {
+                    if (res.success) {
+                        newImages.push(res.url!);
+                    } else {
+                        message.error(`장면 ${res.idx! + 1} 실패: ${res.error}`);
+                    }
+                });
+
+                // Update UI incrementally
+                setAiImages(prev => [...prev, ...results.filter(r => r.success).map(r => r.url!)]);
             }
 
-            setAiImages(newImages);
             message.success({ content: '모든 변환 완료!', key: 'ai' });
 
         } catch (e: any) {
