@@ -3,7 +3,7 @@
 export const runtime = 'edge';
 import { useState } from 'react';
 import { Button, Upload, message, Card } from 'antd';
-import { UploadOutlined, MagicWandOutlined } from '@ant-design/icons'; // 아이콘은 프로젝트에 맞게 조절
+import { UploadOutlined, ThunderboltOutlined } from '@ant-design/icons';
 
 export default function Home() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
