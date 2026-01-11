@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
                     negative_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality",
 
                     // ControlNet Settings
-                    image_resolution: "512",
+                    image_resolution: 512,
                     low_threshold: 100,
                     high_threshold: 200,
                     steps: 20,          // Rossjillian uses 'steps'
