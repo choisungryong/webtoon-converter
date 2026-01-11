@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: cjwbw/anything-v4.0 (Best for Anime/Webtoon Style)
-        // Previous issues were due to missing image payload. Now fixed.
-        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
+        // Model: stability-ai/stable-diffusion (v2.1) - Reliable & Robust
+        // We use a specific, high-quality checkpoint or just standard 2.1
+        const modelVersion = "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -49,11 +49,12 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     image: dataUri,
-                    prompt: prompt || "webtoon style, manhwa style, anime style, high quality, crisp lines, vibrant colors, flat color",
-                    negative_prompt: negativePrompt,
-                    num_inference_steps: 20, // Anything v4 needs ~20 for quality
+                    prompt: prompt || "masterpiece, best quality, webtoon style, manhwa, cel shaded, bold lines, 2d, flat color",
+                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur",
+                    num_inference_steps: 30, // Higher quality
                     guidance_scale: 7.5,
-                    strength: 0.5, // 0.5 = Balanced Style/Identity
+                    strength: 0.3, // 0.3 means "Keep 70% of original structure, change 30% style". 
+                    // This prevents hallucinations while applying style.
                     scheduler: "DPMSolverMultistep"
                 }
             })

@@ -191,7 +191,9 @@ export default function Home() {
                         if (finalUrl) return { idx: globalIdx, url: finalUrl, success: true };
                         throw new Error('Timeout');
                     } catch (e: any) {
-                        return { idx: globalIdx, error: e.message, success: false };
+                        const errorMessage = e.response?.data?.error || e.message || 'Unknown Error';
+                        console.error("AI Error:", errorMessage);
+                        return { idx: globalIdx, error: errorMessage, success: false };
                     }
                 });
                 return await Promise.all(promises);
