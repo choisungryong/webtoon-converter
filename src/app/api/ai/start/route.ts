@@ -8,82 +8,108 @@ export async function POST(request: NextRequest) {
         // Read JSON Body (Client-side Base64)
         const body = await request.json() as { image: string, prompt?: string };
         const image = body.image;
-        const prompt = body.prompt || "webtoon style, anime style, cel shaded, vibrant colors";
+        const prompt = body.prompt || "이 이미지를 한국 웹툰 스타일로 변환해주세요. 선명한 선, 생동감 있는 색상, 애니메이션 느낌을 유지해주세요.";
 
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
 
         const { env } = getRequestContext<CloudflareEnv>();
-        const apiToken = env.REPLICATE_API_TOKEN;
+        const apiKey = env.GEMINI_API_KEY;
 
-        if (!apiToken) {
-            return NextResponse.json({ error: 'Replicate API Token missing' }, { status: 500 });
+        if (!apiKey) {
+            return NextResponse.json({ error: 'Gemini API Key missing' }, { status: 500 });
         }
 
-        // Image is already Base64 Data URI from client
-        const dataUri = image;
-
-        // Verify Payload Size
-        if (!dataUri || dataUri.length < 100) {
-            console.error("[AI-START] Critical: Image Data Missing or Too Short!");
-            return new Response(JSON.stringify({ error: "Image Data Missing" }), { status: 400 });
+        // Extract Base64 data from Data URI
+        // Input format: "data:image/jpeg;base64,/9j/4AAQ..."
+        const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!base64Match) {
+            return NextResponse.json({ error: 'Invalid image format. Expected Base64 Data URI.' }, { status: 400 });
         }
+        const mimeType = `image/${base64Match[1]}`;
+        const base64Data = base64Match[2];
 
-        // Call Replicate (Start Only)
-        // EMERGENCY ROLLBACK: Use cjwbw/anything-v4.0
-        // Reason: Flux models are causing persistent 500 Errors (Version/Schema issues).
-        // Goal: Restore Service Availability IMMEDIATELY.
-        // Capabilities: Excellent Anime Style + Img2Img.
-        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
+        // Call Gemini API (Nano Banana Pro)
+        // Model: gemini-3-pro-image-preview (Nano Banana Pro Image)
+        // Endpoint: generateContent with responseModalities: ["IMAGE", "TEXT"]
+        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`;
 
-        const startRes = await fetch("https://api.replicate.com/v1/predictions", {
+        const geminiRes = await fetch(geminiEndpoint, {
             method: "POST",
             headers: {
-                "Authorization": `Token ${apiToken}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                version: modelVersion,
-                input: {
-                    // Anything V4 Schema
-                    prompt: prompt || "masterpiece, best quality, illustration, beautiful detailed, finely detailed, dramatic light, intricate details, anime style, webtoon style",
-                    negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
-
-                    // Img2Img Params
-                    original_image: dataUri, // Some models use 'original_image', others 'image'. V4 uses 'image' usually, but let's check.
-                    // Actually, Replicate standard is usually 'image' for init_image.
-                    // But Anything V4 inputs might differ.
-                    // Let's use 'image' (init_image) and 'prompt'.
-                    // Note: 'image' in Replicate usually means inputs.
-                    // Anything V4 Replicate page says input is 'image' (for img2img) or 'prompt'.
-                    image: dataUri,
-
-                    // Tuning
-                    strength: 0.65,        // 0.65 = Balanced between Source and Anime Style
-                    num_inference_steps: 25,
-                    guidance_scale: 7.5,
-                    scheduler: "DPMSolverMultistep"
+                contents: [
+                    {
+                        parts: [
+                            {
+                                inlineData: {
+                                    mimeType: mimeType,
+                                    data: base64Data
+                                }
+                            },
+                            {
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    responseModalities: ["IMAGE", "TEXT"],
+                    temperature: 1.0,
+                    topP: 0.95,
+                    topK: 40
                 }
             })
         });
 
-        if (startRes.status !== 201) {
-            const errorText = await startRes.text();
-            console.error("Replicate Start Error:", errorText);
-
-            return NextResponse.json({ error: `Replicate Error: ${errorText}` }, { status: 500 });
+        if (!geminiRes.ok) {
+            const errorText = await geminiRes.text();
+            console.error("Gemini API Error:", errorText);
+            return NextResponse.json({ error: `Gemini Error: ${errorText}` }, { status: 500 });
         }
 
-        const prediction = await startRes.json();
+        const geminiData = await geminiRes.json();
+
+        // Extract generated image from response
+        // Response structure: { candidates: [{ content: { parts: [{ inlineData: { data, mimeType } }] } }] }
+        const candidates = geminiData.candidates;
+        if (!candidates || candidates.length === 0) {
+            return NextResponse.json({ error: 'No image generated by Gemini' }, { status: 500 });
+        }
+
+        const parts = candidates[0]?.content?.parts || [];
+        let generatedImageBase64 = null;
+        let generatedMimeType = "image/png";
+
+        for (const part of parts) {
+            if (part.inlineData) {
+                generatedImageBase64 = part.inlineData.data;
+                generatedMimeType = part.inlineData.mimeType || "image/png";
+                break;
+            }
+        }
+
+        if (!generatedImageBase64) {
+            // Check if there's text explaining why generation failed
+            const textPart = parts.find((p: { text?: string }) => p.text);
+            const errorMessage = textPart?.text || 'Gemini did not return an image';
+            return NextResponse.json({ error: errorMessage }, { status: 500 });
+        }
+
+        // Return generated image as Data URI
+        const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
+
         return NextResponse.json({
             success: true,
-            predictionId: prediction.id,
-            status: prediction.status
+            image: outputDataUri,
+            status: 'completed'
         });
 
     } catch (error) {
-        console.error('Start API Error:', error);
+        console.error('Gemini API Error:', error);
         return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }
