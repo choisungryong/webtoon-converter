@@ -37,25 +37,36 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: black-forest-labs/flux-canny-pro (State-of-the-Art)
-        // "Nano Banana" Tier Quality. SOTA Structural Adherence + High Fidelity.
-        // Uses Official Model Endpoint (No Version Hash needed)
+        // Model: lucataco/sdxl-controlnet (SDXL + ControlNet + Img2Img)
+        // Hybrid Approach: 
+        // 1. Img2Img ('image'): Preserves Colors, Lighting, Identity (Asian family, Red vests).
+        // 2. ControlNet ('controlnet_1_image'): Preserves Composition/Edges (Canny).
+        // Resolution: The 'Incomplete' Flux approach caused 'Race Swapping' because it ignored pixel data.
+        const modelVersion = "06d6fae3b75ab68a28cd2900afa6033166910dd09fd9751047043a5bbb4c184b";
 
-        const startRes = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-canny-pro/predictions", {
+        const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
                 "Authorization": `Token ${apiToken}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                // No 'version' key for Official Model Endpoint
+                version: modelVersion,
                 input: {
-                    control_image: dataUri, // FLUX uses 'control_image'
-                    prompt: prompt || "A high-quality webtoon panel, anime style, manhwa, cel shaded, vibrant colors, clean lines, detailed background, masterpiece",
-                    steps: 50,
-                    guidance: 30, // Flux Pro default is 30. Controls prompt adherence.
-                    output_format: "jpg",
-                    safety_tolerance: 2
+                    // Hybrid Inputs
+                    image: dataUri,           // Source for Color/Lighting (Img2Img)
+                    controlnet_1_image: dataUri, // Source for Lines/Structure (ControlNet)
+                    controlnet_1: "canny",
+
+                    // Tuning
+                    prompt_strength: 0.75,     // 0.75 = Heavy styling but keep original colors. (1.0 = Ignore Image)
+                    controlnet_1_conditioning_scale: 0.6, // Moderate structural guidance
+
+                    prompt: prompt || "webtoon style, anime style, manhwa, vibrant colors, flat shading, clean thick lines, detailed background, masterpiece, best quality",
+                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, noise, grainy, ugly, deformed, bad anatomy",
+                    num_inference_steps: 40,
+                    refine: "expert_ensemble_refiner", // Improves faces/details
+                    apply_watermark: false
                 }
             })
         });
