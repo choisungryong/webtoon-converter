@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
 
         // 2. Call Replicate API (Start Prediction)
         // Model: cjwbw/anything-v4.0
-        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191331d";
+        // Version: 42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061
+        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
