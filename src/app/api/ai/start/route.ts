@@ -53,15 +53,16 @@ export async function POST(request: NextRequest) {
                 input: {
                     image: dataUri,
                     structure: "canny", // REQUIRED: Tells the model to use Canny Edge Detection
-                    prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, clean lines, masterpiece, best quality",
-                    negative_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality",
+                    prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, clean lines, vector art, smooth, masterpiece, best quality, high definition, 8k",
+                    negative_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality, noisy, jpeg artifacts, dirty, muddy",
 
                     // ControlNet Settings
                     image_resolution: 512,
                     low_threshold: 100,
                     high_threshold: 200,
-                    steps: 20,          // Rossjillian uses 'steps'
-                    scale: 9.0,         // Guidance Scale
+                    steps: 40,          // Quality Boost (20 -> 40)
+                    scale: 7.5,         // Aesthetic Optimization (9.0 -> 7.5)
+                    scheduler: "K_EULER_ANCESTRAL", // Anime-optimized Scheduler
                     eta: 0.0,
                     a_prompt: "best quality, extremely detailed" // Added prompt for quality
                 }
