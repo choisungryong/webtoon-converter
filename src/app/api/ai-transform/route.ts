@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         const formData = await request.formData();
         const image = formData.get('image');
         const prompt = formData.get('prompt') || "masterpiece, best quality, ultra-detailed, anime style, webtoon style, vibrant colors, clean lines, high quality, 2d anime";
-        const negativePrompt = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
+        const negativePrompt = "nsfw, nude, naked, porn, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
 
         if (!image) {
             console.error("Missing image");
