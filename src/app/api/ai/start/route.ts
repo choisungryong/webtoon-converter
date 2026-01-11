@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     image: dataUri,
-                    prompt: prompt || "webtoon style, anime style, manhwa, vibrant colors, clean lines, high quality, cel shaded",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark",
-                    num_inference_steps: 25,
+                    prompt: prompt || "masterpiece, best quality, highly detailed, webtoon style, anime style, manhwa, vibrant colors, clean lines, soft lighting, cel shaded",
+                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark, grainy, ugly",
+                    num_inference_steps: 50, // Maximum Quality (Slower but worth it)
                     guidance_scale: 7.5,
-                    strength: 0.55, // 0.55 allows style change without losing subject.
+                    strength: 0.60, // 0.60 = Stronger Style Transfer (Closer to 'Nano Banana' look)
                     scheduler: "DPMSolverMultistep"
                 }
             })
