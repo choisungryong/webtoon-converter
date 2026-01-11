@@ -141,12 +141,12 @@ export default function Home() {
 
                     try {
                         // 1. Resize/Compress Image (Client-side)
-                        const compressedDataUrl = await new Promise<string>((resolve, reject) => {
+                        const { compressedDataUrl, sizeKB } = await new Promise<{ compressedDataUrl: string, sizeKB: number }>((resolve, reject) => {
                             const img = new window.Image();
                             img.crossOrigin = "anonymous";
                             img.onload = () => {
                                 const canvas = document.createElement('canvas');
-                                const MAX_SIZE = 512; // 512px is NATIVE for Anything v4 (Prevents Tiling/Collage)
+                                const MAX_SIZE = 512;
                                 let width = img.width;
                                 let height = img.height;
                                 if (width > height) {
@@ -159,19 +159,23 @@ export default function Home() {
                                 const ctx = canvas.getContext('2d');
                                 ctx?.drawImage(img, 0, 0, width, height);
                                 const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
                                 if (dataUrl.length < 5000) {
                                     reject(new Error("이미지 캡처 오류 (데이터 없음) - 다시 시도해주세요."));
                                 } else {
-                                    /// DEBUG: Verify Size
-                                    const compressedSizeKB = Math.round(dataUrl.length / 1024);
-                                    console.log("AI Input Size:", compressedSizeKB, "KB");
-                                    message.info({ content: `이미지 압축 완료. 크기: ${compressedSizeKB} KB`, key: 'compress-info', duration: 3 });
-                                    resolve(dataUrl);
+                                    resolve({
+                                        compressedDataUrl: dataUrl,
+                                        sizeKB: Math.round(dataUrl.length / 1024)
+                                    });
                                 }
                             };
-                            img.onerror = reject;
+                            img.onerror = () => reject(new Error("이미지 로드 실패"));
                             img.src = imgSrc;
                         });
+
+                        // Show Message cleanly in main flow
+                        console.log("AI Input Size:", sizeKB, "KB");
+                        message.success({ content: `이미지 전송 준비 완료 (${sizeKB} KB)`, key: 'compress-Success', duration: 4 });
 
                         // 2. Send Compressed Image
                         const startRes = await axios.post('/api/ai/start', { image: compressedDataUrl });
