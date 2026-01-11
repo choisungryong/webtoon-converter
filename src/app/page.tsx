@@ -255,7 +255,7 @@ export default function Home() {
                     {/* 2. Scene Selection (Google Photos Style) - Stacked Below */}
                     {extractedFrames.length > 0 && (
                         <Card title={<span className="text-[#CCFF00]">장면 선택 ({selectedFrameIndices.length})</span>} size="small" bordered={false} style={{ background: '#1c1c1c' }}>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
+                            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 mb-4">
                                 {extractedFrames.map((frame, idx) => {
                                     const isSelected = selectedFrameIndices.includes(idx);
                                     return (
@@ -271,13 +271,10 @@ export default function Home() {
                                             />
 
                                             {/* Google Photos Style Selection Ring */}
-                                            <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                                            <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200
                                                 ${isSelected ? 'bg-[#CCFF00] border-[#CCFF00]' : 'border-white/50 bg-black/10 group-hover:border-white/80'}`}>
-                                                {isSelected && <CheckCircleFilled className="text-black text-sm" />}
+                                                {isSelected && <CheckCircleFilled className="text-black text-xs" />}
                                             </div>
-
-                                            {/* Transparent Hover Check Area (Requested) */}
-                                            {/* We rely on the circle appearing/brightening on hover for the effect */}
                                         </div>
                                     );
                                 })}

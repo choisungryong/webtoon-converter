@@ -7,8 +7,8 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const image = formData.get('image');
-        const prompt = formData.get('prompt') || "masterpiece, best quality, ultra-detailed, anime style, webtoon style, vibrant colors, clean lines, high quality, 2d anime";
-        const negativePrompt = "nsfw, nude, naked, porn, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
+        const prompt = formData.get('prompt') || "webtoon style, anime style, cel shaded, vibrant colors"; // Minimal prompt to avoid hallucinations
+        const negativePrompt = "nsfw, nude, naked, porn, text, bad anatomy, error, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry";
 
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
                     negative_prompt: negativePrompt,
                     num_inference_steps: 20,
                     guidance_scale: 7.5,
-                    strength: 0.3, // Very low strength to strictly preserve original lines/colors
+                    strength: 0.25, // Strong structure preservation
                     scheduler: "DPMSolverMultistep"
                 }
             })
