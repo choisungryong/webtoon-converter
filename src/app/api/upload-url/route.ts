@@ -28,8 +28,16 @@ export async function POST(request: NextRequest) {
         const R2_SECRET_ACCESS_KEY = env.R2_SECRET_ACCESS_KEY;
         const R2_BUCKET_NAME = env.R2_BUCKET_NAME;
 
-        if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
-            return NextResponse.json({ error: 'R2 자격 증명이 설정되지 않았습니다.' }, { status: 500 });
+        const missingVars = [];
+        if (!R2_ACCOUNT_ID) missingVars.push('R2_ACCOUNT_ID');
+        if (!R2_ACCESS_KEY_ID) missingVars.push('R2_ACCESS_KEY_ID');
+        if (!R2_SECRET_ACCESS_KEY) missingVars.push('R2_SECRET_ACCESS_KEY');
+        if (!R2_BUCKET_NAME) missingVars.push('R2_BUCKET_NAME');
+
+        if (missingVars.length > 0) {
+            return NextResponse.json({
+                error: `R2 환경 변수 누락: ${missingVars.join(', ')}. Cloudflare Pages 설정 > Environment variables 메뉴를 확인하세요.`
+            }, { status: 500 });
         }
 
         const S3 = new S3Client({
@@ -67,6 +75,8 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('Presigned URL Error:', error);
-        return NextResponse.json({ error: 'URL 생성 실패' }, { status: 500 });
+        return NextResponse.json({
+            error: `URL 생성 실패: ${(error as Error).message}`
+        }, { status: 500 });
     }
 }
