@@ -37,12 +37,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: lucataco/sdxl-controlnet (SDXL + ControlNet + Img2Img)
-        // Hybrid Approach: 
-        // 1. Img2Img ('image'): Preserves Colors, Lighting, Identity (Asian family, Red vests).
-        // 2. ControlNet ('controlnet_1_image'): Preserves Composition/Edges (Canny).
-        // Resolution: The 'Incomplete' Flux approach caused 'Race Swapping' because it ignored pixel data.
-        const modelVersion = "06d6fae3b75ab68a28cd2900afa6033166910dd09fd9751047043a5bbb4c184b";
+        // Model: xlabs-ai/flux-dev-controlnet (v3)
+        // "Nano Banana" Plan B (Replicate Hard Mode):
+        // 1. Img2Img ('image'): Preserves Colors/Identity.
+        // 2. ControlNet ('control_image'): Preserves Structure (Canny).
+        // 3. LoRA ('lora_url'): Enforces "Modern Anime" Style.
+        // Full Hash from Step 2237
+        const modelVersion = "f2c31c31d81278a91b2447a304dae654c64a5d5a70320f531d60dbd566f71ed1";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -54,19 +55,22 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     // Hybrid Inputs
-                    image: dataUri,           // Source for Color/Lighting (Img2Img)
-                    controlnet_1_image: dataUri, // Source for Lines/Structure (ControlNet)
-                    controlnet_1: "canny",
+                    image: dataUri,           // Color/Identity Base
+                    control_image: dataUri,   // Structure Base
+                    control_type: "canny",
+
+                    // Style Injection (The "Nano Banana" Secret)
+                    lora_url: "https://huggingface.co/alfredplpl/flux.1-dev-modern-anime-lora/resolve/main/flux.1-dev-modern-anime-lora.safetensors",
+                    lora_strength: 1.0,       // Full Anime Style
 
                     // Tuning
-                    prompt_strength: 0.75,     // 0.75 = Heavy styling but keep original colors. (1.0 = Ignore Image)
-                    controlnet_1_conditioning_scale: 0.6, // Moderate structural guidance
+                    prompt_strength: 0.85,    // 0.85 = Mostly AI Style, 0.15 Original Colors. (Flux needs high strength to activate LoRA)
+                    control_net_strength: 0.60, // Keep pose but allow minor adjustments
 
-                    prompt: prompt || "webtoon style, anime style, manhwa, vibrant colors, flat shading, clean thick lines, detailed background, masterpiece, best quality",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, noise, grainy, ugly, deformed, bad anatomy",
-                    num_inference_steps: 40,
-                    refine: "expert_ensemble_refiner", // Improves faces/details
-                    apply_watermark: false
+                    prompt: prompt || "modern anime style, webtoon style, manhwa, vibrant colors, detailed highlights, clean lines, masterpiece, best quality",
+                    num_inference_steps: 28,  // Flux Dev Standard
+                    guidance_scale: 3.5,      // Flux Dev Standard
+                    output_format: "jpg"
                 }
             })
         });
