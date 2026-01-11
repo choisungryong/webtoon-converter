@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getRequestContext } from '@cloudflare/next-on-pages';
 
 // Cloudflare Pages(Workers) 환경에서 실행되도록 설정
 export const runtime = 'edge';
@@ -16,13 +17,13 @@ export async function POST(request: NextRequest) {
         // 2. 유니크한 파일명 생성 (타임스탬프 활용)
         const fileName = `${Date.now()}-${file.name}`;
 
-        // 3. Cloudflare R2 버킷 인터페이스 가져오기
-        // 대시보드에서 설정한 Variable name 'R2'와 일치해야 합니다.
-        const bucket = (request as any).context?.env?.R2;
+        // 3. Cloudflare R2 버킷 인터페이스 가져오기 (표준 방식)
+        const { env } = getRequestContext<CloudflareEnv>();
+        const bucket = env.R2;
 
         if (!bucket) {
             return NextResponse.json(
-                { error: 'R2 버킷 바인딩 설정을 찾을 수 없습니다.' },
+                { error: 'R2 버킷 바인딩 설정을 찾을 수 없습니다. Cloudflare 대시보드에서 R2 변수를 연결해 주세요.' },
                 { status: 500 }
             );
         }
