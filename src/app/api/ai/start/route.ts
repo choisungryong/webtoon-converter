@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
         const body = await request.json() as { image: string, prompt?: string };
         const image = body.image;
         const prompt = body.prompt || "webtoon style, anime style, cel shaded, vibrant colors";
-        const negativePrompt = "nsfw, nude, naked, porn, text, bad anatomy, error, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry";
 
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -33,7 +32,6 @@ export async function POST(request: NextRequest) {
 
         // Call Replicate (Start Only)
         // Model: lucataco/flux-dev-multi-lora (Safe Fallback)
-        // Reason: xlabs-ai version was private/deprecated.
         // Capabilities: Img2Img (Colors/Structure) + LoRA (Style).
         // Hash: ad031456...
         const modelVersion = "ad0314563856e714367fdc7244b19b160d25926d305fec270c9e00f64665d352";
@@ -48,6 +46,9 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     // Flux Multi-LoRA Schema
+                    // Verified: Supports 'image', 'prompt', 'prompt_strength', 'hf_loras', 'lora_scales'.
+                    // REMOVED: Incompatible ControlNet params (control_image, control_type) which caused errors.
+
                     prompt: prompt || "modern anime style, webtoon style, manhwa, vibrant colors, detailed highlights, clean lines, masterpiece, best quality",
                     image: dataUri,           // Img2Img: Preserves both Color and Structure
                     prompt_strength: 0.85,    // High strength for style transfer, but keeps 15% original pixels
@@ -67,6 +68,8 @@ export async function POST(request: NextRequest) {
         if (startRes.status !== 201) {
             const errorText = await startRes.text();
             console.error("Replicate Start Error:", errorText);
+
+            // Should catch 422 Errors for Invalid Schema
             return NextResponse.json({ error: `Replicate Error: ${errorText}` }, { status: 500 });
         }
 
