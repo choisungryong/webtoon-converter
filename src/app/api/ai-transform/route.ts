@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
                     negative_prompt: negativePrompt,
                     num_inference_steps: 20,
                     guidance_scale: 7.5,
+                    strength: 0.55, // Preserve original composition
                     scheduler: "DPMSolverMultistep"
                 }
             })
@@ -82,10 +83,10 @@ export async function POST(request: NextRequest) {
         // 3. Poll for Completion
         let outputUrl = null;
         let attempts = 0;
-        const maxAttempts = 90; // Increased to 90 seconds
+        const maxAttempts = 30; // 30 checks * 3 seconds = 90 seconds total
 
         while (attempts < maxAttempts) {
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 3000)); // Poll every 3 seconds
             attempts++;
 
             const checkRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {

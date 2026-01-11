@@ -153,6 +153,12 @@ export default function Home() {
             }
 
             for (let i = 0; i < targets.length; i++) {
+                // Add delay between requests to avoid Rate Limits (especially after fast failures)
+                if (i > 0) {
+                    message.loading({ content: `서버 과부하 방지 대기 중... (${i}/${targets.length})`, key: 'ai', duration: 0 });
+                    await new Promise(r => setTimeout(r, 5000)); // 5s cooldown
+                }
+
                 message.loading({ content: `${i + 1}/${targets.length} 장면 변환 중...`, key: 'ai' });
                 const frameDataUrl = targets[i];
 
@@ -160,45 +166,45 @@ export default function Home() {
                 const res = await fetch(frameDataUrl);
                 const blob = await res.blob();
 
-                const formData = new FormData();
-                formData.append('image', blob);
-                formData.append('prompt', 'korean webtoon style, vibrant colors, clean lines, high quality, 2d anime');
+                const runConversion = async (retryCount = 0): Promise<boolean> => {
+                    const formData = new FormData();
+                    formData.append('image', blob);
+                    formData.append('prompt', 'korean webtoon style, vibrant colors, clean lines, high quality, 2d anime');
 
-                try {
-                    const aiRes = await axios.post('/api/ai-transform', formData);
-                    if (aiRes.data.success) {
-                        newAiImages.push(aiRes.data.image);
+                    try {
+                        const aiRes = await axios.post('/api/ai-transform', formData);
+                        if (aiRes.data.success) {
+                            newAiImages.push(aiRes.data.image);
+                            return true;
+                        }
+                    } catch (aiErr: any) {
+                        const status = aiErr.response?.status;
+                        const data = aiErr.response?.data;
+                        let errorMsg = data?.error || aiErr.message || '알 수 없는 오류';
+
+                        // Handle 429 (Rate Limit) -> Retry
+                        if ((status === 429 || errorMsg.includes('rate limit')) && retryCount < 2) {
+                            message.warning({ content: `사용량 초과 대기 중 (15초 후 재시도)...`, key: `ai_retry_${i}`, duration: 15 });
+                            console.log(`Rate limit hit for scene ${i + 1}. Retrying in 15s...`);
+                            await new Promise(r => setTimeout(r, 15000));
+                            return runConversion(retryCount + 1);
+                        }
+
+                        // Handle Other Errors
+                        console.error('AI Transform Error Full:', aiErr);
+
+                        if (typeof data === 'string' && data.includes('Time-out')) {
+                            errorMsg = '서버 응답 시간 초과 (Cloudflare Timeout)';
+                        }
+
+                        const fullMsg = `장면 ${i + 1} 실패: ${errorMsg}`;
+                        // message.error works but we let the loop continue
+                        message.error({ content: fullMsg, key: `ai_err_${i}`, duration: 5 });
                     }
-                } catch (aiErr: any) {
-                    console.error('AI Transform Error Full:', aiErr);
+                    return false;
+                };
 
-                    let errorMsg = '알 수 없는 오류';
-                    const status = aiErr.response?.status;
-                    const data = aiErr.response?.data;
-
-                    // Parse error message
-                    if (typeof data === 'object' && data?.error) {
-                        errorMsg = data.error;
-                    } else if (typeof data === 'string') {
-                        // Likely HTML from Cloudflare 500/504
-                        if (data.includes('Time-out')) errorMsg = '서버 응답 시간 초과 (Cloudflare Timeout)';
-                        else errorMsg = '서버 내부 오류 (HTML 응답)';
-                    } else if (aiErr.message) {
-                        errorMsg = aiErr.message;
-                    }
-
-                    // Display Error
-                    const fullMsg = `장면 ${i + 1} 실패: ${errorMsg}`;
-                    console.log("Showing Error:", fullMsg);
-
-                    // Use Alert for absolute certainty if toast fails or is confusing
-                    // (Only for the first error to avoid spam)
-                    if (i === 0) {
-                        alert(`❌ 오류 발생!\n\n${fullMsg}\n\n(설정 > 배포 상태를 확인해주세요)`);
-                    }
-
-                    message.error({ content: fullMsg, key: `ai_err_${i}`, duration: 10 });
-                }
+                await runConversion();
             }
 
             setAiImages(newAiImages);
