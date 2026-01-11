@@ -125,43 +125,39 @@ export default function Home() {
             message.success({ content: '업로드 완료! AI 변환 시작...', key: 'upload' });
             setUploading(false); // Done uploading
 
-            // 2. AI Conversion Loop (Parallel Batching - 3 at a time)
-            const targets = selectedFrameIndices.map(idx => extractedFrames[idx]);
-            const newImages: string[] = [];
-
             // Helper function for single conversion
             const processBatch = async (batch: string[], startIndex: number) => {
-                const promises = batch.map(async (imgSrc, batchIdx) => {
-                    const globalIdx = startIndex + batchIdx;
+                const results = [];
+                // FORCE SEQUENTIAL EXECUTION to respect Replicate Rate Limit (6/min for low credit)
+                for (let i = 0; i < batch.length; i++) {
+                    const imgSrc = batch[i];
+                    const globalIdx = startIndex + i;
+
+                    // 10s Delay between requests (60s / 6 req = 10s)
+                    if (i > 0) {
+                        message.loading({ content: `속도 제한 준수 중... (10초 대기)`, key: 'ai-rate', duration: 10 });
+                        await new Promise(r => setTimeout(r, 10000));
+                    }
+
                     try {
                         // 1. Resize/Compress Image (Client-side)
-                        // Prevents 500 Errors due to massive JSON payloads
                         const compressedDataUrl = await new Promise<string>((resolve, reject) => {
-                            const img = new window.Image(); // Use window.Image to avoid TS confusion
-                            img.crossOrigin = "anonymous"; // Important for canvas export
+                            const img = new window.Image();
+                            img.crossOrigin = "anonymous";
                             img.onload = () => {
                                 const canvas = document.createElement('canvas');
-                                const MAX_SIZE = 1024; // Webtoon style doesn't need 4K
+                                const MAX_SIZE = 1024;
                                 let width = img.width;
                                 let height = img.height;
-
                                 if (width > height) {
-                                    if (width > MAX_SIZE) {
-                                        height *= MAX_SIZE / width;
-                                        width = MAX_SIZE;
-                                    }
+                                    if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
                                 } else {
-                                    if (height > MAX_SIZE) {
-                                        width *= MAX_SIZE / height;
-                                        height = MAX_SIZE;
-                                    }
+                                    if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
                                 }
-
                                 canvas.width = width;
                                 canvas.height = height;
                                 const ctx = canvas.getContext('2d');
                                 ctx?.drawImage(img, 0, 0, width, height);
-                                // JPEG 0.8 is much smaller than PNG
                                 resolve(canvas.toDataURL('image/jpeg', 0.8));
                             };
                             img.onerror = reject;
@@ -169,16 +165,13 @@ export default function Home() {
                         });
 
                         // 2. Send Compressed Image
-                        const startRes = await axios.post('/api/ai/start', {
-                            image: compressedDataUrl  // Send the JPEG
-                        });
-
+                        const startRes = await axios.post('/api/ai/start', { image: compressedDataUrl });
                         const { predictionId } = startRes.data;
                         if (!predictionId) throw new Error('Start Failed');
 
-                        // B. Poll
+                        // 3. Poll
                         let finalUrl = null;
-                        for (let k = 0; k < 45; k++) { // 45 * 2s = 90s max
+                        for (let k = 0; k < 45; k++) {
                             await new Promise(r => setTimeout(r, 2000));
                             const statusRes = await axios.get(`/api/ai/status?id=${predictionId}&prompt=webtoon`);
                             if (statusRes.data.status === 'succeeded') {
@@ -188,36 +181,35 @@ export default function Home() {
                                 throw new Error('AI Failed');
                             }
                         }
-                        if (finalUrl) return { idx: globalIdx, url: finalUrl, success: true };
-                        throw new Error('Timeout');
+
+                        if (finalUrl) {
+                            results.push({ idx: globalIdx, url: finalUrl, success: true });
+                            // Update UI immediately
+                            setAiImages(prev => [...prev, finalUrl!]);
+                        } else {
+                            throw new Error('Timeout');
+                        }
+
                     } catch (e: any) {
                         const errorMessage = e.response?.data?.error || e.message || 'Unknown Error';
                         console.error("AI Error:", errorMessage);
-                        return { idx: globalIdx, error: errorMessage, success: false };
+                        results.push({ idx: globalIdx, error: errorMessage, success: false });
+                        message.error(`장면 ${globalIdx + 1} 실패: ${errorMessage}`);
                     }
-                });
-                return await Promise.all(promises);
+                }
+                return results;
             };
 
-            const BATCH_SIZE = 3;
-            for (let i = 0; i < targets.length; i += BATCH_SIZE) {
-                const batch = targets.slice(i, i + BATCH_SIZE);
-                message.loading({ content: `배치 변환 중... (${i + 1}~${Math.min(i + BATCH_SIZE, targets.length)}/${targets.length})`, key: 'ai' });
+            // 2. AI Conversion Loop (Sequential to avoid Rate Limiting)
+            const targets = selectedFrameIndices.map(idx => extractedFrames[idx]);
+            const newImages: string[] = [];
 
-                const results = await processBatch(batch, i);
+            // Pass all targets to sequential processor
+            message.loading({ content: `순차 변환 시작 (속도제한 준수)`, key: 'ai' });
+            await processBatch(targets, 0);
 
-                // Process results
-                results.forEach(res => {
-                    if (res.success) {
-                        newImages.push(res.url!);
-                    } else {
-                        message.error(`장면 ${res.idx! + 1} 실패: ${res.error}`);
-                    }
-                });
-
-                // Update UI incrementally
-                setAiImages(prev => [...prev, ...results.filter(r => r.success).map(r => r.url!)]);
-            }
+            message.success({ content: '모든 변환 완료!', key: 'ai' });
+            message.destroy('ai-rate'); // Clear rate limit message
 
             message.success({ content: '모든 변환 완료!', key: 'ai' });
 
