@@ -10,30 +10,29 @@ export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
     try {
+        // Log start
+        console.log("Starting AI Transform Request");
+
         const formData = await request.formData();
         const image = formData.get('image');
-        // Default to a high-quality Anime prompt if none provided
         const prompt = formData.get('prompt') || "masterpiece, best quality, ultra-detailed, anime style, webtoon style, vibrant colors, clean lines, high quality, 2d anime";
-
-        // Negative prompt to avoid bad quality
         const negativePrompt = "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
 
         if (!image) {
-            return NextResponse.json({ error: 'Image is required' }, { status: 400 });
+            console.error("Missing image");
+            return NextResponse.json({ error: '이미지가 없습니다.' }, { status: 400 });
         }
 
         const { env } = getRequestContext<CloudflareEnv>();
-
-        // REQUIREMENT: Valid Replicate API Token in Environment Variables
         const apiToken = env.REPLICATE_API_TOKEN;
 
         if (!apiToken) {
-            return NextResponse.json({ error: 'Replicate API Token is missing. Please add REPLICATE_API_TOKEN to your Cloudflare Pages variables.' }, { status: 500 });
+            console.error("Missing Replicate Token");
+            return NextResponse.json({ error: 'Replicate API 토큰이 설정되지 않았습니다. Cloudflare 설정을 확인해주세요.' }, { status: 500 });
         }
 
         // 1. Prepare Input Image
-        // Replicate accepts a public URL or a data URI.
-        // Converting to Data URI (base64) is safest for direct upload without public S3 access.
+        console.log("Reading image data...");
         const arrayBuffer = await (image as Blob).arrayBuffer();
         const base64 = btoa(
             new Uint8Array(arrayBuffer)
@@ -42,8 +41,10 @@ export async function POST(request: NextRequest) {
         const mimeType = (image as File).type || 'image/png';
         const dataUri = `data:${mimeType};base64,${base64}`;
 
+        console.log("Calling Replicate API...");
+
         // 2. Call Replicate API (Start Prediction)
-        // Model: cjwbw/anything-v4.0 (A popular high-quality Anime model)
+        // Model: cjwbw/anything-v4.0
         const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191331d";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
@@ -66,39 +67,57 @@ export async function POST(request: NextRequest) {
         });
 
         if (startRes.status !== 201) {
-            const err = await startRes.text();
-            console.error("Replicate API Error:", err);
-            throw new Error(`Replicate API Failed: ${err}`);
+            const errorText = await startRes.text();
+            console.error(`Replicate API Error (${startRes.status}):`, errorText);
+            return NextResponse.json({
+                error: `AI 모델 호출 실패 (${startRes.status}): ${errorText}`
+            }, { status: 500 });
         }
 
         const prediction = await startRes.json();
         let predictionId = prediction.id;
-        let outputUrl = null;
+        console.log("Prediction started:", predictionId);
 
         // 3. Poll for Completion
-        let status = prediction.status;
-        while (status !== "succeeded" && status !== "failed" && status !== "canceled") {
-            await new Promise(r => setTimeout(r, 1000)); // Wait 1s
+        let outputUrl = null;
+        let attempts = 0;
+        const maxAttempts = 30; // 30 seconds
+
+        while (attempts < maxAttempts) {
+            await new Promise(r => setTimeout(r, 1000));
+            attempts++;
+
             const checkRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
                 headers: {
                     "Authorization": `Token ${apiToken}`,
                 }
             });
             const checkJson = await checkRes.json();
-            status = checkJson.status;
+            const status = checkJson.status;
+
+            console.log(`Polling ${predictionId}: ${status}`);
+
             if (status === "succeeded") {
-                outputUrl = checkJson.output[0]; // AnythingV4 returns array
-            } else if (status === "failed") {
-                throw new Error(`Replicate generation failed: ${checkJson.error}`);
+                outputUrl = checkJson.output[0];
+                break;
+            } else if (status === "failed" || status === "canceled") {
+                console.error("Prediction failed:", checkJson.error);
+                return NextResponse.json({ error: `AI 변환 오류: ${checkJson.error}` }, { status: 500 });
             }
         }
 
         if (!outputUrl) {
-            throw new Error("No output output generated");
+            console.error("Timeout");
+            return NextResponse.json({ error: "AI 변환 시간 초과 (30초)" }, { status: 504 });
         }
+
+        console.log("Downloading result from:", outputUrl);
 
         // 4. Download Result Image
         const imgRes = await fetch(outputUrl);
+        if (!imgRes.ok) {
+            throw new Error(`이미지 다운로드 실패: ${imgRes.status}`);
+        }
         const imgBlob = await imgRes.blob();
         const imgBuffer = await imgBlob.arrayBuffer();
 
@@ -107,6 +126,7 @@ export async function POST(request: NextRequest) {
         const r2Key = `generated/${imageId}.png`;
 
         if (env.R2) {
+            console.log("Saving to R2:", r2Key);
             await env.R2.put(r2Key, imgBuffer, {
                 httpMetadata: { contentType: 'image/png' }
             });
@@ -119,12 +139,15 @@ export async function POST(request: NextRequest) {
                     ).bind(imageId, r2Key, prompt.toString()).run();
                 } catch (dbError) {
                     console.error('DB Insert Error:', dbError);
+                    // Non-critical error
                 }
             }
+        } else {
+            console.warn("R2 Binding missing, skipping save");
         }
 
-        // 7. Return Signed URL (Visual Feedback)
-        if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET_NAME) {
+        // 7. Return Signed URL
+        if (env.R2 && env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET_NAME) {
             const S3 = new S3Client({
                 region: 'auto',
                 endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -148,16 +171,12 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Fallback if R2 credentials missing (should not happen in prod)
-        return NextResponse.json({
-            success: true,
-            image: outputUrl
-        });
+        return NextResponse.json({ success: true, image: outputUrl });
 
     } catch (error) {
-        console.error('AI Processing Error:', error);
+        console.error('SERVER ERROR:', error);
         return NextResponse.json({
-            error: `AI 변환 실패: ${(error as Error).message}`
+            error: `서버 내부 오류: ${(error as Error).message}`
         }, { status: 500 });
     }
 }
