@@ -14,6 +14,7 @@ export default function Home() {
     const [uploading, setUploading] = useState(false);
     const [converting, setConverting] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [selectedFrameIndices, setSelectedFrameIndices] = useState<number[]>([]);
     const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
     const [aiImages, setAiImages] = useState<string[]>([]);
     const [analyzing, setAnalyzing] = useState(false);
@@ -31,6 +32,7 @@ export default function Home() {
                 videoRef.current.load();
                 setAnalyzing(true);
                 setExtractedFrames([]);
+                setSelectedFrameIndices([]); // Reset selection
                 setAiImages([]);
             }
         }
@@ -44,8 +46,11 @@ export default function Home() {
         const ctx = canvas.getContext('2d');
         const duration = video.duration;
 
-        // Extract 3 frames: 20%, 50%, 80%
-        const timestamps = [duration * 0.2, duration * 0.5, duration * 0.8];
+        // Extract 12 frames for a nice grid (4x3)
+        // Avoid very start (0) and very end
+        const count = 12;
+        const interval = duration / (count + 1);
+        const timestamps = Array.from({ length: count }, (_, i) => interval * (i + 1));
         const frames: string[] = [];
 
         try {
@@ -55,7 +60,6 @@ export default function Home() {
                 video.currentTime = time;
                 await new Promise(resolve => {
                     video.onseeked = () => resolve(true);
-                    // Timeout safety
                     setTimeout(resolve, 500);
                 });
 
@@ -68,13 +72,25 @@ export default function Home() {
             }
 
             setExtractedFrames(frames);
-            message.success({ content: '장면 추출 완료!', key: 'analyze' });
+            // Auto-select the first 3 by default
+            setSelectedFrameIndices([0, 1, 2]);
+            message.success({ content: '장면 추출 완료! 변환할 장면을 선택해주세요.', key: 'analyze' });
         } catch (e) {
             console.error(e);
             message.error({ content: '장면 분석 실패', key: 'analyze' });
         } finally {
             setAnalyzing(false);
         }
+    };
+
+    const toggleFrameSelection = (idx: number) => {
+        setSelectedFrameIndices(prev => {
+            if (prev.includes(idx)) {
+                return prev.filter(i => i !== idx);
+            } else {
+                return [...prev, idx];
+            }
+        });
     };
 
     const handleUpload = async () => {
@@ -127,10 +143,18 @@ export default function Home() {
 
             // 4. Trigger AI Transformation
             const newAiImages = [];
+            const targets = selectedFrameIndices.map(idx => extractedFrames[idx]);
 
-            for (let i = 0; i < extractedFrames.length; i++) {
-                message.loading({ content: `${i + 1}번째 장면 변환 중...`, key: 'ai' });
-                const frameDataUrl = extractedFrames[i];
+            if (targets.length === 0) {
+                message.warning('변환할 장면을 하나 이상 선택해주세요!');
+                setUploading(false);
+                setConverting(false);
+                return;
+            }
+
+            for (let i = 0; i < targets.length; i++) {
+                message.loading({ content: `${i + 1}/${targets.length} 장면 변환 중...`, key: 'ai' });
+                const frameDataUrl = targets[i];
 
                 // Convert DataURL to Blob
                 const res = await fetch(frameDataUrl);
@@ -273,20 +297,37 @@ export default function Home() {
                             </Card>
                         </Col>
 
-                        {/* Right: Analysis Result */}
+                        {/* Right: Analysis Result (Selection Mode) */}
                         {extractedFrames.length > 0 && (
                             <Col xs={24} md={12}>
                                 <Card
-                                    title={<span style={{ color: '#CCFF00' }}>✨ 주요 장면 추출됨</span>}
+                                    title={
+                                        <div className="flex justify-between items-center">
+                                            <span style={{ color: '#CCFF00' }}>✨ 주요 장면 선택 ({selectedFrameIndices.length})</span>
+                                            <span className="text-gray-400 text-sm font-normal">변환할 장면을 클릭하세요</span>
+                                        </div>
+                                    }
                                     bordered={false}
                                     style={{ background: '#1c1c1c', height: '100%' }}
                                 >
-                                    <div className="grid grid-cols-2 gap-2 mb-4">
-                                        {extractedFrames.map((frame, idx) => (
-                                            <div key={idx} className={`relative rounded-lg overflow-hidden ${idx === 0 ? 'col-span-2' : ''}`}>
-                                                <Image src={frame} alt={`Scene ${idx}`} />
-                                            </div>
-                                        ))}
+                                    <div className="grid grid-cols-3 gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {extractedFrames.map((frame, idx) => {
+                                            const isSelected = selectedFrameIndices.includes(idx);
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`relative rounded-lg overflow-hidden cursor-pointer transition-all ${isSelected ? 'ring-2 ring-[#CCFF00] scale-95 opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                                                    onClick={() => toggleFrameSelection(idx)}
+                                                >
+                                                    <Image src={frame} alt={`Scene ${idx}`} preview={false} />
+                                                    {isSelected && (
+                                                        <div className="absolute top-1 right-1 bg-[#CCFF00] text-black w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs">
+                                                            ✓
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                     <Button
                                         type="primary"
@@ -295,9 +336,10 @@ export default function Home() {
                                         icon={<ThunderboltOutlined />}
                                         loading={uploading || converting}
                                         onClick={handleUpload}
+                                        disabled={selectedFrameIndices.length === 0}
                                         style={{ height: '56px', fontSize: '18px', fontWeight: 'bold' }}
                                     >
-                                        {converting ? 'AI 변환 중...' : `웹툰으로 변환하기 (${extractedFrames.length}컷)`}
+                                        {converting ? 'AI 변환 중...' : `${selectedFrameIndices.length}개 장면 변환하기`}
                                     </Button>
                                 </Card>
                             </Col>
