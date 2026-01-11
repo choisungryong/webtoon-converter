@@ -134,12 +134,12 @@ export default function Home() {
                 const promises = batch.map(async (imgSrc, batchIdx) => {
                     const globalIdx = startIndex + batchIdx;
                     try {
-                        const blob = await (await fetch(imgSrc)).blob();
-                        const formData = new FormData();
-                        formData.append('image', blob);
+                        // SEND DATA URL DIRECTLY (Client-side Base64)
+                        // This avoids server-side processing limits (500 Error fix)
+                        const startRes = await axios.post('/api/ai/start', {
+                            image: imgSrc
+                        });
 
-                        // A. Start
-                        const startRes = await axios.post('/api/ai/start', formData);
                         const { predictionId } = startRes.data;
                         if (!predictionId) throw new Error('Start Failed');
 
@@ -260,12 +260,7 @@ export default function Home() {
                     {/* 2. Scene Selection (Google Photos Style) - Stacked Below */}
                     {extractedFrames.length > 0 && (
                         <Card title={<span className="text-[#CCFF00]">장면 선택 ({selectedFrameIndices.length})</span>} size="small" bordered={false} style={{ background: '#1c1c1c' }}>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                                gap: '8px',
-                                marginBottom: '16px'
-                            }}>
+                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
                                 {extractedFrames.map((frame, idx) => {
                                     const isSelected = selectedFrameIndices.includes(idx);
                                     return (

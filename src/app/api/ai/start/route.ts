@@ -5,9 +5,10 @@ export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
     try {
-        const formData = await request.formData();
-        const image = formData.get('image');
-        const prompt = formData.get('prompt') || "webtoon style, anime style, cel shaded, vibrant colors"; // Minimal prompt to avoid hallucinations
+        // Read JSON Body (Client-side Base64)
+        const body = await request.json() as { image: string, prompt?: string };
+        const image = body.image;
+        const prompt = body.prompt || "webtoon style, anime style, cel shaded, vibrant colors";
         const negativePrompt = "nsfw, nude, naked, porn, text, bad anatomy, error, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry";
 
         if (!image) {
@@ -21,16 +22,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Replicate API Token missing' }, { status: 500 });
         }
 
-        // Prepare Image
-        const arrayBuffer = await (image as Blob).arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-        const mimeType = (image as File).type || 'image/png';
-        const dataUri = `data:${mimeType};base64,${base64}`;
+        // Image is already Base64 Data URI from client
+        const dataUri = image;
 
         // Call Replicate (Start Only)
         // Model: cjwbw/anything-v4.0
