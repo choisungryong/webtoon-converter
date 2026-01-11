@@ -26,24 +26,37 @@ export default function Header() {
         <AntHeader style={{
             display: 'flex',
             alignItems: 'center',
-            background: 'rgba(0,0,0,0.8)',
-            backdropFilter: 'blur(10px)',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             position: 'fixed',
             zIndex: 1000,
             width: '100%',
-            borderBottom: '1px solid #333'
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            height: '70px',
+            padding: '0 24px'
         }}>
-            <div className="demo-logo" style={{ marginRight: '40px', display: 'flex', alignItems: 'center' }}>
-                <ThunderboltOutlined style={{ fontSize: '24px', color: '#CCFF00', marginRight: '10px' }} />
-                <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>ToonSnap</span>
-            </div>
+            <Link href="/" className="demo-logo" style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                <div className="w-8 h-8 rounded-lg bg-[#CCFF00] flex items-center justify-center mr-3 shadow-[0_0_15px_rgba(204,255,0,0.4)]">
+                    <ThunderboltOutlined style={{ fontSize: '18px', color: '#000' }} />
+                </div>
+                <span style={{ color: '#fff', fontSize: '20px', fontWeight: '800', letterSpacing: '-0.5px' }}>
+                    ToonSnap
+                </span>
+            </Link>
 
             <Menu
                 theme="dark"
                 mode="horizontal"
                 selectedKeys={[pathname]}
                 items={items}
-                style={{ flex: 1, minWidth: 0, background: 'transparent' }}
+                style={{
+                    flex: '0 0 auto',
+                    background: 'transparent',
+                    borderBottom: 'none',
+                    fontSize: '15px',
+                    fontWeight: 500
+                }}
             />
         </AntHeader>
     );
