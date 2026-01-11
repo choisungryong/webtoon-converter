@@ -170,17 +170,34 @@ export default function Home() {
                         newAiImages.push(aiRes.data.image);
                     }
                 } catch (aiErr: any) {
-                    console.error('AI Transform Error:', aiErr);
-                    const backendMsg = aiErr.response?.data?.error;
-                    const status = aiErr.response?.status;
+                    console.error('AI Transform Error Full:', aiErr);
 
-                    if (status === 504) {
-                        message.warning({ content: `장면 ${i + 1}: AI 변환 시간 초과 (잠시 후 다시 시도)`, key: `ai_err_${i}`, duration: 5 });
-                    } else if (backendMsg) {
-                        message.error({ content: `장면 ${i + 1} 오류: ${backendMsg}`, key: `ai_err_${i}`, duration: 8 });
-                    } else {
-                        message.error({ content: `장면 ${i + 1} 변환 실패 (네트워크/서버 오류)`, key: `ai_err_${i}` });
+                    let errorMsg = '알 수 없는 오류';
+                    const status = aiErr.response?.status;
+                    const data = aiErr.response?.data;
+
+                    // Parse error message
+                    if (typeof data === 'object' && data?.error) {
+                        errorMsg = data.error;
+                    } else if (typeof data === 'string') {
+                        // Likely HTML from Cloudflare 500/504
+                        if (data.includes('Time-out')) errorMsg = '서버 응답 시간 초과 (Cloudflare Timeout)';
+                        else errorMsg = '서버 내부 오류 (HTML 응답)';
+                    } else if (aiErr.message) {
+                        errorMsg = aiErr.message;
                     }
+
+                    // Display Error
+                    const fullMsg = `장면 ${i + 1} 실패: ${errorMsg}`;
+                    console.log("Showing Error:", fullMsg);
+
+                    // Use Alert for absolute certainty if toast fails or is confusing
+                    // (Only for the first error to avoid spam)
+                    if (i === 0) {
+                        alert(`❌ 오류 발생!\n\n${fullMsg}\n\n(설정 > 배포 상태를 확인해주세요)`);
+                    }
+
+                    message.error({ content: fullMsg, key: `ai_err_${i}`, duration: 10 });
                 }
             }
 
