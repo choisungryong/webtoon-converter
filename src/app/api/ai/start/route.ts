@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: jagilley/controlnet-canny (The "Tracing Paper" Model)
-        // This extracts lines from the uploaded image and colors them.
-        // It IMPOSSIBLE to hallucinate a different composition because it follows the lines.
-        const modelVersion = "aff48af9c68d162388d230a2ab003f68d263a9a88e7cabe168e90102e21211fb";
+        // Model: rossjillian/controlnet (Multi-ControlModel Wrapper)
+        // We use "Canny" mode to extract lines and force composition adherence.
+        // Version: Latest Hash (795433b1...)
+        const modelVersion = "795433b19458d0f4fa172a7ccf93178d2adb1cb8ab2ad6c8fdc33fdbcd49f477";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -52,19 +52,18 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     image: dataUri,
+                    structure: "canny", // REQUIRED: Tells the model to use Canny Edge Detection
                     prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, clean lines, masterpiece, best quality",
-                    // Added Prompts (Positive/Negative)
-                    a_prompt: "best quality, extremely detailed, vibrant colors, 4k",
-                    n_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality",
+                    negative_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality",
 
                     // ControlNet Settings
-                    image_resolution: "512", // Locks size to 512px
-                    num_samples: "1",
-                    low_threshold: 100, // Edge detection sensitivity
+                    image_resolution: "512",
+                    low_threshold: 100,
                     high_threshold: 200,
-                    ddim_steps: 20,
-                    scale: 9.0,         // Follow prompt strictly
-                    eta: 0.0
+                    steps: 20,          // Rossjillian uses 'steps'
+                    scale: 9.0,         // Guidance Scale
+                    eta: 0.0,
+                    a_prompt: "best quality, extremely detailed" // Added prompt for quality
                 }
             })
         });
