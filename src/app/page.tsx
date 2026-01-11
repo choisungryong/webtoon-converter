@@ -1,9 +1,9 @@
 'use client';
 
 export const runtime = 'edge';
-import { useState } from 'react';
-import { Button, Upload, message, Card, ConfigProvider, theme, Progress } from 'antd';
-import { ThunderboltOutlined, InboxOutlined } from '@ant-design/icons';
+import { useState, useRef, useEffect } from 'react';
+import { Button, Upload, message, Card, ConfigProvider, theme, Progress, Row, Col, Image } from 'antd';
+import { ThunderboltOutlined, InboxOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import axios from 'axios';
 
@@ -12,7 +12,70 @@ const { Dragger } = Upload;
 export default function Home() {
     const [fileList, setFileList] = useState<any[]>([]);
     const [uploading, setUploading] = useState(false);
+    const [converting, setConverting] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
+    const [aiImages, setAiImages] = useState<string[]>([]);
+    const [analyzing, setAnalyzing] = useState(false);
+
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    // Analyze video when file is selected
+    useEffect(() => {
+        if (fileList.length > 0 && fileList[0].originFileObj) {
+            const file = fileList[0].originFileObj;
+            if (videoRef.current) {
+                const url = URL.createObjectURL(file);
+                videoRef.current.src = url;
+                videoRef.current.load();
+                setAnalyzing(true);
+                setExtractedFrames([]);
+                setAiImages([]);
+            }
+        }
+    }, [fileList]);
+
+    const handleVideoLoaded = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const duration = video.duration;
+
+        // Extract 3 frames: 20%, 50%, 80%
+        const timestamps = [duration * 0.2, duration * 0.5, duration * 0.8];
+        const frames: string[] = [];
+
+        try {
+            message.loading({ content: '주요 장면 분석 중...', key: 'analyze' });
+
+            for (const time of timestamps) {
+                video.currentTime = time;
+                await new Promise(resolve => {
+                    video.onseeked = () => resolve(true);
+                    // Timeout safety
+                    setTimeout(resolve, 500);
+                });
+
+                if (ctx) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    frames.push(canvas.toDataURL('image/jpeg', 0.8));
+                }
+            }
+
+            setExtractedFrames(frames);
+            message.success({ content: '장면 추출 완료!', key: 'analyze' });
+        } catch (e) {
+            console.error(e);
+            message.error({ content: '장면 분석 실패', key: 'analyze' });
+        } finally {
+            setAnalyzing(false);
+        }
+    };
 
     const handleUpload = async () => {
         const file = fileList[0];
@@ -23,6 +86,8 @@ export default function Home() {
 
         setUploading(true);
         setProgress(0);
+        setAiImages([]);
+        setConverting(true);
 
         try {
             // 1. Get Presigned URL
@@ -33,9 +98,8 @@ export default function Home() {
             });
 
             if (!presignedData.success) {
-                // Check if it's the specific DB error to check for config
                 if (presignedData.error && presignedData.error.includes('DB')) {
-                    throw new Error('D1 데이터베이스 설정이 확인되지 않습니다. Cloudflare 대시보드를 확인해주세요.');
+                    throw new Error('D1 데이터베이스 설정이 확인되지 않습니다.');
                 }
                 throw new Error(presignedData.error || 'URL 생성 실패');
             }
@@ -45,10 +109,8 @@ export default function Home() {
             // 2. Upload directly to R2
             message.loading({ content: '영상 업로드 중...', key: 'upload' });
 
-            await axios.put(uploadUrl, file, {
-                headers: {
-                    'Content-Type': file.type
-                },
+            await axios.put(uploadUrl, file.originFileObj || file, {
+                headers: { 'Content-Type': file.type },
                 onUploadProgress: (progressEvent) => {
                     if (progressEvent.total) {
                         const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -60,9 +122,40 @@ export default function Home() {
             // 3. Notify Complete
             await axios.post('/api/upload-complete', { fileId });
 
-            message.success({ content: '업로드 완료! 변환 대기 중...', key: 'upload' });
-            setFileList([]);
-            setProgress(100);
+            message.success({ content: '업로드 완료! AI 변환을 시작합니다.', key: 'upload' });
+            setUploading(false); // Stop upload loading, start AI loading
+
+            // 4. Trigger AI Transformation
+            const newAiImages = [];
+
+            for (let i = 0; i < extractedFrames.length; i++) {
+                message.loading({ content: `${i + 1}번째 장면 변환 중...`, key: 'ai' });
+                const frameDataUrl = extractedFrames[i];
+
+                // Convert DataURL to Blob
+                const res = await fetch(frameDataUrl);
+                const blob = await res.blob();
+
+                const formData = new FormData();
+                formData.append('image', blob);
+                formData.append('prompt', 'korean webtoon style, vibrant colors, clean lines, high quality, 2d anime');
+
+                try {
+                    const aiRes = await axios.post('/api/ai-transform', formData);
+                    if (aiRes.data.success) {
+                        newAiImages.push(aiRes.data.image);
+                    }
+                } catch (aiErr) {
+                    console.error('AI Transform Error:', aiErr);
+                }
+            }
+
+            setAiImages(newAiImages);
+            if (newAiImages.length > 0) {
+                message.success({ content: 'AI 변환 완료!', key: 'ai' });
+            } else {
+                message.warning({ content: 'AI 변환에 실패했습니다. 설정(AI Binding)을 확인해주세요.', key: 'ai' });
+            }
 
         } catch (error: any) {
             console.error(error);
@@ -70,12 +163,15 @@ export default function Home() {
             message.error({ content: `오류 발생: ${errMsg}`, key: 'upload', duration: 5 });
         } finally {
             setUploading(false);
+            setConverting(false);
         }
     };
 
     const uploadProps: UploadProps = {
-        onRemove: (file) => {
+        onRemove: () => {
             setFileList([]);
+            setExtractedFrames([]);
+            setAiImages([]);
         },
         beforeUpload: (file) => {
             const isVideo = file.type.startsWith('video/');
@@ -83,12 +179,12 @@ export default function Home() {
                 message.error(`${file.name}은(는) 동영상 파일이 아닙니다.`);
                 return Upload.LIST_IGNORE;
             }
-            // Manually handle file list to allow single file replacement
             setFileList([file]);
-            return false; // Prevent automatic upload
+            return false;
         },
         fileList,
-        maxCount: 1
+        maxCount: 1,
+        showUploadList: false
     };
 
     return (
@@ -96,7 +192,7 @@ export default function Home() {
             theme={{
                 algorithm: theme.darkAlgorithm,
                 token: {
-                    colorPrimary: '#CCFF00', // Neon Yellow
+                    colorPrimary: '#CCFF00',
                     colorBgContainer: '#141414',
                     colorText: '#ffffff',
                 },
@@ -110,67 +206,142 @@ export default function Home() {
             }}
         >
             <main className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
-                <div className="w-full max-w-2xl text-center space-y-8">
+                {/* Hidden Elements for Analysis */}
+                <video
+                    ref={videoRef}
+                    style={{ display: 'none' }}
+                    onLoadedData={handleVideoLoaded}
+                    crossOrigin="anonymous"
+                    muted
+                />
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-                    {/* Header */}
+                <div className="w-full max-w-4xl text-center space-y-8">
+
                     <div className="space-y-4 animate-fade-in">
                         <ThunderboltOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
                         <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#CCFF00] to-green-400">
-                            영상을 웹툰으로 바꾸기
+                            WEBTOON AI CONVERTER
                         </h1>
                         <p className="text-gray-400 text-lg">
-                            D1 & R2 기반의 초고속 업로드
+                            영상을 분석하여 웹툰으로 변환합니다.
                         </p>
                     </div>
 
-                    {/* Upload Card */}
-                    <Card
-                        bordered={false}
-                        className="w-full shadow-2xl shadow-[#CCFF00]/10"
-                        style={{ background: '#1c1c1c' }}
-                    >
-                        <Dragger {...uploadProps} style={{ padding: '40px', background: '#141414', borderColor: '#333' }}>
-                            <p className="ant-upload-drag-icon">
-                                <InboxOutlined style={{ color: '#CCFF00' }} />
-                            </p>
-                            <p className="ant-upload-text" style={{ color: '#fff' }}>
-                                클릭하거나 영상을 여기로 드래그하세요
-                            </p>
-                            <p className="ant-upload-hint" style={{ color: '#666' }}>
-                                대용량 영상도 실시간으로 안전하게 업로드됩니다.
-                            </p>
-                        </Dragger>
+                    <Row gutter={[24, 24]}>
+                        {/* Left: Upload Area */}
+                        <Col xs={24} md={extractedFrames.length > 0 ? 12 : 24}>
+                            <Card
+                                bordered={false}
+                                className="w-full shadow-2xl shadow-[#CCFF00]/10"
+                                style={{ background: '#1c1c1c', minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+                            >
+                                {fileList.length === 0 ? (
+                                    <Dragger {...uploadProps} style={{ padding: '40px', background: 'transparent', border: 'none' }}>
+                                        <p className="ant-upload-drag-icon">
+                                            <InboxOutlined style={{ color: '#CCFF00', fontSize: '48px' }} />
+                                        </p>
+                                        <p className="text-xl font-bold text-white mt-4">
+                                            영상 업로드
+                                        </p>
+                                        <p className="text-gray-500 mt-2">
+                                            여기를 클릭하거나 파일을 드래그하세요
+                                        </p>
+                                    </Dragger>
+                                ) : (
+                                    <div className="p-8">
+                                        <PlayCircleOutlined style={{ fontSize: '64px', color: '#CCFF00' }} />
+                                        <p className="text-xl font-bold text-white mt-4 break-all">
+                                            {fileList[0].name}
+                                        </p>
+                                        <Button danger onClick={() => { setFileList([]); setExtractedFrames([]); setAiImages([]); }} style={{ marginTop: '20px' }}>
+                                            다른 영상 선택
+                                        </Button>
+                                    </div>
+                                )}
 
-                        {uploading && (
-                            <div className="mt-6 px-4">
-                                <Progress
-                                    percent={progress}
-                                    strokeColor={{ '0%': '#CCFF00', '100%': '#87d068' }}
-                                    trailColor="#333"
-                                    status="active"
-                                />
-                                <p className="text-gray-400 mt-2 text-sm text-center">R2 스토리지로 전송 중... ({progress}%)</p>
-                            </div>
+                                {uploading && (
+                                    <div className="mt-6 px-8">
+                                        <Progress
+                                            percent={progress}
+                                            strokeColor={{ '0%': '#CCFF00', '100%': '#87d068' }}
+                                            trailColor="#333"
+                                        />
+                                        <p className="text-gray-400 mt-2 text-sm">업로드 중...</p>
+                                    </div>
+                                )}
+                            </Card>
+                        </Col>
+
+                        {/* Right: Analysis Result */}
+                        {extractedFrames.length > 0 && (
+                            <Col xs={24} md={12}>
+                                <Card
+                                    title={<span style={{ color: '#CCFF00' }}>✨ 주요 장면 추출됨</span>}
+                                    bordered={false}
+                                    style={{ background: '#1c1c1c', height: '100%' }}
+                                >
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {extractedFrames.map((frame, idx) => (
+                                            <div key={idx} className={`relative rounded-lg overflow-hidden ${idx === 0 ? 'col-span-2' : ''}`}>
+                                                <Image src={frame} alt={`Scene ${idx}`} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button
+                                        type="primary"
+                                        block
+                                        size="large"
+                                        icon={<ThunderboltOutlined />}
+                                        loading={uploading || converting}
+                                        onClick={handleUpload}
+                                        style={{ height: '56px', fontSize: '18px', fontWeight: 'bold' }}
+                                    >
+                                        {converting ? 'AI 변환 중...' : `웹툰으로 변환하기 (${extractedFrames.length}컷)`}
+                                    </Button>
+                                </Card>
+                            </Col>
                         )}
 
-                        <Button
-                            type="primary"
-                            block
-                            size="large"
-                            icon={<ThunderboltOutlined />}
-                            loading={uploading}
-                            onClick={handleUpload}
-                            disabled={fileList.length === 0}
-                            style={{
-                                marginTop: '24px',
-                                height: '56px',
-                                fontSize: '18px',
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            {uploading ? '변환 중입니다...' : '웹툰으로 변환하기'}
-                        </Button>
-                    </Card>
+                        {/* AI Results */}
+                        {aiImages.length > 0 && (
+                            <Col span={24}>
+                                <Card
+                                    title={<span style={{ color: '#CCFF00' }}>🚀 웹툰 변환 완료</span>}
+                                    bordered={false}
+                                    style={{ background: '#1c1c1c' }}
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {aiImages.map((img, idx) => (
+                                            <Card
+                                                key={idx}
+                                                hoverable
+                                                cover={<Image src={img} alt={`Webtoon ${idx}`} />}
+                                                style={{ border: '1px solid #333', background: '#000' }}
+                                            >
+                                                <Card.Meta
+                                                    title={<span style={{ color: '#fff' }}>Scene #{idx + 1}</span>}
+                                                    description={<span style={{ color: '#666' }}>Webtoon Style</span>}
+                                                />
+                                            </Card>
+                                        ))}
+                                    </div>
+                                    <Button
+                                        block
+                                        style={{ marginTop: '20px', background: '#333', color: '#fff', border: 'none' }}
+                                        onClick={() => {
+                                            setFileList([]);
+                                            setExtractedFrames([]);
+                                            setAiImages([]);
+                                            setProgress(0);
+                                        }}
+                                    >
+                                        처음으로 돌아가기
+                                    </Button>
+                                </Card>
+                            </Col>
+                        )}
+                    </Row>
 
                 </div>
             </main>
