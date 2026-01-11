@@ -31,9 +31,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: lucataco/flux-dev-multi-lora
-        // Hash: ad031456...
-        const modelVersion = "ad0314563856e714367fdc7244b19b160d25926d305fec270c9e00f64665d352";
+        // EMERGENCY ROLLBACK: Use cjwbw/anything-v4.0
+        // Reason: Flux models are causing persistent 500 Errors (Version/Schema issues).
+        // Goal: Restore Service Availability IMMEDIATELY.
+        // Capabilities: Excellent Anime Style + Img2Img.
+        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -44,20 +46,24 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 version: modelVersion,
                 input: {
-                    // Flux Multi-LoRA Schema
-                    prompt: prompt || "modern anime style, webtoon style, manhwa, vibrant colors, detailed highlights, clean lines, masterpiece, best quality",
+                    // Anything V4 Schema
+                    prompt: prompt || "masterpiece, best quality, illustration, beautiful detailed, finely detailed, dramatic light, intricate details, anime style, webtoon style",
+                    negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
+
+                    // Img2Img Params
+                    original_image: dataUri, // Some models use 'original_image', others 'image'. V4 uses 'image' usually, but let's check.
+                    // Actually, Replicate standard is usually 'image' for init_image.
+                    // But Anything V4 inputs might differ.
+                    // Let's use 'image' (init_image) and 'prompt'.
+                    // Note: 'image' in Replicate usually means inputs.
+                    // Anything V4 Replicate page says input is 'image' (for img2img) or 'prompt'.
                     image: dataUri,
-                    prompt_strength: 0.85,
 
-                    // FIX: Use Full URL to ensure LoRA is found (bypasses potential cache issues)
-                    hf_loras: ["https://huggingface.co/alfredplpl/flux.1-dev-modern-anime-lora/resolve/main/flux.1-dev-modern-anime-lora.safetensors"],
-                    lora_scales: [1.0],
-
-                    // Standard Flux Params
-                    num_inference_steps: 28,
-                    guidance_scale: 3.5,
-                    output_format: "jpg",
-                    disable_safety_checker: true
+                    // Tuning
+                    strength: 0.65,        // 0.65 = Balanced between Source and Anime Style
+                    num_inference_steps: 25,
+                    guidance_scale: 7.5,
+                    scheduler: "DPMSolverMultistep"
                 }
             })
         });
@@ -66,7 +72,6 @@ export async function POST(request: NextRequest) {
             const errorText = await startRes.text();
             console.error("Replicate Start Error:", errorText);
 
-            // Return detailed error to help debugging
             return NextResponse.json({ error: `Replicate Error: ${errorText}` }, { status: 500 });
         }
 
