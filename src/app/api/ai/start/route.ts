@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: stability-ai/stable-diffusion (v2.1) - Reliable Img2Img Support
-        // We switched back because "Anything v4" was ignoring the input image.
-        // We now use SD 2.1 with 512px resolution to prevent "Abstract Art".
-        const modelVersion = "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf";
+        // Model: jagilley/controlnet-canny (The "Tracing Paper" Model)
+        // This extracts lines from the uploaded image and colors them.
+        // It IMPOSSIBLE to hallucinate a different composition because it follows the lines.
+        const modelVersion = "aff48af9c68d162388d230a2ab003f68d263a9a88e7cabe168e90102e21211fb";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -52,13 +52,19 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     image: dataUri,
-                    // SD 2.1 uses 'image' but we keep redundancy just in case
-                    prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, bold lines, masterpiece, best quality, faithful to source, preserve exact composition",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark, grainy, ugly, deformed, distorted, hallucinations",
-                    num_inference_steps: 50,
-                    guidance_scale: 7.5,
-                    strength: 0.30, // 0.30 = Strict Filter Mode (SD 2.1 is sensitive)
-                    scheduler: "DPMSolverMultistep"
+                    prompt: prompt || "webtoon style, anime style, manhwa, cel shaded, flat color, clean lines, masterpiece, best quality",
+                    // Added Prompts (Positive/Negative)
+                    a_prompt: "best quality, extremely detailed, vibrant colors, 4k",
+                    n_prompt: negativePrompt + ", longbody, lowres, bad anatomy, bad hands, missing fingers, pubic hair, extra digit, fewer digits, cropped, worst quality, low quality",
+
+                    // ControlNet Settings
+                    image_resolution: "512", // Locks size to 512px
+                    num_samples: "1",
+                    low_threshold: 100, // Edge detection sensitivity
+                    high_threshold: 200,
+                    ddim_steps: 20,
+                    scale: 9.0,         // Follow prompt strictly
+                    eta: 0.0
                 }
             })
         });

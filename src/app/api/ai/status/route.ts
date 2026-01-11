@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
         const status = prediction.status;
 
         if (status === 'succeeded') {
-            const outputUrl = prediction.output[0];
+            // Replicate output can be an ID, a URL string, or an Array of URLs.
+            // ControlNet returns [image, canny_map]. We want [0].
+            const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
 
             // Download & Save logic here (Server-side persistence)
             // We do this here so the client doesn't have to handle R2 logic
