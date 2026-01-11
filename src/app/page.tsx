@@ -134,10 +134,43 @@ export default function Home() {
                 const promises = batch.map(async (imgSrc, batchIdx) => {
                     const globalIdx = startIndex + batchIdx;
                     try {
-                        // SEND DATA URL DIRECTLY (Client-side Base64)
-                        // This avoids server-side processing limits (500 Error fix)
+                        // 1. Resize/Compress Image (Client-side)
+                        // Prevents 500 Errors due to massive JSON payloads
+                        const compressedDataUrl = await new Promise<string>((resolve, reject) => {
+                            const img = new window.Image(); // Use window.Image to avoid TS confusion
+                            img.crossOrigin = "anonymous"; // Important for canvas export
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                const MAX_SIZE = 1024; // Webtoon style doesn't need 4K
+                                let width = img.width;
+                                let height = img.height;
+
+                                if (width > height) {
+                                    if (width > MAX_SIZE) {
+                                        height *= MAX_SIZE / width;
+                                        width = MAX_SIZE;
+                                    }
+                                } else {
+                                    if (height > MAX_SIZE) {
+                                        width *= MAX_SIZE / height;
+                                        height = MAX_SIZE;
+                                    }
+                                }
+
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx?.drawImage(img, 0, 0, width, height);
+                                // JPEG 0.8 is much smaller than PNG
+                                resolve(canvas.toDataURL('image/jpeg', 0.8));
+                            };
+                            img.onerror = reject;
+                            img.src = imgSrc;
+                        });
+
+                        // 2. Send Compressed Image
                         const startRes = await axios.post('/api/ai/start', {
-                            image: imgSrc
+                            image: compressedDataUrl  // Send the JPEG
                         });
 
                         const { predictionId } = startRes.data;
