@@ -52,11 +52,11 @@ export async function POST(request: NextRequest) {
                 input: {
                     image: dataUri,     // Standard Key
                     init_image: dataUri, // Legacy Key redundancy (Forces Img2Img)
-                    prompt: prompt || "faithful to source, preserve exact composition, accurate details, masterpiece, best quality, webtoon style, anime style, manhwa, distinct lines, cel shaded",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark, grainy, ugly, deformed, distorted, changing composition, hallucinations",
-                    num_inference_steps: 50, // Max Quality
+                    prompt: "original reference image, high quality, accurate details, no style change, faithful to source",
+                    negative_prompt: "blur, low quality, distortion, change, painting, drawing, sketch",
+                    num_inference_steps: 30,
                     guidance_scale: 7.5,
-                    strength: 0.35, // 0.35 = Strict "Filter" Mode. (Prevents changing the face/scene)
+                    strength: 0.10, // DIAGNOSTIC MODE: 0.1 = Return the input image almost unchanged.
                     scheduler: "DPMSolverMultistep"
                 }
             })
