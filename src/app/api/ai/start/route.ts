@@ -50,11 +50,10 @@ export async function POST(request: NextRequest) {
                 input: {
                     image: dataUri,
                     prompt: prompt || "masterpiece, best quality, webtoon style, manhwa, cel shaded, bold lines, 2d, flat color",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur",
+                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, grid, collage, multiple views, split screen, panels, error, low quality",
                     num_inference_steps: 30, // Higher quality
                     guidance_scale: 7.5,
-                    strength: 0.3, // 0.3 means "Keep 70% of original structure, change 30% style". 
-                    // This prevents hallucinations while applying style.
+                    strength: 0.25, // 0.25 = Strictly apply style to shape. Prevents "New Composition".
                     scheduler: "DPMSolverMultistep"
                 }
             })
