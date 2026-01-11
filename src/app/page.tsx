@@ -146,7 +146,7 @@ export default function Home() {
                             img.crossOrigin = "anonymous";
                             img.onload = () => {
                                 const canvas = document.createElement('canvas');
-                                const MAX_SIZE = 768; // 768px is Native for SD 2.1 (Prevents Tiling/Collage)
+                                const MAX_SIZE = 512; // 512px is NATIVE for Anything v4 (Prevents Tiling/Collage)
                                 let width = img.width;
                                 let height = img.height;
                                 if (width > height) {

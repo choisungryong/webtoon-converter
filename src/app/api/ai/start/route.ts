@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Call Replicate (Start Only)
-        // Model: stability-ai/stable-diffusion (v2.1) - Reliable & Robust
-        // We use a specific, high-quality checkpoint or just standard 2.1
-        const modelVersion = "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf";
+        // Model: cjwbw/anything-v4.0 (Anime Specialized) with 512px Input
+        // This prevents "Abstract Art" and guarantees "Webtoon" output.
+        const modelVersion = "42a996d39a96aedc57b2e0aa8105dea39c9c89d9d266caf6bb4327a1c191b061";
 
         const startRes = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
                 version: modelVersion,
                 input: {
                     image: dataUri,
-                    prompt: prompt || "masterpiece, best quality, webtoon style, manhwa, cel shaded, bold lines, 2d, flat color",
-                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, grid, collage, multiple views, split screen, panels, error, low quality",
-                    num_inference_steps: 30, // Higher quality
+                    prompt: prompt || "webtoon style, anime style, manhwa, vibrant colors, clean lines, high quality, cel shaded",
+                    negative_prompt: negativePrompt + ", 3d, realistic, photo, photorealistic, render, bokeh, blur, error, low quality, bad anatomy, bad hands, text, watermark",
+                    num_inference_steps: 25,
                     guidance_scale: 7.5,
-                    strength: 0.25, // 0.25 = Strictly apply style to shape. Prevents "New Composition".
+                    strength: 0.55, // 0.55 allows style change without losing subject.
                     scheduler: "DPMSolverMultistep"
                 }
             })
