@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
         // Read JSON Body (Client-side Base64)
         const body = await request.json() as { image: string, prompt?: string };
         const image = body.image;
-        const prompt = body.prompt || "이 이미지를 한국 웹툰 스타일로 변환해주세요. 선명한 선, 생동감 있는 색상, 애니메이션 느낌을 유지해주세요.";
+        const prompt = body.prompt || "Transform this image into Korean webtoon manhwa style. Use bold black outlines, cel-shading, flat colors with minimal gradients, anime-style eyes and faces. Remove all photorealistic textures. Make it look like a drawn illustration from a professional webtoon comic, NOT a photo filter. Strong cartoon aesthetic.";
 
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
