@@ -40,6 +40,7 @@ export default function Home() {
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [galleryLoading, setGalleryLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Common State
     const [selectedStyle, setSelectedStyle] = useState<StyleOption>(DEFAULT_STYLE);
@@ -122,10 +123,13 @@ export default function Home() {
         setAiImages([]);
     };
 
-    // Video Mode: Handle file selection
     const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        processVideoFile(file);
+    };
+
+    const processVideoFile = (file: File) => {
         if (!file.type.startsWith('video/')) {
             message.error('동영상 파일만 가능합니다.');
             return;
@@ -138,6 +142,37 @@ export default function Home() {
             videoRef.current.src = URL.createObjectURL(file);
             videoRef.current.load();
             setAnalyzing(true);
+        }
+    };
+
+    // Drag and Drop Handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+
+        if (mode === 'photo') {
+            if (file.type.startsWith('image/')) {
+                setPhotoFile(file);
+                setPhotoPreview(URL.createObjectURL(file));
+                setAiImages([]);
+            } else {
+                message.error('이미지 파일만 가능합니다.');
+            }
+        } else if (mode === 'video') {
+            processVideoFile(file);
         }
     };
 
@@ -292,7 +327,16 @@ export default function Home() {
                     <>
                         <GlassCard padding="lg">
                             {!photoPreview ? (
-                                <label className="upload-area block cursor-pointer">
+                                <label
+                                    className="upload-area block cursor-pointer"
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    style={{
+                                        borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
+                                        background: isDragging ? 'var(--accent-glow)' : 'transparent'
+                                    }}
+                                >
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -370,7 +414,16 @@ export default function Home() {
                     <>
                         <GlassCard padding="lg">
                             {!videoFile ? (
-                                <label className="upload-area block cursor-pointer">
+                                <label
+                                    className="upload-area block cursor-pointer"
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    style={{
+                                        borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
+                                        background: isDragging ? 'var(--accent-glow)' : 'transparent'
+                                    }}
+                                >
                                     <input
                                         ref={fileInputRef}
                                         type="file"
