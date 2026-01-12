@@ -9,11 +9,24 @@
     --glass-border: rgba(255, 255, 255, 0.1);
     --dark-bg: #0a0a0a;
     --card-bg: #141414;
+    --text-color: #ffffff;
+    --text-muted: #888888;
+}
+
+/* Light Mode */
+[data-theme="light"] {
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --dark-bg: #f5f5f5;
+    --card-bg: #ffffff;
+    --text-color: #1a1a1a;
+    --text-muted: #666666;
 }
 
 body {
     background: var(--dark-bg);
-    color: white;
+    color: var(--text-color);
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Glassmorphism Utilities */

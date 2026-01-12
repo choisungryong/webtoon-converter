@@ -6,7 +6,7 @@ import { message, Progress, Image, Spin } from 'antd';
 import { InboxOutlined, PlayCircleOutlined, CheckCircleFilled, LoadingOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-import Header, { AppMode } from '../components/Header';
+import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
 import { STYLE_OPTIONS, StyleOption, DEFAULT_STYLE, getStyleById } from '../data/styles';
@@ -14,6 +14,12 @@ import { STYLE_OPTIONS, StyleOption, DEFAULT_STYLE, getStyleById } from '../data
 export default function Home() {
     // Mode State
     const [mode, setMode] = useState<AppMode>('photo');
+    const [theme, setTheme] = useState<ThemeMode>('dark');
+
+    // Apply theme to document
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+    }, [theme]);
 
     // Photo Mode State
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -228,13 +234,18 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center p-4 md:p-8">
+        <main className="min-h-screen flex flex-col items-center p-4 md:p-8" style={{ background: 'var(--dark-bg)' }}>
             <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            <div className="w-full max-w-2xl space-y-6">
+            <div className="w-full max-w-xl space-y-5">
                 {/* Header */}
-                <Header mode={mode} onModeChange={(m) => { setMode(m); handleReset(); }} />
+                <Header
+                    mode={mode}
+                    onModeChange={(m) => { setMode(m); handleReset(); }}
+                    theme={theme}
+                    onThemeChange={setTheme}
+                />
 
                 {/* Upload Area */}
                 <GlassCard padding="lg">
@@ -385,12 +396,13 @@ export default function Home() {
                         <h3 className="text-[#CCFF00] font-medium mb-4">변환 결과</h3>
                         <div className="grid grid-cols-2 gap-4">
                             {aiImages.map((img, idx) => (
-                                <Image
-                                    key={idx}
-                                    src={img}
-                                    alt={`Result ${idx}`}
-                                    className="rounded-lg"
-                                />
+                                <div key={idx} className="preview-container">
+                                    <Image
+                                        src={img}
+                                        alt={`Result ${idx}`}
+                                        style={{ maxHeight: '250px', objectFit: 'contain' }}
+                                    />
+                                </div>
                             ))}
                         </div>
                     </GlassCard>
