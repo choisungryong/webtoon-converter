@@ -4,7 +4,7 @@ import React from 'react';
 import { SunOutlined, MoonOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
-export type AppMode = 'photo' | 'video';
+export type AppMode = 'photo' | 'video' | 'gallery';
 export type ThemeMode = 'dark' | 'light';
 
 interface HeaderProps {
@@ -16,73 +16,71 @@ interface HeaderProps {
 
 export default function Header({ mode, onModeChange, theme, onThemeChange }: HeaderProps) {
     return (
-        <header className="w-full mb-6 relative">
-            {/* Theme Toggle - Fixed Right Top */}
+        <header className="w-full mb-8 relative">
+            {/* Theme Toggle - Right Top */}
             <button
                 onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-                className="absolute right-0 top-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                className="absolute right-0 top-0 w-10 h-10 rounded-full flex items-center justify-center transition-all"
                 style={{
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)'
                 }}
-                title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >
                 {theme === 'dark' ? (
                     <SunOutlined style={{ color: '#CCFF00', fontSize: '18px' }} />
                 ) : (
-                    <MoonOutlined style={{ color: '#333', fontSize: '18px' }} />
+                    <MoonOutlined style={{ color: '#7C3AED', fontSize: '18px' }} />
                 )}
             </button>
 
             {/* Logo - Centered */}
-            <div className="flex flex-col items-center pt-2 pb-4">
-                <Link href="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+            <div className="flex flex-col items-center pt-2 pb-6">
+                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     {/* Logo Icon */}
                     <div
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-2"
+                        className="w-12 h-12 rounded-xl flex items-center justify-center"
                         style={{
-                            background: 'linear-gradient(135deg, #CCFF00 0%, #9FE000 50%, #00C853 100%)',
-                            boxShadow: '0 4px 20px rgba(204, 255, 0, 0.4)'
+                            background: theme === 'dark'
+                                ? 'linear-gradient(135deg, #CCFF00 0%, #00C853 100%)'
+                                : 'linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)',
+                            boxShadow: theme === 'dark'
+                                ? '0 4px 15px rgba(204, 255, 0, 0.3)'
+                                : '0 4px 15px rgba(124, 58, 237, 0.3)'
                         }}
                     >
-                        <span style={{ fontSize: '28px' }}>🎨</span>
+                        <span style={{ fontSize: '24px' }}>🎨</span>
                     </div>
-                    {/* Logo Text */}
-                    <h1 className="text-3xl font-bold" style={{ color: 'var(--text-color)' }}>
-                        Toon<span style={{ color: '#CCFF00' }}>Snap</span>
-                    </h1>
-                    <span className="text-xs mt-1" style={{ color: 'var(--text-muted)', letterSpacing: '2px' }}>
-                        AI WEBTOON CONVERTER
+                    <span
+                        className="text-2xl font-bold"
+                        style={{
+                            color: theme === 'dark' ? '#CCFF00' : '#7C3AED'
+                        }}
+                    >
+                        ToonSnap
                     </span>
                 </Link>
             </div>
 
-            {/* Controls Row */}
-            <div className="flex items-center justify-center gap-4">
-                {/* Gallery Link */}
-                <Link
-                    href="/gallery"
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    style={{
-                        color: '#CCFF00',
-                        background: 'rgba(204, 255, 0, 0.1)'
-                    }}
-                >
-                    🖼 갤러리
-                </Link>
-
-                {/* Mode Switcher */}
-                <div className="mode-switcher">
+            {/* Tab Switcher - 사진/영상/갤러리 같은 크기 */}
+            <div className="flex justify-center">
+                <div className="tab-switcher">
                     <button
-                        className={`mode-btn ${mode === 'photo' ? 'active' : ''}`}
+                        className={`tab-btn ${mode === 'photo' ? 'active' : ''}`}
                         onClick={() => onModeChange('photo')}
                     >
                         📷 사진
                     </button>
                     <button
-                        className={`mode-btn ${mode === 'video' ? 'active' : ''}`}
+                        className={`tab-btn ${mode === 'video' ? 'active' : ''}`}
                         onClick={() => onModeChange('video')}
                     >
                         🎬 영상
+                    </button>
+                    <button
+                        className={`tab-btn ${mode === 'gallery' ? 'active' : ''}`}
+                        onClick={() => onModeChange('gallery')}
+                    >
+                        🖼 갤러리
                     </button>
                 </div>
             </div>

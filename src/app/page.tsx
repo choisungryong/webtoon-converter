@@ -2,14 +2,19 @@
 
 export const runtime = 'edge';
 import { useState, useRef, useEffect } from 'react';
-import { message, Progress, Image, Spin } from 'antd';
-import { InboxOutlined, PlayCircleOutlined, CheckCircleFilled, LoadingOutlined } from '@ant-design/icons';
+import { message, Progress, Image, Spin, Modal } from 'antd';
+import { CheckCircleFilled, LoadingOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
-import { STYLE_OPTIONS, StyleOption, DEFAULT_STYLE, getStyleById } from '../data/styles';
+import { StyleOption, DEFAULT_STYLE } from '../data/styles';
+
+interface GalleryImage {
+    id: string;
+    url: string;
+}
 
 export default function Home() {
     // Mode State
@@ -25,14 +30,19 @@ export default function Home() {
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string>('');
 
-    // Video Mode State (기존)
+    // Video Mode State
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
     const [selectedFrameIndices, setSelectedFrameIndices] = useState<number[]>([]);
 
+    // Gallery Mode State
+    const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
+    const [galleryLoading, setGalleryLoading] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
     // Common State
     const [selectedStyle, setSelectedStyle] = useState<StyleOption>(DEFAULT_STYLE);
-    const [uploading, setUploading] = useState(false);
     const [converting, setConverting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [aiImages, setAiImages] = useState<string[]>([]);
@@ -42,16 +52,71 @@ export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Load gallery when mode changes
+    useEffect(() => {
+        if (mode === 'gallery') {
+            fetchGallery();
+        }
+    }, [mode]);
+
+    const fetchGallery = async () => {
+        setGalleryLoading(true);
+        try {
+            const res = await axios.get('/api/gallery');
+            setGalleryImages(res.data.images || []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGalleryLoading(false);
+        }
+    };
+
+    // Toggle image selection in gallery
+    const toggleImageSelection = (id: string) => {
+        setSelectedImages(prev =>
+            prev.includes(id)
+                ? prev.filter(i => i !== id)
+                : [...prev, id]
+        );
+    };
+
+    // Delete selected images
+    const handleDeleteSelected = async () => {
+        if (selectedImages.length === 0) return;
+
+        Modal.confirm({
+            title: `${selectedImages.length}개 이미지 삭제`,
+            icon: <ExclamationCircleOutlined />,
+            content: '선택한 이미지를 삭제하시겠습니까?',
+            okText: '삭제',
+            okType: 'danger',
+            cancelText: '취소',
+            onOk: async () => {
+                setDeleting(true);
+                try {
+                    await Promise.all(
+                        selectedImages.map(id => axios.delete(`/api/gallery/${id}`))
+                    );
+                    setGalleryImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
+                    setSelectedImages([]);
+                    message.success('삭제되었습니다.');
+                } catch (err) {
+                    message.error('삭제 실패');
+                } finally {
+                    setDeleting(false);
+                }
+            }
+        });
+    };
+
     // Photo Mode: Handle file selection
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         if (!file.type.startsWith('image/')) {
             message.error('이미지 파일만 가능합니다.');
             return;
         }
-
         setPhotoFile(file);
         setPhotoPreview(URL.createObjectURL(file));
         setAiImages([]);
@@ -61,17 +126,14 @@ export default function Home() {
     const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         if (!file.type.startsWith('video/')) {
             message.error('동영상 파일만 가능합니다.');
             return;
         }
-
         setVideoFile(file);
         setExtractedFrames([]);
         setSelectedFrameIndices([]);
         setAiImages([]);
-
         if (videoRef.current) {
             videoRef.current.src = URL.createObjectURL(file);
             videoRef.current.load();
@@ -82,12 +144,10 @@ export default function Home() {
     // Video: Extract frames when loaded
     const handleVideoLoaded = async () => {
         if (!videoRef.current || !canvasRef.current) return;
-
         const video = videoRef.current;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         const duration = video.duration;
-
         const count = 12;
         const interval = duration / (count + 1);
         const timestamps = Array.from({ length: count }, (_, i) => interval * (i + 1));
@@ -95,14 +155,12 @@ export default function Home() {
 
         try {
             message.loading({ content: '주요 장면 분석 중...', key: 'analyze' });
-
             for (const time of timestamps) {
                 video.currentTime = time;
                 await new Promise(resolve => {
                     video.onseeked = () => resolve(true);
                     setTimeout(resolve, 500);
                 });
-
                 if (ctx) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
@@ -110,12 +168,10 @@ export default function Home() {
                     frames.push(canvas.toDataURL('image/jpeg', 0.8));
                 }
             }
-
             setExtractedFrames(frames);
             setSelectedFrameIndices([0, 1, 2]);
             message.success({ content: '장면 추출 완료!', key: 'analyze' });
         } catch (e) {
-            console.error(e);
             message.error({ content: '장면 분석 실패', key: 'analyze' });
         } finally {
             setAnalyzing(false);
@@ -123,26 +179,21 @@ export default function Home() {
     };
 
     const toggleFrameSelection = (idx: number) => {
-        setSelectedFrameIndices(prev => {
-            if (prev.includes(idx)) {
-                return prev.filter(i => i !== idx);
-            } else {
-                return [...prev, idx];
-            }
-        });
+        setSelectedFrameIndices(prev =>
+            prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+        );
     };
 
     // Convert Image(s)
     const handleConvert = async () => {
         let imagesToConvert: string[] = [];
-
         if (mode === 'photo') {
             if (!photoPreview) {
                 message.warning('먼저 사진을 업로드해 주세요!');
                 return;
             }
             imagesToConvert = [photoPreview];
-        } else {
+        } else if (mode === 'video') {
             if (selectedFrameIndices.length === 0) {
                 message.warning('변환할 장면을 선택해 주세요!');
                 return;
@@ -155,46 +206,26 @@ export default function Home() {
         setAiImages([]);
 
         try {
-            message.loading({ content: '웹툰으로 변환 중...', key: 'convert' });
-
             for (let i = 0; i < imagesToConvert.length; i++) {
-                const imgSrc = imagesToConvert[i];
-
-                // Rate limit delay
-                if (i > 0) {
-                    message.loading({ content: `속도 제한 준수 중... (10초 대기)`, key: 'rate', duration: 10 });
-                    await new Promise(r => setTimeout(r, 10000));
-                }
-
-                // Resize/compress image
-                const compressedDataUrl = await compressImage(imgSrc);
-
-                // Call API with style
+                if (i > 0) await new Promise(r => setTimeout(r, 10000));
+                const compressedDataUrl = await compressImage(imagesToConvert[i]);
                 const res = await axios.post('/api/ai/start', {
                     image: compressedDataUrl,
                     styleId: selectedStyle.id
                 });
-
                 if (res.data.success && res.data.image) {
                     setAiImages(prev => [...prev, res.data.image]);
                     setProgress(Math.round(((i + 1) / imagesToConvert.length) * 100));
-                } else {
-                    throw new Error(res.data.error || '변환 실패');
                 }
             }
-
-            message.success({ content: '변환 완료!', key: 'convert' });
-            message.destroy('rate');
-
+            message.success('변환 완료!');
         } catch (e: any) {
-            console.error(e);
             message.error(`오류: ${e.message}`);
         } finally {
             setConverting(false);
         }
     };
 
-    // Image compression helper
     const compressImage = (src: string): Promise<string> => {
         return new Promise((resolve, reject) => {
             const img = new window.Image();
@@ -204,17 +235,14 @@ export default function Home() {
                 const MAX_SIZE = 512;
                 let width = img.width;
                 let height = img.height;
-
                 if (width > height) {
                     if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
                 } else {
                     if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
                 }
-
                 canvas.width = width;
                 canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
+                canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
                 resolve(canvas.toDataURL('image/jpeg', 0.95));
             };
             img.onerror = () => reject(new Error('이미지 로드 실패'));
@@ -222,7 +250,6 @@ export default function Home() {
         });
     };
 
-    // Reset
     const handleReset = () => {
         setPhotoFile(null);
         setPhotoPreview('');
@@ -230,182 +257,212 @@ export default function Home() {
         setExtractedFrames([]);
         setSelectedFrameIndices([]);
         setAiImages([]);
+        setSelectedImages([]);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const handleModeChange = (m: AppMode) => {
+        setMode(m);
+        if (m !== 'gallery') handleReset();
+    };
+
     return (
-        <main className="min-h-screen flex flex-col items-center p-4 md:p-8" style={{ background: 'var(--dark-bg)' }}>
+        <main className="min-h-screen flex flex-col items-center px-4 py-6" style={{ background: 'var(--bg-primary)' }}>
             <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            <div className="w-full max-w-xl space-y-5">
+            <div className="w-full max-w-md space-y-5">
                 {/* Header */}
                 <Header
                     mode={mode}
-                    onModeChange={(m) => { setMode(m); handleReset(); }}
+                    onModeChange={handleModeChange}
                     theme={theme}
                     onThemeChange={setTheme}
                 />
 
-                {/* Upload Area */}
-                <GlassCard padding="lg">
-                    {mode === 'photo' ? (
-                        // Photo Mode
-                        !photoPreview ? (
-                            <label className="upload-area block cursor-pointer">
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: 'none' }}
-                                    onChange={handlePhotoSelect}
-                                />
-                                <InboxOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
-                                <p className="text-white font-bold mt-4">사진 한 장을 드래그하거나 클릭하세요!</p>
-                                <p className="text-gray-500 text-sm mt-2">JPG, PNG, WebP 지원</p>
-                            </label>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="preview-container relative">
-                                    <img
-                                        src={photoPreview}
-                                        alt="Preview"
+                {/* Photo Mode */}
+                {mode === 'photo' && (
+                    <>
+                        <GlassCard padding="lg">
+                            {!photoPreview ? (
+                                <label className="upload-area block cursor-pointer">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={handlePhotoSelect}
                                     />
-                                    <button
-                                        onClick={handleReset}
-                                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                            </div>
-                        )
-                    ) : (
-                        // Video Mode
-                        !videoFile ? (
-                            <label className="upload-area block cursor-pointer">
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="video/*"
-                                    style={{ display: 'none' }}
-                                    onChange={handleVideoSelect}
-                                />
-                                <PlayCircleOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
-                                <p className="text-white font-bold mt-4">영상 파일을 드래그하거나 클릭하세요!</p>
-                                <p className="text-gray-500 text-sm mt-2">MP4, MOV, WebM 지원</p>
-                            </label>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center text-white">
-                                        <PlayCircleOutlined style={{ fontSize: '24px', color: '#CCFF00', marginRight: '10px' }} />
-                                        <span className="truncate max-w-[200px]">{videoFile.name}</span>
+                                    <div className="upload-icon">
+                                        <span style={{ fontSize: '32px' }}>📷</span>
                                     </div>
-                                    <button
-                                        onClick={handleReset}
-                                        className="px-3 py-1 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30"
-                                    >
-                                        변경
-                                    </button>
-                                </div>
-
-                                {analyzing && (
-                                    <div className="flex items-center justify-center py-4">
-                                        <Spin indicator={<LoadingOutlined style={{ fontSize: 24, color: '#CCFF00' }} />} />
-                                        <span className="ml-3 text-gray-400">장면 분석 중...</span>
+                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                                        사진을 선택하세요!
+                                    </p>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
+                                        드래그 & 드롭 · 클릭
+                                    </p>
+                                </label>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="preview-container relative">
+                                        <img src={photoPreview} alt="Preview" />
+                                        <button
+                                            onClick={handleReset}
+                                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                                            style={{ background: 'rgba(0,0,0,0.6)', color: 'white' }}
+                                        >
+                                            ✕
+                                        </button>
                                     </div>
-                                )}
-                            </div>
-                        )
-                    )}
-                </GlassCard>
+                                </div>
+                            )}
+                        </GlassCard>
 
-                {/* Frame Selection (Video Mode) */}
-                {mode === 'video' && extractedFrames.length > 0 && (
-                    <GlassCard>
-                        <h3 className="text-[#CCFF00] font-medium mb-4">
-                            장면 선택 ({selectedFrameIndices.length}개)
-                        </h3>
-                        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
-                            {extractedFrames.map((frame, idx) => {
-                                const isSelected = selectedFrameIndices.includes(idx);
-                                return (
+                        {photoPreview && (
+                            <>
+                                <GlassCard>
+                                    <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
+                                </GlassCard>
+                                <button className="accent-btn w-full" onClick={handleConvert} disabled={converting}>
+                                    {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
+                                </button>
+                            </>
+                        )}
+
+                        {aiImages.length > 0 && (
+                            <GlassCard>
+                                <p className="font-medium mb-3" style={{ color: 'var(--accent-color)' }}>변환 결과</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {aiImages.map((img, idx) => (
+                                        <div key={idx} className="preview-container">
+                                            <Image src={img} alt={`Result ${idx}`} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </GlassCard>
+                        )}
+                    </>
+                )}
+
+                {/* Video Mode */}
+                {mode === 'video' && (
+                    <>
+                        <GlassCard padding="lg">
+                            {!videoFile ? (
+                                <label className="upload-area block cursor-pointer">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="video/*"
+                                        style={{ display: 'none' }}
+                                        onChange={handleVideoSelect}
+                                    />
+                                    <div className="upload-icon">
+                                        <span style={{ fontSize: '32px' }}>🎬</span>
+                                    </div>
+                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                                        영상을 선택하세요!
+                                    </p>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
+                                        MP4, MOV, WebM
+                                    </p>
+                                </label>
+                            ) : (
+                                <div className="text-center py-4">
+                                    <p style={{ color: 'var(--text-primary)' }}>{videoFile.name}</p>
+                                    {analyzing && <Spin className="mt-2" />}
+                                </div>
+                            )}
+                        </GlassCard>
+
+                        {extractedFrames.length > 0 && (
+                            <>
+                                <GlassCard>
+                                    <p className="font-medium mb-3" style={{ color: 'var(--accent-color)' }}>
+                                        장면 선택 ({selectedFrameIndices.length})
+                                    </p>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {extractedFrames.map((frame, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative aspect-square cursor-pointer rounded-lg overflow-hidden"
+                                                onClick={() => toggleFrameSelection(idx)}
+                                            >
+                                                <img src={frame} className="w-full h-full object-cover" />
+                                                {selectedFrameIndices.includes(idx) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+                                                        <CheckCircleFilled style={{ color: 'var(--accent-color)', fontSize: '24px' }} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </GlassCard>
+                                <GlassCard>
+                                    <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
+                                </GlassCard>
+                                <button className="accent-btn w-full" onClick={handleConvert} disabled={converting}>
+                                    {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
+                                </button>
+                            </>
+                        )}
+                    </>
+                )}
+
+                {/* Gallery Mode */}
+                {mode === 'gallery' && (
+                    <>
+                        {galleryLoading ? (
+                            <div className="py-20 text-center">
+                                <Spin size="large" />
+                            </div>
+                        ) : galleryImages.length > 0 ? (
+                            <div className="gallery-grid">
+                                {galleryImages.map((img) => (
                                     <div
-                                        key={idx}
-                                        className="relative aspect-square cursor-pointer group overflow-hidden rounded-md"
-                                        onClick={() => toggleFrameSelection(idx)}
+                                        key={img.id}
+                                        className={`gallery-item ${selectedImages.includes(img.id) ? 'selected' : ''}`}
+                                        onClick={() => toggleImageSelection(img.id)}
                                     >
-                                        <img
-                                            src={frame}
-                                            alt={`Scene ${idx}`}
-                                            className={`w-full h-full object-cover transition-all duration-200 ${isSelected ? 'brightness-110' : 'brightness-75 group-hover:brightness-100'}`}
+                                        <Image
+                                            src={img.url}
+                                            alt="Gallery"
+                                            className="w-full aspect-square object-cover"
+                                            preview={selectedImages.length === 0}
                                         />
-                                        <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
-                                            ${isSelected ? 'bg-[#CCFF00] border-[#CCFF00]' : 'border-white/50 bg-black/30'}`}>
-                                            {isSelected && <CheckCircleFilled className="text-black text-xs" />}
+                                        <div className="select-circle">
+                                            {selectedImages.includes(img.id) && (
+                                                <CheckCircleFilled style={{ color: 'white', fontSize: '14px' }} />
+                                            )}
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </GlassCard>
-                )}
-
-                {/* Style Selector */}
-                {((mode === 'photo' && photoPreview) || (mode === 'video' && selectedFrameIndices.length > 0)) && (
-                    <GlassCard>
-                        <StyleSelector
-                            selectedStyleId={selectedStyle.id}
-                            onStyleSelect={setSelectedStyle}
-                        />
-                    </GlassCard>
-                )}
-
-                {/* Convert Button */}
-                {((mode === 'photo' && photoPreview) || (mode === 'video' && selectedFrameIndices.length > 0)) && (
-                    <button
-                        className="accent-btn w-full"
-                        onClick={handleConvert}
-                        disabled={converting}
-                    >
-                        {converting ? (
-                            <>
-                                <LoadingOutlined className="mr-2" />
-                                변환 중... {progress}%
-                            </>
+                                ))}
+                            </div>
                         ) : (
-                            '✨ 웹툰으로 변환하기'
+                            <GlassCard className="text-center py-12">
+                                <p style={{ color: 'var(--text-muted)' }}>변환된 이미지가 없습니다.</p>
+                            </GlassCard>
                         )}
-                    </button>
-                )}
 
-                {/* Progress */}
-                {converting && (
-                    <Progress
-                        percent={progress}
-                        strokeColor="#CCFF00"
-                        trailColor="#333"
-                        showInfo={false}
-                    />
-                )}
-
-                {/* Results */}
-                {aiImages.length > 0 && (
-                    <GlassCard>
-                        <h3 className="text-[#CCFF00] font-medium mb-4">변환 결과</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {aiImages.map((img, idx) => (
-                                <div key={idx} className="preview-container">
-                                    <Image
-                                        src={img}
-                                        alt={`Result ${idx}`}
-                                        style={{ maxHeight: '250px', objectFit: 'contain' }}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </GlassCard>
+                        {/* Selection Bar */}
+                        {selectedImages.length > 0 && (
+                            <div className="selection-bar">
+                                <span style={{ color: 'var(--text-primary)' }}>
+                                    {selectedImages.length}개 선택
+                                </span>
+                                <button
+                                    onClick={handleDeleteSelected}
+                                    disabled={deleting}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                                    style={{ background: '#ef4444', color: 'white' }}
+                                >
+                                    <DeleteOutlined />
+                                    삭제
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </main>
