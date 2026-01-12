@@ -5,10 +5,22 @@ export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
     try {
-        // Read JSON Body (Client-side Base64)
-        const body = await request.json() as { image: string, prompt?: string };
+        // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
+        const STYLE_PROMPTS: Record<string, string> = {
+            'watercolor': 'Studio Ghibli style, soft watercolor textures, Hayao Miyazaki aesthetic, lush green landscape, dreamy atmosphere, warm lighting, hand-painted look, anime illustration',
+            '3d-cartoon': 'Disney 3D animation style, big expressive eyes, cinematic lighting, Pixar-like soft shading, vibrant colors, smooth skin texture, cartoon character render',
+            'dark-fantasy': 'Solo Leveling manhwa style, high contrast, sharp digital line art, glowing blue aura, dramatic shadows, intense cinematic vibe, Korean webtoon, bold black outlines',
+            'elegant-fantasy': 'Omniscient Reader\'s Viewpoint style, elegant digital painting, bold lines, unique fantasy color palette, detailed character rendering, Korean manhwa aesthetic',
+            'classic-webtoon': 'Korean webtoon manhwa style, bold black outlines, cel-shading, flat colors with minimal gradients, anime-style eyes and faces, clean digital illustration'
+        };
+
+        const DEFAULT_PROMPT = 'Transform this image into Korean webtoon manhwa style. Use bold black outlines, cel-shading, flat colors with minimal gradients, anime-style eyes and faces. Remove all photorealistic textures. Make it look like a drawn illustration from a professional webtoon comic, NOT a photo filter. Strong cartoon aesthetic.';
+
+        // Read JSON Body
+        const body = await request.json() as { image: string, styleId?: string, prompt?: string };
         const image = body.image;
-        const prompt = body.prompt || "Transform this image into Korean webtoon manhwa style. Use bold black outlines, cel-shading, flat colors with minimal gradients, anime-style eyes and faces. Remove all photorealistic textures. Make it look like a drawn illustration from a professional webtoon comic, NOT a photo filter. Strong cartoon aesthetic.";
+        const styleId = body.styleId || 'classic-webtoon';
+        const prompt = STYLE_PROMPTS[styleId] || body.prompt || DEFAULT_PROMPT;
 
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });

@@ -2,42 +2,78 @@
 
 export const runtime = 'edge';
 import { useState, useRef, useEffect } from 'react';
-import { Button, Upload, message, Card, ConfigProvider, theme, Progress, Row, Col, Image } from 'antd';
-import { ThunderboltOutlined, InboxOutlined, PlayCircleOutlined, CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons';
-import type { UploadProps } from 'antd';
+import { message, Progress, Image, Spin } from 'antd';
+import { InboxOutlined, PlayCircleOutlined, CheckCircleFilled, LoadingOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-const { Dragger } = Upload;
+import Header, { AppMode } from '../components/Header';
+import GlassCard from '../components/GlassCard';
+import StyleSelector from '../components/StyleSelector';
+import { STYLE_OPTIONS, StyleOption, DEFAULT_STYLE, getStyleById } from '../data/styles';
 
 export default function Home() {
-    const [fileList, setFileList] = useState<any[]>([]);
+    // Mode State
+    const [mode, setMode] = useState<AppMode>('photo');
+
+    // Photo Mode State
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string>('');
+
+    // Video Mode State (기존)
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
+    const [selectedFrameIndices, setSelectedFrameIndices] = useState<number[]>([]);
+
+    // Common State
+    const [selectedStyle, setSelectedStyle] = useState<StyleOption>(DEFAULT_STYLE);
     const [uploading, setUploading] = useState(false);
     const [converting, setConverting] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [selectedFrameIndices, setSelectedFrameIndices] = useState<number[]>([]);
-    const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
     const [aiImages, setAiImages] = useState<string[]>([]);
     const [analyzing, setAnalyzing] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Analyze video when file is selected
-    useEffect(() => {
-        if (fileList.length > 0) {
-            const file = fileList[0].originFileObj || fileList[0];
-            if (videoRef.current && file) {
-                const url = URL.createObjectURL(file);
-                videoRef.current.src = url;
-                videoRef.current.load();
-                setAnalyzing(true);
-                setExtractedFrames([]);
-                setSelectedFrameIndices([]); // Reset selection
-                setAiImages([]);
-            }
+    // Photo Mode: Handle file selection
+    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            message.error('이미지 파일만 가능합니다.');
+            return;
         }
-    }, [fileList]);
 
+        setPhotoFile(file);
+        setPhotoPreview(URL.createObjectURL(file));
+        setAiImages([]);
+    };
+
+    // Video Mode: Handle file selection
+    const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('video/')) {
+            message.error('동영상 파일만 가능합니다.');
+            return;
+        }
+
+        setVideoFile(file);
+        setExtractedFrames([]);
+        setSelectedFrameIndices([]);
+        setAiImages([]);
+
+        if (videoRef.current) {
+            videoRef.current.src = URL.createObjectURL(file);
+            videoRef.current.load();
+            setAnalyzing(true);
+        }
+    };
+
+    // Video: Extract frames when loaded
     const handleVideoLoaded = async () => {
         if (!videoRef.current || !canvasRef.current) return;
 
@@ -46,7 +82,6 @@ export default function Home() {
         const ctx = canvas.getContext('2d');
         const duration = video.duration;
 
-        // Extract 12 frames
         const count = 12;
         const interval = duration / (count + 1);
         const timestamps = Array.from({ length: count }, (_, i) => interval * (i + 1));
@@ -71,7 +106,7 @@ export default function Home() {
             }
 
             setExtractedFrames(frames);
-            setSelectedFrameIndices([0, 1, 2]); // Default selection
+            setSelectedFrameIndices([0, 1, 2]);
             message.success({ content: '장면 추출 완료!', key: 'analyze' });
         } catch (e) {
             console.error(e);
@@ -91,269 +126,277 @@ export default function Home() {
         });
     };
 
-    const handleUploadAndConvert = async () => {
-        const file = fileList[0];
-        if (!file) {
-            message.warning('먼저 영상 파일을 선택해 주세요!');
-            return;
+    // Convert Image(s)
+    const handleConvert = async () => {
+        let imagesToConvert: string[] = [];
+
+        if (mode === 'photo') {
+            if (!photoPreview) {
+                message.warning('먼저 사진을 업로드해 주세요!');
+                return;
+            }
+            imagesToConvert = [photoPreview];
+        } else {
+            if (selectedFrameIndices.length === 0) {
+                message.warning('변환할 장면을 선택해 주세요!');
+                return;
+            }
+            imagesToConvert = selectedFrameIndices.map(idx => extractedFrames[idx]);
         }
 
-        setUploading(true);
         setConverting(true);
         setProgress(0);
         setAiImages([]);
 
         try {
-            // 1. Get Presigned URL & Upload Video (Optimize: Do this only once)
-            message.loading({ content: '영상 업로드 중...', key: 'upload' });
+            message.loading({ content: '웹툰으로 변환 중...', key: 'convert' });
 
-            const { data: presignedData } = await axios.post('/api/upload-url', {
-                filename: file.name,
-                fileType: file.type
-            });
+            for (let i = 0; i < imagesToConvert.length; i++) {
+                const imgSrc = imagesToConvert[i];
 
-            if (!presignedData.success) throw new Error(presignedData.error || 'URL 생성 실패');
-
-            await axios.put(presignedData.uploadUrl, file.originFileObj || file, {
-                headers: { 'Content-Type': file.type },
-                onUploadProgress: (ev) => {
-                    if (ev.total) setProgress(Math.round((ev.loaded * 100) / ev.total));
+                // Rate limit delay
+                if (i > 0) {
+                    message.loading({ content: `속도 제한 준수 중... (10초 대기)`, key: 'rate', duration: 10 });
+                    await new Promise(r => setTimeout(r, 10000));
                 }
-            });
-            await axios.post('/api/upload-complete', { fileId: presignedData.fileId });
 
-            message.success({ content: '업로드 완료! AI 변환 시작...', key: 'upload' });
-            setUploading(false); // Done uploading
+                // Resize/compress image
+                const compressedDataUrl = await compressImage(imgSrc);
 
-            // Helper function for single conversion
-            const processBatch = async (batch: string[], startIndex: number) => {
-                const results = [];
-                // FORCE SEQUENTIAL EXECUTION to respect Replicate Rate Limit (6/min for low credit)
-                for (let i = 0; i < batch.length; i++) {
-                    const imgSrc = batch[i];
-                    const globalIdx = startIndex + i;
+                // Call API with style
+                const res = await axios.post('/api/ai/start', {
+                    image: compressedDataUrl,
+                    styleId: selectedStyle.id
+                });
 
-                    // 10s Delay between requests (60s / 6 req = 10s)
-                    if (i > 0) {
-                        message.loading({ content: `속도 제한 준수 중... (10초 대기)`, key: 'ai-rate', duration: 10 });
-                        await new Promise(r => setTimeout(r, 10000));
-                    }
-
-                    try {
-                        // 1. Resize/Compress Image (Client-side)
-                        const { compressedDataUrl, sizeKB } = await new Promise<{ compressedDataUrl: string, sizeKB: number }>((resolve, reject) => {
-                            const img = new window.Image();
-                            img.crossOrigin = "anonymous";
-                            img.onload = () => {
-                                const canvas = document.createElement('canvas');
-                                const MAX_SIZE = 512;
-                                let width = img.width;
-                                let height = img.height;
-                                if (width > height) {
-                                    if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                                } else {
-                                    if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                                }
-                                canvas.width = width;
-                                canvas.height = height;
-                                const ctx = canvas.getContext('2d');
-                                ctx?.drawImage(img, 0, 0, width, height);
-                                // Increase Quality to 0.95 (Less compression data loss)
-                                const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-
-                                if (dataUrl.length < 5000) {
-                                    reject(new Error("이미지 캡처 오류 (데이터 없음) - 다시 시도해주세요."));
-                                } else {
-                                    resolve({
-                                        compressedDataUrl: dataUrl,
-                                        sizeKB: Math.round(dataUrl.length / 1024)
-                                    });
-                                }
-                            };
-                            img.onerror = () => reject(new Error("이미지 로드 실패"));
-                            img.src = imgSrc;
-                        });
-
-                        // Show Message cleanly in main flow
-                        console.log("AI Input Size:", sizeKB, "KB");
-                        message.success({ content: `이미지 전송 준비 완료 (${sizeKB} KB)`, key: 'compress-Success', duration: 4 });
-
-                        // 2. Send Compressed Image (Gemini returns immediately)
-                        const startRes = await axios.post('/api/ai/start', { image: compressedDataUrl });
-                        const responseData = startRes.data;
-
-                        // Gemini API returns image directly (no polling needed)
-                        if (responseData.success && responseData.image) {
-                            const finalUrl = responseData.image;
-                            results.push({ idx: globalIdx, url: finalUrl, success: true });
-                            // Update UI immediately
-                            setAiImages(prev => [...prev, finalUrl]);
-                        } else if (responseData.error) {
-                            throw new Error(responseData.error);
-                        } else {
-                            throw new Error('AI 변환 실패: 이미지 없음');
-                        }
-
-                    } catch (e: any) {
-                        const errorMessage = e.response?.data?.error || e.message || 'Unknown Error';
-                        console.error("AI Error:", errorMessage);
-                        results.push({ idx: globalIdx, error: errorMessage, success: false });
-                        message.error(`장면 ${globalIdx + 1} 실패: ${errorMessage}`);
-                    }
+                if (res.data.success && res.data.image) {
+                    setAiImages(prev => [...prev, res.data.image]);
+                    setProgress(Math.round(((i + 1) / imagesToConvert.length) * 100));
+                } else {
+                    throw new Error(res.data.error || '변환 실패');
                 }
-                return results;
-            };
+            }
 
-            // 2. AI Conversion Loop (Sequential to avoid Rate Limiting)
-            const targets = selectedFrameIndices.map(idx => extractedFrames[idx]);
-            const newImages: string[] = [];
-
-            // Pass all targets to sequential processor
-            message.loading({ content: `순차 변환 시작 (속도제한 준수)`, key: 'ai' });
-            await processBatch(targets, 0);
-
-            message.success({ content: '모든 변환 완료!', key: 'ai' });
-            message.destroy('ai-rate'); // Clear rate limit message
-
-            message.success({ content: '모든 변환 완료!', key: 'ai' });
+            message.success({ content: '변환 완료!', key: 'convert' });
+            message.destroy('rate');
 
         } catch (e: any) {
             console.error(e);
             message.error(`오류: ${e.message}`);
         } finally {
-            setUploading(false);
             setConverting(false);
         }
     };
 
-    const uploadProps: UploadProps = {
-        onRemove: () => { setFileList([]); setExtractedFrames([]); setAiImages([]); },
-        beforeUpload: (file) => {
-            if (!file.type.startsWith('video/')) {
-                message.error('동영상만 가능합니다.');
-                return Upload.LIST_IGNORE;
-            }
-            setFileList([file]);
-            return false;
-        },
-        fileList,
-        maxCount: 1,
-        showUploadList: false
+    // Image compression helper
+    const compressImage = (src: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const img = new window.Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_SIZE = 512;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                } else {
+                    if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.95));
+            };
+            img.onerror = () => reject(new Error('이미지 로드 실패'));
+            img.src = src;
+        });
+    };
+
+    // Reset
+    const handleReset = () => {
+        setPhotoFile(null);
+        setPhotoPreview('');
+        setVideoFile(null);
+        setExtractedFrames([]);
+        setSelectedFrameIndices([]);
+        setAiImages([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     return (
-        <ConfigProvider
-            theme={{
-                algorithm: theme.darkAlgorithm,
-                token: { colorPrimary: '#CCFF00', colorBgContainer: '#141414' }
-            }}
-        >
-            <main className="min-h-screen bg-black flex flex-col items-center p-4 md:p-8">
-                <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
-                <canvas ref={canvasRef} style={{ display: 'none' }} />
+        <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center p-4 md:p-8">
+            <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-                <div className="w-full max-w-2xl space-y-6">
-                    {/* Header */}
-                    <div className="text-center space-y-2">
-                        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#CCFF00] to-green-400">
-                            WEBTOON CONVERTER
-                        </h1>
-                    </div>
+            <div className="w-full max-w-2xl space-y-6">
+                {/* Header */}
+                <Header mode={mode} onModeChange={(m) => { setMode(m); handleReset(); }} />
 
-                    {/* 1. Compact Video Upload */}
-                    <Card
-                        size="small"
-                        bordered={false}
-                        className="shadow-xl shadow-[#CCFF00]/5"
-                        style={{ background: '#1c1c1c' }}
-                    >
-                        {fileList.length === 0 ? (
-                            <Dragger {...uploadProps} style={{ padding: '20px', border: 'none' }}>
-                                <p className="ant-upload-drag-icon">
-                                    <InboxOutlined style={{ color: '#CCFF00', fontSize: '32px' }} />
-                                </p>
-                                <p className="text-white font-bold">영상 업로드 (Click)</p>
-                            </Dragger>
+                {/* Upload Area */}
+                <GlassCard padding="lg">
+                    {mode === 'photo' ? (
+                        // Photo Mode
+                        !photoPreview ? (
+                            <label className="upload-area block cursor-pointer">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handlePhotoSelect}
+                                />
+                                <InboxOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
+                                <p className="text-white font-bold mt-4">사진 한 장을 드래그하거나 클릭하세요!</p>
+                                <p className="text-gray-500 text-sm mt-2">JPG, PNG, WebP 지원</p>
+                            </label>
                         ) : (
-                            <div className="flex items-center justify-between p-4">
-                                <div className="flex items-center text-white">
-                                    <PlayCircleOutlined style={{ fontSize: '24px', color: '#CCFF00', marginRight: '10px' }} />
-                                    <span className="truncate max-w-[200px]">{fileList[0].name}</span>
+                            <div className="space-y-4">
+                                <div className="relative">
+                                    <img
+                                        src={photoPreview}
+                                        alt="Preview"
+                                        className="w-full rounded-lg max-h-[300px] object-contain mx-auto"
+                                    />
+                                    <button
+                                        onClick={handleReset}
+                                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
-                                <Button danger size="small" onClick={() => { setFileList([]); setExtractedFrames([]); }}>
-                                    변경
-                                </Button>
                             </div>
-                        )}
-                        {uploading && <Progress percent={progress} strokeColor="#CCFF00" status="active" showInfo={false} className="px-4 pb-2" />}
-                    </Card>
+                        )
+                    ) : (
+                        // Video Mode
+                        !videoFile ? (
+                            <label className="upload-area block cursor-pointer">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="video/*"
+                                    className="hidden"
+                                    onChange={handleVideoSelect}
+                                />
+                                <PlayCircleOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
+                                <p className="text-white font-bold mt-4">영상 파일을 드래그하거나 클릭하세요!</p>
+                                <p className="text-gray-500 text-sm mt-2">MP4, MOV, WebM 지원</p>
+                            </label>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center text-white">
+                                        <PlayCircleOutlined style={{ fontSize: '24px', color: '#CCFF00', marginRight: '10px' }} />
+                                        <span className="truncate max-w-[200px]">{videoFile.name}</span>
+                                    </div>
+                                    <button
+                                        onClick={handleReset}
+                                        className="px-3 py-1 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30"
+                                    >
+                                        변경
+                                    </button>
+                                </div>
 
-                    {/* 2. Scene Selection (Google Photos Style) - Stacked Below */}
-                    {extractedFrames.length > 0 && (
-                        <Card title={<span className="text-[#CCFF00]">장면 선택 ({selectedFrameIndices.length})</span>} size="small" bordered={false} style={{ background: '#1c1c1c' }}>
-                            <style dangerouslySetInnerHTML={{
-                                __html: `
-                                .custom-scene-grid {
-                                    display: grid;
-                                    grid-template-columns: repeat(3, 1fr);
-                                    gap: 8px;
-                                    margin-bottom: 16px;
-                                    width: 100%;
-                                    box-sizing: border-box;
-                                }
-                                @media (min-width: 768px) {
-                                    .custom-scene-grid {
-                                        grid-template-columns: repeat(6, 1fr);
-                                    }
-                                }
-                            `}} />
-                            <div className="custom-scene-grid">
-                                {extractedFrames.map((frame, idx) => {
-                                    const isSelected = selectedFrameIndices.includes(idx);
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className="relative aspect-square cursor-pointer group overflow-hidden rounded-md"
-                                            onClick={() => toggleFrameSelection(idx)}
-                                        >
-                                            <img
-                                                src={frame}
-                                                alt={`Scene ${idx}`}
-                                                className={`w-full h-full object-cover transition-all duration-200 ${isSelected ? 'brightness-110' : 'brightness-90 group-hover:brightness-100'}`}
-                                                style={{ width: '100%', height: '100%', display: 'block' }}
-                                            />
-
-                                            {/* Google Photos Style Selection Ring */}
-                                            <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200
-                                                ${isSelected ? 'bg-[#CCFF00] border-[#CCFF00]' : 'border-white/50 bg-black/10 group-hover:border-white/80'}`}>
-                                                {isSelected && <CheckCircleFilled className="text-black text-xs" />}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {analyzing && (
+                                    <div className="flex items-center justify-center py-4">
+                                        <Spin indicator={<LoadingOutlined style={{ fontSize: 24, color: '#CCFF00' }} />} />
+                                        <span className="ml-3 text-gray-400">장면 분석 중...</span>
+                                    </div>
+                                )}
                             </div>
-                            <Button
-                                type="primary" block size="large"
-                                onClick={handleUploadAndConvert}
-                                loading={uploading || converting}
-                                disabled={selectedFrameIndices.length === 0}
-                                style={{ height: '48px', fontWeight: 'bold' }}
-                            >
-                                {converting ? '변환 중...' : '변환하기'}
-                            </Button>
-                        </Card>
+                        )
                     )}
+                </GlassCard>
 
-                    {/* 3. Results */}
-                    {aiImages.length > 0 && (
-                        <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                {/* Frame Selection (Video Mode) */}
+                {mode === 'video' && extractedFrames.length > 0 && (
+                    <GlassCard>
+                        <h3 className="text-[#CCFF00] font-medium mb-4">
+                            장면 선택 ({selectedFrameIndices.length}개)
+                        </h3>
+                        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+                            {extractedFrames.map((frame, idx) => {
+                                const isSelected = selectedFrameIndices.includes(idx);
+                                return (
+                                    <div
+                                        key={idx}
+                                        className="relative aspect-square cursor-pointer group overflow-hidden rounded-md"
+                                        onClick={() => toggleFrameSelection(idx)}
+                                    >
+                                        <img
+                                            src={frame}
+                                            alt={`Scene ${idx}`}
+                                            className={`w-full h-full object-cover transition-all duration-200 ${isSelected ? 'brightness-110' : 'brightness-75 group-hover:brightness-100'}`}
+                                        />
+                                        <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all
+                                            ${isSelected ? 'bg-[#CCFF00] border-[#CCFF00]' : 'border-white/50 bg-black/30'}`}>
+                                            {isSelected && <CheckCircleFilled className="text-black text-xs" />}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </GlassCard>
+                )}
+
+                {/* Style Selector */}
+                {((mode === 'photo' && photoPreview) || (mode === 'video' && selectedFrameIndices.length > 0)) && (
+                    <GlassCard>
+                        <StyleSelector
+                            selectedStyleId={selectedStyle.id}
+                            onStyleSelect={setSelectedStyle}
+                        />
+                    </GlassCard>
+                )}
+
+                {/* Convert Button */}
+                {((mode === 'photo' && photoPreview) || (mode === 'video' && selectedFrameIndices.length > 0)) && (
+                    <button
+                        className="accent-btn w-full"
+                        onClick={handleConvert}
+                        disabled={converting}
+                    >
+                        {converting ? (
+                            <>
+                                <LoadingOutlined className="mr-2" />
+                                변환 중... {progress}%
+                            </>
+                        ) : (
+                            '✨ 웹툰으로 변환하기'
+                        )}
+                    </button>
+                )}
+
+                {/* Progress */}
+                {converting && (
+                    <Progress
+                        percent={progress}
+                        strokeColor="#CCFF00"
+                        trailColor="#333"
+                        showInfo={false}
+                    />
+                )}
+
+                {/* Results */}
+                {aiImages.length > 0 && (
+                    <GlassCard>
+                        <h3 className="text-[#CCFF00] font-medium mb-4">변환 결과</h3>
+                        <div className="grid grid-cols-2 gap-4">
                             {aiImages.map((img, idx) => (
-                                <Image key={idx} src={img} alt={`Result ${idx}`} className="rounded-lg shadow-lg border border-[#333]" />
+                                <Image
+                                    key={idx}
+                                    src={img}
+                                    alt={`Result ${idx}`}
+                                    className="rounded-lg"
+                                />
                             ))}
                         </div>
-                    )}
-                </div>
-            </main>
-        </ConfigProvider>
+                    </GlassCard>
+                )}
+            </div>
+        </main>
     );
 }
