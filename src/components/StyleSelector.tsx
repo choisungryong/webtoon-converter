@@ -11,7 +11,7 @@ interface StyleSelectorProps {
 
 export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleSelectorProps) {
     return (
-        <div>
+        <div style={{ overflow: 'hidden' }}>
             <h3 style={{
                 fontSize: '14px',
                 fontWeight: 600,
@@ -21,16 +21,11 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
                 스타일 선택
             </h3>
 
-            {/* Horizontal Scroll Container */}
+            {/* Grid instead of horizontal scroll for better containment */}
             <div style={{
-                display: 'flex',
-                gap: '10px',
-                overflowX: 'auto',
-                paddingBottom: '8px',
-                marginLeft: '-16px',
-                marginRight: '-16px',
-                paddingLeft: '16px',
-                paddingRight: '16px'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: '8px'
             }}>
                 {STYLE_OPTIONS.map((style) => {
                     const isSelected = style.id === selectedStyleId;
@@ -39,14 +34,12 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
                             key={style.id}
                             onClick={() => onStyleSelect(style)}
                             style={{
-                                flexShrink: 0,
-                                width: '80px',
                                 cursor: 'pointer',
-                                borderRadius: '12px',
+                                borderRadius: '10px',
                                 overflow: 'hidden',
                                 border: isSelected ? '2px solid var(--accent-color)' : '2px solid transparent',
                                 background: 'var(--bg-secondary)',
-                                boxShadow: isSelected ? '0 0 15px var(--accent-glow)' : 'none',
+                                boxShadow: isSelected ? '0 0 12px var(--accent-glow)' : 'none',
                                 transition: 'all 0.2s ease'
                             }}
                         >
@@ -61,7 +54,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
                             }}>
                                 {isSelected && (
                                     <CheckCircleFilled style={{
-                                        fontSize: '28px',
+                                        fontSize: '20px',
                                         color: 'var(--accent-color)',
                                         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
                                     }} />
@@ -69,16 +62,16 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
                             </div>
                             {/* Name */}
                             <div style={{
-                                padding: '8px 4px',
+                                padding: '6px 4px',
                                 textAlign: 'center',
-                                fontSize: '11px',
+                                fontSize: '10px',
                                 fontWeight: 500,
                                 color: 'var(--text-secondary)',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
                             }}>
-                                {style.name}
+                                {style.name.split(' ')[0]}
                             </div>
                         </div>
                     );
@@ -87,7 +80,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
 
             {/* Description */}
             <p style={{
-                fontSize: '12px',
+                fontSize: '11px',
                 color: 'var(--text-muted)',
                 textAlign: 'center',
                 marginTop: '12px'

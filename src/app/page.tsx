@@ -278,7 +278,7 @@ export default function Home() {
             <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            <div style={{ width: '100%', maxWidth: '420px' }}>
+            <div style={{ width: '100%', maxWidth: '420px', overflow: 'hidden' }}>
                 {/* Header */}
                 <Header
                     mode={mode}
@@ -339,11 +339,24 @@ export default function Home() {
 
                         {aiImages.length > 0 && (
                             <GlassCard>
-                                <p className="font-medium mb-3" style={{ color: 'var(--accent-color)' }}>변환 결과</p>
-                                <div className="grid grid-cols-2 gap-3">
+                                <p style={{
+                                    color: 'var(--accent-color)',
+                                    fontWeight: 500,
+                                    marginBottom: '16px',
+                                    paddingLeft: '4px'
+                                }}>변환 결과</p>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: '12px',
+                                    padding: '4px'
+                                }}>
                                     {aiImages.map((img, idx) => (
-                                        <div key={idx} className="preview-container">
-                                            <Image src={img} alt={`Result ${idx}`} />
+                                        <div key={idx} style={{
+                                            borderRadius: '12px',
+                                            overflow: 'hidden'
+                                        }}>
+                                            <Image src={img} alt={`Result ${idx}`} style={{ width: '100%' }} />
                                         </div>
                                     ))}
                                 </div>
@@ -386,19 +399,51 @@ export default function Home() {
                         {extractedFrames.length > 0 && (
                             <>
                                 <GlassCard>
-                                    <p className="font-medium mb-3" style={{ color: 'var(--accent-color)' }}>
+                                    <p style={{
+                                        color: 'var(--accent-color)',
+                                        fontWeight: 500,
+                                        marginBottom: '12px'
+                                    }}>
                                         장면 선택 ({selectedFrameIndices.length})
                                     </p>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                        gap: '8px'
+                                    }}>
                                         {extractedFrames.map((frame, idx) => (
                                             <div
                                                 key={idx}
-                                                className="relative aspect-square cursor-pointer rounded-lg overflow-hidden"
                                                 onClick={() => toggleFrameSelection(idx)}
+                                                style={{
+                                                    position: 'relative',
+                                                    aspectRatio: '1',
+                                                    cursor: 'pointer',
+                                                    borderRadius: '8px',
+                                                    overflow: 'hidden',
+                                                    border: selectedFrameIndices.includes(idx)
+                                                        ? '2px solid var(--accent-color)'
+                                                        : '2px solid transparent'
+                                                }}
                                             >
-                                                <img src={frame} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={frame}
+                                                    alt={`Frame ${idx}`}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                />
                                                 {selectedFrameIndices.includes(idx) && (
-                                                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        inset: 0,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        background: 'rgba(0,0,0,0.4)'
+                                                    }}>
                                                         <CheckCircleFilled style={{ color: 'var(--accent-color)', fontSize: '24px' }} />
                                                     </div>
                                                 )}
