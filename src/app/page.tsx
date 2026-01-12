@@ -246,7 +246,7 @@ export default function Home() {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
-                                    className="hidden"
+                                    style={{ display: 'none' }}
                                     onChange={handlePhotoSelect}
                                 />
                                 <InboxOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
@@ -278,7 +278,7 @@ export default function Home() {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="video/*"
-                                    className="hidden"
+                                    style={{ display: 'none' }}
                                     onChange={handleVideoSelect}
                                 />
                                 <PlayCircleOutlined style={{ fontSize: '48px', color: '#CCFF00' }} />
