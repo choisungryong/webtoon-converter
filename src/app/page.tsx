@@ -178,31 +178,20 @@ export default function Home() {
                         console.log("AI Input Size:", sizeKB, "KB");
                         message.success({ content: `이미지 전송 준비 완료 (${sizeKB} KB)`, key: 'compress-Success', duration: 4 });
 
-                        // 2. Send Compressed Image
+                        // 2. Send Compressed Image (Gemini returns immediately)
                         const startRes = await axios.post('/api/ai/start', { image: compressedDataUrl });
-                        const { predictionId } = startRes.data;
-                        if (!predictionId) throw new Error('Start Failed');
+                        const responseData = startRes.data;
 
-                        // 3. Poll
-                        let finalUrl = null;
-                        // Increase timeout to 300s (5 mins) for Cold Boots
-                        for (let k = 0; k < 150; k++) {
-                            await new Promise(r => setTimeout(r, 2000));
-                            const statusRes = await axios.get(`/api/ai/status?id=${predictionId}&prompt=webtoon`);
-                            if (statusRes.data.status === 'succeeded') {
-                                finalUrl = statusRes.data.image;
-                                break;
-                            } else if (statusRes.data.status === 'failed') {
-                                throw new Error('AI Failed');
-                            }
-                        }
-
-                        if (finalUrl) {
+                        // Gemini API returns image directly (no polling needed)
+                        if (responseData.success && responseData.image) {
+                            const finalUrl = responseData.image;
                             results.push({ idx: globalIdx, url: finalUrl, success: true });
                             // Update UI immediately
-                            setAiImages(prev => [...prev, finalUrl!]);
+                            setAiImages(prev => [...prev, finalUrl]);
+                        } else if (responseData.error) {
+                            throw new Error(responseData.error);
                         } else {
-                            throw new Error('Timeout');
+                            throw new Error('AI 변환 실패: 이미지 없음');
                         }
 
                     } catch (e: any) {
