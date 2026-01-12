@@ -11,49 +11,93 @@ interface StyleSelectorProps {
 
 export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleSelectorProps) {
     return (
-        <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-400">스타일 선택</h3>
-            <div className="horizontal-scroll">
+        <div>
+            <h3 style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '12px'
+            }}>
+                스타일 선택
+            </h3>
+
+            {/* Horizontal Scroll Container */}
+            <div style={{
+                display: 'flex',
+                gap: '10px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+                marginLeft: '-16px',
+                marginRight: '-16px',
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }}>
                 {STYLE_OPTIONS.map((style) => {
                     const isSelected = style.id === selectedStyleId;
                     return (
                         <div
                             key={style.id}
-                            className={`style-card ${isSelected ? 'selected' : ''}`}
                             onClick={() => onStyleSelect(style)}
+                            style={{
+                                flexShrink: 0,
+                                width: '80px',
+                                cursor: 'pointer',
+                                borderRadius: '12px',
+                                overflow: 'hidden',
+                                border: isSelected ? '2px solid var(--accent-color)' : '2px solid transparent',
+                                background: 'var(--bg-secondary)',
+                                boxShadow: isSelected ? '0 0 15px var(--accent-glow)' : 'none',
+                                transition: 'all 0.2s ease'
+                            }}
                         >
-                            {/* Placeholder gradient for thumbnail */}
-                            <div
-                                className="w-full aspect-square flex items-center justify-center"
-                                style={{
-                                    background: getStyleGradient(style.id)
-                                }}
-                            >
+                            {/* Thumbnail */}
+                            <div style={{
+                                width: '100%',
+                                aspectRatio: '1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: getStyleGradient(style.id)
+                            }}>
                                 {isSelected && (
-                                    <CheckCircleFilled
-                                        style={{
-                                            fontSize: '32px',
-                                            color: '#CCFF00',
-                                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
-                                        }}
-                                    />
+                                    <CheckCircleFilled style={{
+                                        fontSize: '28px',
+                                        color: 'var(--accent-color)',
+                                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+                                    }} />
                                 )}
                             </div>
-                            <div className="style-name">
+                            {/* Name */}
+                            <div style={{
+                                padding: '8px 4px',
+                                textAlign: 'center',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                color: 'var(--text-secondary)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}>
                                 {style.name}
                             </div>
                         </div>
                     );
                 })}
             </div>
-            <p className="text-xs text-gray-500 text-center">
+
+            {/* Description */}
+            <p style={{
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+                marginTop: '12px'
+            }}>
                 {STYLE_OPTIONS.find(s => s.id === selectedStyleId)?.description}
             </p>
         </div>
     );
 }
 
-// 스타일별 대표 그라디언트 색상
 function getStyleGradient(styleId: string): string {
     const gradients: Record<string, string> = {
         'watercolor': 'linear-gradient(135deg, #87CEEB 0%, #98D8AA 50%, #F5DEB3 100%)',
