@@ -11,6 +11,7 @@ CREATE TABLE videos (
 
 CREATE TABLE IF NOT EXISTS generated_images (
   id TEXT PRIMARY KEY,
+  user_id TEXT, -- Anonymous User ID from Cookie
   video_id TEXT, -- Optional link to original video
   r2_key TEXT NOT NULL,
   prompt TEXT,

@@ -41,6 +41,19 @@ export default function Home() {
     const [galleryLoading, setGalleryLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [userId, setUserId] = useState<string>('');
+
+    // Initialize User ID
+    useEffect(() => {
+        const storedUserId = localStorage.getItem('toonsnap_user_id');
+        if (storedUserId) {
+            setUserId(storedUserId);
+        } else {
+            const newUserId = crypto.randomUUID();
+            localStorage.setItem('toonsnap_user_id', newUserId);
+            setUserId(newUserId);
+        }
+    }, []);
 
     // Common State
     const [selectedStyle, setSelectedStyle] = useState<StyleOption>(DEFAULT_STYLE);
@@ -55,15 +68,17 @@ export default function Home() {
 
     // Load gallery when mode changes
     useEffect(() => {
-        if (mode === 'gallery') {
+        if (mode === 'gallery' && userId) {
             fetchGallery();
         }
-    }, [mode]);
+    }, [mode, userId]);
 
     const fetchGallery = async () => {
         setGalleryLoading(true);
         try {
-            const res = await axios.get('/api/gallery');
+            const res = await axios.get('/api/gallery', {
+                headers: { 'x-user-id': userId }
+            });
             setGalleryImages(res.data.images || []);
         } catch (err) {
             console.error(err);
@@ -97,7 +112,9 @@ export default function Home() {
                 try {
                     // 순차 삭제 처리로 변경 및 오류 로깅 강화
                     for (const id of selectedImages) {
-                        await axios.delete(`/api/gallery/${id}`);
+                        await axios.delete(`/api/gallery/${id}`, {
+                            headers: { 'x-user-id': userId }
+                        });
                     }
                     setGalleryImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
                     setSelectedImages([]);
@@ -248,7 +265,8 @@ export default function Home() {
                 const compressedDataUrl = await compressImage(imagesToConvert[i]);
                 const res = await axios.post('/api/ai/start', {
                     image: compressedDataUrl,
-                    styleId: selectedStyle.id
+                    styleId: selectedStyle.id,
+                    userId: userId
                 });
                 if (res.data.success && res.data.image) {
                     setAiImages(prev => [...prev, res.data.image]);

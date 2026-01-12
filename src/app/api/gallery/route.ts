@@ -8,16 +8,29 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
     try {
         const { env } = getRequestContext<CloudflareEnv>();
+        const userId = request.headers.get('x-user-id');
 
         if (!env.DB) {
             return NextResponse.json({ error: 'DB binding failed' }, { status: 500 });
         }
 
-        // 1. Fetch recent images from D1
-        // Using explicit typing for safety, though 'any' is common with raw queries
-        const { results } = await env.DB.prepare(
-            `SELECT * FROM generated_images ORDER BY created_at DESC LIMIT 50`
-        ).all();
+        let results;
+
+        if (userId) {
+            // Fetch user specific images
+            const stmt = await env.DB.prepare(
+                `SELECT * FROM generated_images WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`
+            ).bind(userId);
+            results = (await stmt.all()).results;
+        } else {
+            // Fallback: Fetch legacy images (no user_id) or public images
+            // For privacy, maybe we should return empty? 
+            // But for transition, let's show images with NULL user_id
+            const stmt = await env.DB.prepare(
+                `SELECT * FROM generated_images WHERE user_id IS NULL ORDER BY created_at DESC LIMIT 50`
+            );
+            results = (await stmt.all()).results;
+        }
 
         if (!results || results.length === 0) {
             return NextResponse.json({ images: [] });
@@ -25,7 +38,6 @@ export async function GET(request: NextRequest) {
 
         // 2. Refresh Signed URLs for all images
         if (!env.R2_ACCOUNT_ID) {
-            // If no credentials, we can't sign URLs. Return as is (will break if private bucket)
             return NextResponse.json({ images: results });
         }
 
