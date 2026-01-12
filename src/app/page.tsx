@@ -255,11 +255,10 @@ export default function Home() {
                             </label>
                         ) : (
                             <div className="space-y-4">
-                                <div className="relative">
+                                <div className="preview-container relative">
                                     <img
                                         src={photoPreview}
                                         alt="Preview"
-                                        className="w-full rounded-lg max-h-[300px] object-contain mx-auto"
                                     />
                                     <button
                                         onClick={handleReset}
