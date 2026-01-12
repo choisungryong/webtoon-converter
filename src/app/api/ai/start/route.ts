@@ -101,12 +101,46 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: errorMessage }, { status: 500 });
         }
 
+        // Save to R2 for persistence (Gallery Feature)
+        const imageId = crypto.randomUUID();
+        const r2Key = `generated/${imageId}.png`;
+        let savedToGallery = false;
+
+        if (env.R2) {
+            try {
+                // Convert Base64 to ArrayBuffer
+                const binaryString = atob(generatedImageBase64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                await env.R2.put(r2Key, bytes, {
+                    httpMetadata: { contentType: generatedMimeType }
+                });
+
+                // Save to D1 database
+                if (env.DB) {
+                    await env.DB.prepare(
+                        `INSERT INTO generated_images (id, r2_key, prompt) VALUES (?, ?, ?)`
+                    ).bind(imageId, r2Key, prompt).run();
+                    savedToGallery = true;
+                    console.log('Saved to gallery:', imageId);
+                }
+            } catch (saveError) {
+                console.error('Failed to save to gallery:', saveError);
+                // Continue - image generation succeeded, just gallery save failed
+            }
+        }
+
         // Return generated image as Data URI
         const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
 
         return NextResponse.json({
             success: true,
             image: outputDataUri,
+            imageId: imageId,
+            savedToGallery: savedToGallery,
             status: 'completed'
         });
 
