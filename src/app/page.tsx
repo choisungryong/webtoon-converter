@@ -95,14 +95,16 @@ export default function Home() {
             onOk: async () => {
                 setDeleting(true);
                 try {
-                    await Promise.all(
-                        selectedImages.map(id => axios.delete(`/api/gallery/${id}`))
-                    );
+                    // 순차 삭제 처리로 변경 및 오류 로깅 강화
+                    for (const id of selectedImages) {
+                        await axios.delete(`/api/gallery/${id}`);
+                    }
                     setGalleryImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
                     setSelectedImages([]);
                     message.success('삭제되었습니다.');
-                } catch (err) {
-                    message.error('삭제 실패');
+                } catch (err: any) {
+                    console.error('삭제 오류:', err);
+                    message.error(`삭제 실패: ${err.message || '알 수 없는 오류'}`);
                 } finally {
                     setDeleting(false);
                 }
@@ -511,6 +513,32 @@ export default function Home() {
                                     {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
                                 </button>
                             </>
+                        )}
+
+                        {aiImages.length > 0 && (
+                            <GlassCard>
+                                <p style={{
+                                    color: 'var(--accent-color)',
+                                    fontWeight: 500,
+                                    marginBottom: '16px',
+                                    paddingLeft: '4px'
+                                }}>변환 결과</p>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: '12px',
+                                    padding: '4px'
+                                }}>
+                                    {aiImages.map((img, idx) => (
+                                        <div key={idx} style={{
+                                            borderRadius: '12px',
+                                            overflow: 'hidden'
+                                        }}>
+                                            <Image src={img} alt={`Result ${idx}`} style={{ width: '100%' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </GlassCard>
                         )}
                     </>
                 )}
