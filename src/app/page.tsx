@@ -267,11 +267,18 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-screen flex flex-col items-center px-4 py-6" style={{ background: 'var(--bg-primary)' }}>
+        <main style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '24px 16px',
+            background: 'var(--bg-primary)'
+        }}>
             <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            <div className="w-full max-w-md space-y-5">
+            <div style={{ width: '100%', maxWidth: '420px' }}>
                 {/* Header */}
                 <Header
                     mode={mode}
