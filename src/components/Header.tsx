@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CameraOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons';
+import { SunOutlined, MoonOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
 export type AppMode = 'photo' | 'video';
@@ -16,24 +16,57 @@ interface HeaderProps {
 
 export default function Header({ mode, onModeChange, theme, onThemeChange }: HeaderProps) {
     return (
-        <header className="flex flex-col items-center gap-4 w-full mb-6">
+        <header className="w-full mb-6 relative">
+            {/* Theme Toggle - Fixed Right Top */}
+            <button
+                onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
+                className="absolute right-0 top-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+                style={{
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }}
+                title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
+            >
+                {theme === 'dark' ? (
+                    <SunOutlined style={{ color: '#CCFF00', fontSize: '18px' }} />
+                ) : (
+                    <MoonOutlined style={{ color: '#333', fontSize: '18px' }} />
+                )}
+            </button>
+
             {/* Logo - Centered */}
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#CCFF00] via-[#9FE000] to-green-500 flex items-center justify-center shadow-lg shadow-[#CCFF00]/30">
-                    <CameraOutlined style={{ fontSize: '24px', color: 'black' }} />
-                </div>
-                <div className="flex flex-col">
-                    <h1 className="text-2xl font-bold text-white leading-tight">
-                        Toon<span className="text-[#CCFF00]">Snap</span>
+            <div className="flex flex-col items-center pt-2 pb-4">
+                <Link href="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+                    {/* Logo Icon */}
+                    <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-2"
+                        style={{
+                            background: 'linear-gradient(135deg, #CCFF00 0%, #9FE000 50%, #00C853 100%)',
+                            boxShadow: '0 4px 20px rgba(204, 255, 0, 0.4)'
+                        }}
+                    >
+                        <span style={{ fontSize: '28px' }}>🎨</span>
+                    </div>
+                    {/* Logo Text */}
+                    <h1 className="text-3xl font-bold" style={{ color: 'var(--text-color)' }}>
+                        Toon<span style={{ color: '#CCFF00' }}>Snap</span>
                     </h1>
-                    <span className="text-[10px] text-gray-400 tracking-wider">AI WEBTOON CONVERTER</span>
-                </div>
-            </Link>
+                    <span className="text-xs mt-1" style={{ color: 'var(--text-muted)', letterSpacing: '2px' }}>
+                        AI WEBTOON CONVERTER
+                    </span>
+                </Link>
+            </div>
 
             {/* Controls Row */}
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center justify-center gap-4">
                 {/* Gallery Link */}
-                <Link href="/gallery" className="text-[#CCFF00] hover:text-white transition-colors text-sm font-medium">
+                <Link
+                    href="/gallery"
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    style={{
+                        color: '#CCFF00',
+                        background: 'rgba(204, 255, 0, 0.1)'
+                    }}
+                >
                     🖼 갤러리
                 </Link>
 
@@ -52,19 +85,6 @@ export default function Header({ mode, onModeChange, theme, onThemeChange }: Hea
                         🎬 영상
                     </button>
                 </div>
-
-                {/* Theme Toggle */}
-                <button
-                    onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-                    className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors"
-                    title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
-                >
-                    {theme === 'dark' ? (
-                        <SunOutlined style={{ color: '#CCFF00', fontSize: '16px' }} />
-                    ) : (
-                        <MoonOutlined style={{ color: '#333', fontSize: '16px' }} />
-                    )}
-                </button>
             </div>
         </header>
     );
