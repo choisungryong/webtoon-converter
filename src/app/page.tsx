@@ -4,7 +4,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { message, Progress, Image, Spin, Modal } from 'antd';
 import { CheckCircleFilled, LoadingOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import axios from 'axios';
 
 import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
@@ -76,10 +75,11 @@ export default function Home() {
     const fetchGallery = async () => {
         setGalleryLoading(true);
         try {
-            const res = await axios.get('/api/gallery', {
+            const res = await fetch('/api/gallery', {
                 headers: { 'x-user-id': userId }
             });
-            setGalleryImages(res.data.images || []);
+            const data = await res.json();
+            setGalleryImages(data.images || []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -112,7 +112,8 @@ export default function Home() {
                 try {
                     // 순차 삭제 처리로 변경 및 오류 로깅 강화
                     for (const id of selectedImages) {
-                        await axios.delete(`/api/gallery/${id}`, {
+                        await fetch(`/api/gallery/${id}`, {
+                            method: 'DELETE',
                             headers: { 'x-user-id': userId }
                         });
                     }
@@ -263,13 +264,19 @@ export default function Home() {
             for (let i = 0; i < imagesToConvert.length; i++) {
                 if (i > 0) await new Promise(r => setTimeout(r, 10000));
                 const compressedDataUrl = await compressImage(imagesToConvert[i]);
-                const res = await axios.post('/api/ai/start', {
-                    image: compressedDataUrl,
-                    styleId: selectedStyle.id,
-                    userId: userId
+                const res = await fetch('/api/ai/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: compressedDataUrl,
+                        styleId: selectedStyle.id,
+                        userId: userId
+                    })
                 });
-                if (res.data.success && res.data.image) {
-                    setAiImages(prev => [...prev, res.data.image]);
+                const data = await res.json();
+
+                if (data.success && data.image) {
+                    setAiImages(prev => [...prev, data.image]);
                     setProgress(Math.round(((i + 1) / imagesToConvert.length) * 100));
                 }
             }
