@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 
-// runtime config removed to use default nodejs_compat
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
     try {
