@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "next build",
+        "build": "next build && npx @opennextjs/cloudflare build && node -e \"const fs=require('fs'); const src='.open-next/assets'; const srcW='.open-next/worker.js'; const dst='.vercel/output/static'; if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.cpSync(src,dst,{recursive:true}); if(fs.existsSync(srcW))fs.copyFileSync(srcW,dst+'/_worker.js'); console.log('Fixed output path');}\"",
         "preview": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare preview",
         "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy",
         "db:init:prod": "wrangler d1 execute webtoon-db --file=./schema.sql --yes",
