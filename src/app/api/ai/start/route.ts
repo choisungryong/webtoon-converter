@@ -30,8 +30,17 @@ export async function POST(request: NextRequest) {
         const { env } = getRequestContext<CloudflareEnv>();
 
         // 🔑 중요 수정: Cloudflare 환경 변수뿐만 아니라 로컬 환경 변수(process.env)도 체크하도록 변경
-        // @ts-ignore
-        const apiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+        // 🔑 중요 수정: Cloudflare 환경 변수뿐만 아니라 로컬 환경 변수(process.env)도 체크하도록 변경
+        let apiKey = env.GEMINI_API_KEY;
+        try {
+            // @ts-ignore
+            if (!apiKey && typeof process !== 'undefined' && process.env) {
+                // @ts-ignore
+                apiKey = process.env.GEMINI_API_KEY;
+            }
+        } catch (e) {
+            // Ignore if process is not defined
+        }
 
         console.log('[API/Start] Request received. Style:', styleId, 'User:', userId);
 
