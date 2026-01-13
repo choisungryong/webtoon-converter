@@ -29,10 +29,13 @@ export async function POST(request: NextRequest) {
         }
 
         const { env } = getRequestContext<CloudflareEnv>();
-        const apiKey = env.GEMINI_API_KEY;
+        const apiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+
+        console.log('[API/Start] Request received. Style:', styleId, 'User:', userId);
 
         if (!apiKey) {
-            return NextResponse.json({ error: 'Gemini API Key missing' }, { status: 500 });
+            console.error('[API/Start] Error: Gemini API Key is missing in both env and process.env');
+            return NextResponse.json({ error: 'Gemini API Key missing. Please set GEMINI_API_KEY in .env.local' }, { status: 500 });
         }
 
         // Extract Base64 data from Data URI
