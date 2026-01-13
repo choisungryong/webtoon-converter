@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webtoon-converter
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+    restart: always

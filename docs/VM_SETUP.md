@@ -78,11 +78,27 @@ npm run dev
 # OR using Wrangler (Recommended for binding support)
 npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01 --compatibility-flags=nodejs_compat
 ```
-*Note: For Next.js App Router with Cloudflare Pages, `npm run dev` is arguably the easiest, but ensure you have the correct local plugins or proxy setup if you rely heavily on Edge features locally.*
 
-## 4. Automated Setup Script
-You can use the provided script to automate Step 1 & 2 (excluding secrets).
+## 4. Automated Setup Script (Non-Docker)
+You can use the provided script to automate system installation.
 ```bash
 chmod +x scripts/setup-vm.sh
 ./scripts/setup-vm.sh
 ```
+
+## 5. Docker Deployment (Easiest)
+If you prefer not to install Node.js manually, you can use Docker.
+
+1.  **Install Docker** (if not installed)
+    ```bash
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    ```
+
+2.  **Run with Docker Compose**
+    Make sure your `REPLICATE_API_TOKEN` is set in the current shell or `.env` file.
+    ```bash
+    export REPLICATE_API_TOKEN=your_token_here
+    docker compose up -d --build
+    ```
+    The app will be available at `http://localhost:3000`.
