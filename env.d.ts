@@ -7,5 +7,6 @@ interface CloudflareEnv {
     R2_BUCKET_NAME: string;
     AI: any; // Cloudflare Workers AI Binding
     REPLICATE_API_TOKEN: string; // Replicate API Token
+    GEMINI_API_KEY: string; // Gemini API Key
     [key: string]: any;
 }
