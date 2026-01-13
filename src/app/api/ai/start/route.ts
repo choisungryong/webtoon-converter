@@ -4,6 +4,38 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
+    // === DEBUG: 문제 진단용 코드 ===
+    try {
+        const ctx = getRequestContext<CloudflareEnv>();
+        if (!ctx) {
+            return NextResponse.json({
+                error: 'DEBUG: getRequestContext() returned null/undefined',
+                debug: true
+            }, { status: 500 });
+        }
+        if (!ctx.env) {
+            return NextResponse.json({
+                error: 'DEBUG: ctx.env is null/undefined',
+                debug: true
+            }, { status: 500 });
+        }
+        const envKeys = Object.keys(ctx.env);
+        if (!ctx.env.GEMINI_API_KEY) {
+            return NextResponse.json({
+                error: 'DEBUG: GEMINI_API_KEY not found in env',
+                availableKeys: envKeys,
+                debug: true
+            }, { status: 500 });
+        }
+    } catch (debugError) {
+        return NextResponse.json({
+            error: 'DEBUG: Error in getRequestContext',
+            message: (debugError as Error).message,
+            debug: true
+        }, { status: 500 });
+    }
+    // === DEBUG 끝 ===
+
     try {
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
         const STYLE_PROMPTS: Record<string, string> = {
