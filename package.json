@@ -4,7 +4,8 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "npx @opennextjs/cloudflare build && node -e \"const fs=require('fs'); if(fs.existsSync('.open-next/assets')){fs.mkdirSync('.vercel/output/static',{recursive:true});fs.cpSync('.open-next/assets','.vercel/output/static',{recursive:true}); if(fs.existsSync('.open-next/worker.js'))fs.copyFileSync('.open-next/worker.js','.vercel/output/static/_worker.js'); console.log('Successfully mapped OpenNext output to .vercel path');}\"",
+        "build": "next build",
+        "cf-build": "npx @opennextjs/cloudflare build && node -e \"const fs=require('fs'); if(fs.existsSync('.open-next/assets')){fs.mkdirSync('.vercel/output/static',{recursive:true});fs.cpSync('.open-next/assets','.vercel/output/static',{recursive:true}); if(fs.existsSync('.open-next/worker.js'))fs.copyFileSync('.open-next/worker.js','.vercel/output/static/_worker.js'); console.log('Successfully mapped OpenNext output to .vercel path');}\"",
         "start": "next start",
         "lint": "next lint"
     },
