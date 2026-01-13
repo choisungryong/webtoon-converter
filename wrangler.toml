@@ -2,17 +2,16 @@ name = "webtoon-converter"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-[pages_build_output_dir]
-directory = ".vercel/output/static"
+pages_build_output_dir = ".vercel/output/static"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "webtoon-db"
-database_id = "YOUR_DATABASE_ID" # TODO: Replace with your actual D1 Database ID
+database_id = "1281fc1f-362e-46ce-944e-eafdedd050f5" # Real D1 Database ID
 
 [[r2_buckets]]
 binding = "R2"
-bucket_name = "webtoon-assets" # TODO: Replace with your actual R2 Bucket Name
+bucket_name = "webtoon-storage" # Real R2 Bucket Name
 
 [ai]
 binding = "AI"
