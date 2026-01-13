@@ -1,53 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export const runtime = 'edge';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function POST(request: NextRequest) {
-    // === DEBUG: 모듈 로드 에러까지 잡기 위한 동적 import ===
-    let getRequestContext: any;
-    try {
-        const cfModule = await import('@cloudflare/next-on-pages');
-        getRequestContext = cfModule.getRequestContext;
-    } catch (importError) {
-        return NextResponse.json({
-            error: 'DEBUG: Failed to import @cloudflare/next-on-pages',
-            message: (importError as Error).message,
-            debug: true
-        }, { status: 500 });
-    }
-
-    // === DEBUG: 환경변수 체크 ===
-    try {
-        const ctx = getRequestContext() as { env: CloudflareEnv };
-        if (!ctx) {
-            return NextResponse.json({
-                error: 'DEBUG: getRequestContext() returned null/undefined',
-                debug: true
-            }, { status: 500 });
-        }
-        if (!ctx.env) {
-            return NextResponse.json({
-                error: 'DEBUG: ctx.env is null/undefined',
-                debug: true
-            }, { status: 500 });
-        }
-        const envKeys = Object.keys(ctx.env);
-        if (!ctx.env.GEMINI_API_KEY) {
-            return NextResponse.json({
-                error: 'DEBUG: GEMINI_API_KEY not found in env',
-                availableKeys: envKeys,
-                debug: true
-            }, { status: 500 });
-        }
-    } catch (debugError) {
-        return NextResponse.json({
-            error: 'DEBUG: Error in getRequestContext',
-            message: (debugError as Error).message,
-            debug: true
-        }, { status: 500 });
-    }
-    // === DEBUG 끝 ===
-
     try {
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
         const STYLE_PROMPTS: Record<string, string> = {
@@ -71,17 +25,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
 
-        const { env } = getRequestContext() as { env: CloudflareEnv };
-
-        // 🔑 중요 수정: Cloudflare 환경 변수뿐만 아니라 로컬 환경 변수(process.env)도 체크하도록 변경
-        // 🔑 Cloudflare 환경 변수 사용 (Standard)
+        const { env } = await getCloudflareContext();
         const apiKey = env.GEMINI_API_KEY;
 
         console.log('[API/Start] Request received. Style:', styleId, 'User:', userId);
 
         if (!apiKey) {
-            console.error('[API/Start] Error: Gemini API Key is missing in both env and process.env');
-            return NextResponse.json({ error: 'Gemini API Key missing. Please set GEMINI_API_KEY in .env.local' }, { status: 500 });
+            console.error('[API/Start] Error: Gemini API Key is missing');
+            return NextResponse.json({ error: 'Gemini API Key missing' }, { status: 500 });
         }
 
         // Extract Base64 data from Data URI
@@ -92,7 +43,7 @@ export async function POST(request: NextRequest) {
         const mimeType = `image/${base64Match[1]}`;
         const base64Data = base64Match[2];
 
-        // Call Gemini API (Nano Banana Pro)
+        // Call Gemini API
         const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
 
         const geminiRes = await fetch(geminiEndpoint, {
@@ -181,7 +132,6 @@ export async function POST(request: NextRequest) {
                 }
             } catch (saveError) {
                 console.error('Failed to save to gallery:', saveError);
-                // Continue - image generation succeeded, just gallery save failed
             }
         }
 

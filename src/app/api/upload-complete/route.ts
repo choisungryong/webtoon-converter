@@ -1,35 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-
-export const runtime = 'edge';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function POST(request: NextRequest) {
     try {
+        const { env } = await getCloudflareContext();
         const { fileId } = await request.json();
 
         if (!fileId) {
-            return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing fileId' }, { status: 400 });
         }
 
-        const { env } = getRequestContext<CloudflareEnv>();
-
-        if (!env.DB) {
-            return NextResponse.json({ error: 'DB configuration missing' }, { status: 500 });
+        if (env.DB) {
+            await env.DB.prepare(
+                `UPDATE videos SET status = ? WHERE id = ?`
+            ).bind('completed', fileId).run();
         }
 
-        // Update status to 'uploaded'
-        const result = await env.DB.prepare(
-            `UPDATE videos SET status = 'uploaded', updated_at = strftime('%s', 'now') WHERE id = ?`
-        ).bind(fileId).run();
-
-        if (result.success) {
-            return NextResponse.json({ success: true, message: 'Status updated to uploaded' });
-        } else {
-            throw new Error('Database update failed');
-        }
+        return NextResponse.json({ success: true, fileId });
 
     } catch (error) {
-        console.error('Completion Error:', error);
-        return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
+        console.error('Upload Complete Error:', error);
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }

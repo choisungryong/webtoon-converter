@@ -1,45 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-
-// Cloudflare Pages(Workers) 환경에서 실행되도록 설정
-export const runtime = 'edge';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function POST(request: NextRequest) {
     try {
-        // 1. 요청에서 파일 데이터 추출
+        const { env } = await getCloudflareContext();
         const formData = await request.formData();
-        const file = formData.get('video') as File;
+        const file = formData.get('file') as File;
+        const fileId = formData.get('fileId') as string;
+        const r2Key = formData.get('r2Key') as string;
 
-        if (!file) {
-            return NextResponse.json({ error: '업로드할 파일이 없습니다.' }, { status: 400 });
+        if (!file || !fileId || !r2Key) {
+            return NextResponse.json({ error: 'Missing file, fileId, or r2Key' }, { status: 400 });
         }
 
-        // 2. 유니크한 파일명 생성 (타임스탬프 활용)
-        const fileName = `${Date.now()}-${file.name}`;
-
-        // 3. Cloudflare R2 버킷 인터페이스 가져오기 (표준 방식)
-        const { env } = getRequestContext<CloudflareEnv>();
-        const bucket = env.R2;
-
-        if (!bucket) {
-            return NextResponse.json(
-                { error: 'R2 버킷 바인딩 설정을 찾을 수 없습니다. Cloudflare 대시보드에서 R2 변수를 연결해 주세요.' },
-                { status: 500 }
-            );
+        if (!env.R2) {
+            return NextResponse.json({ error: 'R2 binding failed' }, { status: 500 });
         }
 
-        // 4. R2 버킷에 파일 저장
-        await bucket.put(fileName, file.stream(), {
-            httpMetadata: { contentType: file.type },
+        const arrayBuffer = await file.arrayBuffer();
+        await env.R2.put(r2Key, arrayBuffer, {
+            httpMetadata: { contentType: file.type }
         });
 
-        return NextResponse.json({
-            success: true,
-            fileName,
-            message: 'R2 저장소 업로드 완료'
-        });
+        if (env.DB) {
+            await env.DB.prepare(
+                `UPDATE videos SET status = ? WHERE id = ?`
+            ).bind('uploaded', fileId).run();
+        }
+
+        return NextResponse.json({ success: true, fileId, r2Key });
+
     } catch (error) {
         console.error('Upload Error:', error);
-        return NextResponse.json({ error: '서버 내부 오류 발생' }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }

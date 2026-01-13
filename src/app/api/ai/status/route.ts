@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export const runtime = 'edge';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -12,16 +11,13 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const { getRequestContext } = await import('@cloudflare/next-on-pages');
-        const { env } = getRequestContext() as { env: CloudflareEnv };
-
+        const { env } = await getCloudflareContext();
         const apiToken = env.REPLICATE_API_TOKEN;
 
         if (!apiToken) {
             return NextResponse.json({ error: 'Missing API Token' }, { status: 500 });
         }
 
-        // Check Status
         const checkRes = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
             headers: { "Authorization": `Token ${apiToken}` }
         });
@@ -36,7 +32,6 @@ export async function GET(request: NextRequest) {
         if (status === 'succeeded') {
             const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
 
-            // Download & Save to R2
             const imgRes = await fetch(outputUrl);
             const imgBlob = await imgRes.blob();
             const imgBuffer = await imgBlob.arrayBuffer();
@@ -60,7 +55,6 @@ export async function GET(request: NextRequest) {
                 }
             }
 
-            // Return our image serving endpoint URL
             return NextResponse.json({
                 status: 'succeeded',
                 image: `/api/gallery/${imageId}/image`,
