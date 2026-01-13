@@ -8,8 +8,10 @@
         "cf-build": "npx @opennextjs/cloudflare build && mkdir -p .vercel/output/static && cp -rp .open-next/assets/. .vercel/output/static/ && cp -p .open-next/worker.js .vercel/output/static/_worker.js"
     },
     "dependencies": {
+        "@ant-design/icons": "^5.2.6",
+        "@ant-design/nextjs-registry": "^1.0.1",
         "@opennextjs/cloudflare": "^1.14.8",
-        "antd": "^5.12.0",
+        "antd": "^5.12.2",
         "lucide-react": "^0.294.0",
         "next": "15.1.0",
         "react": "^19.0.0",
