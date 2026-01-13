@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// Testing without explicit edge runtime
 
 export async function GET() {
     return NextResponse.json({
