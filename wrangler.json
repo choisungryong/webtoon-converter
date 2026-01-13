@@ -5,7 +5,7 @@
     "compatibility_flags": [
         "nodejs_compat"
     ],
-    "pages_build_output_dir": ".open-next/assets",
+    "pages_build_output_dir": ".vercel/output/static",
     "d1_databases": [
         {
             "binding": "DB",
