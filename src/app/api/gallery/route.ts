@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
     try {
-        const { env } = getRequestContext<CloudflareEnv>();
+        // 동적 import로 Edge 호환성 확보
+        const { getRequestContext } = await import('@cloudflare/next-on-pages');
+        const { env } = getRequestContext() as { env: CloudflareEnv };
+
         const userId = request.headers.get('x-user-id');
 
         if (!env.DB) {
@@ -17,15 +17,11 @@ export async function GET(request: NextRequest) {
         let results;
 
         if (userId) {
-            // Fetch user specific images
             const stmt = await env.DB.prepare(
                 `SELECT * FROM generated_images WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`
             ).bind(userId);
             results = (await stmt.all()).results;
         } else {
-            // Fallback: Fetch legacy images (no user_id) or public images
-            // For privacy, maybe we should return empty? 
-            // But for transition, let's show images with NULL user_id
             const stmt = await env.DB.prepare(
                 `SELECT * FROM generated_images WHERE user_id IS NULL ORDER BY created_at DESC LIMIT 50`
             );
@@ -36,36 +32,22 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ images: [] });
         }
 
-        // 2. Refresh Signed URLs for all images
-        if (!env.R2_ACCOUNT_ID) {
-            return NextResponse.json({ images: results });
-        }
-
-        const S3 = new S3Client({
-            region: 'auto',
-            endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-            credentials: {
-                accessKeyId: env.R2_ACCESS_KEY_ID,
-                secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-            },
-        });
-
-        const imagesWithUrls = await Promise.all(results.map(async (img: any) => {
-            const getCommand = new GetObjectCommand({
-                Bucket: env.R2_BUCKET_NAME,
-                Key: img.r2_key,
-            });
-            const url = await getSignedUrl(S3, getCommand, { expiresIn: 3600 });
-            return {
-                ...img,
-                url
-            };
+        // R2 네이티브 바인딩으로 이미지 URL 생성
+        // Cloudflare R2는 직접 public URL을 제공하지 않으므로,
+        // 별도의 이미지 서빙 엔드포인트(/api/image/[id])를 사용하거나
+        // 이미지를 base64로 인라인 제공해야 함
+        // 여기서는 간단히 이미지 서빙 경로를 반환
+        const imagesWithUrls = results.map((img: any) => ({
+            id: img.id,
+            url: `/api/gallery/${img.id}/image`,
+            createdAt: img.created_at,
+            prompt: img.prompt
         }));
 
         return NextResponse.json({ images: imagesWithUrls });
 
     } catch (error) {
         console.error('Gallery Fetch Error:', error);
-        return NextResponse.json({ error: 'Failed to fetch gallery' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to fetch gallery', message: (error as Error).message }, { status: 500 });
     }
 }
