@@ -4,7 +4,7 @@ export const runtime = 'edge';
 import { useEffect, useState } from 'react';
 import { Spin, Image, Modal, message } from 'antd';
 import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import axios from 'axios';
+
 import Link from 'next/link';
 import GlassCard from '../../components/GlassCard';
 
@@ -24,8 +24,9 @@ export default function GalleryPage() {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/api/gallery');
-            setImages(res.data.images || []);
+            const res = await fetch('/api/gallery');
+            const data = await res.json();
+            setImages(data.images || []);
         } catch (err) {
             console.error(err);
             message.error('갤러리를 불러오는데 실패했습니다.');
@@ -49,7 +50,7 @@ export default function GalleryPage() {
             onOk: async () => {
                 setDeleting(imageId);
                 try {
-                    await axios.delete(`/api/gallery/${imageId}`);
+                    await fetch(`/api/gallery/${imageId}`, { method: 'DELETE' });
                     setImages(prev => prev.filter(img => img.id !== imageId));
                     message.success('이미지가 삭제되었습니다.');
                 } catch (err) {
