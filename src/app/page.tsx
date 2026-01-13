@@ -1,6 +1,6 @@
 'use client';
 
-export const runtime = 'edge';
+export const runtime = 'experimental-edge';
 import { useState, useRef, useEffect } from 'react';
 import { message, Progress, Image, Spin, Modal } from 'antd';
 import { CheckCircleFilled, LoadingOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
