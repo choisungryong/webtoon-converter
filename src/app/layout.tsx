@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import "./globals.css";
 
-export const runtime = 'edge';
+// runtime config removed to use default nodejs_compat
 
 export const metadata: Metadata = {
     title: "ToonSnap - 당신의 일상을 K-웹툰으로",
