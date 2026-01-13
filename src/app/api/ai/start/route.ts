@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
 
 export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
-    // === DEBUG: 문제 진단용 코드 ===
+    // === DEBUG: 모듈 로드 에러까지 잡기 위한 동적 import ===
+    let getRequestContext: any;
     try {
-        const ctx = getRequestContext<CloudflareEnv>();
+        const cfModule = await import('@cloudflare/next-on-pages');
+        getRequestContext = cfModule.getRequestContext;
+    } catch (importError) {
+        return NextResponse.json({
+            error: 'DEBUG: Failed to import @cloudflare/next-on-pages',
+            message: (importError as Error).message,
+            debug: true
+        }, { status: 500 });
+    }
+
+    // === DEBUG: 환경변수 체크 ===
+    try {
+        const ctx = getRequestContext() as { env: CloudflareEnv };
         if (!ctx) {
             return NextResponse.json({
                 error: 'DEBUG: getRequestContext() returned null/undefined',
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
 
-        const { env } = getRequestContext<CloudflareEnv>();
+        const { env } = getRequestContext() as { env: CloudflareEnv };
 
         // 🔑 중요 수정: Cloudflare 환경 변수뿐만 아니라 로컬 환경 변수(process.env)도 체크하도록 변경
         // 🔑 Cloudflare 환경 변수 사용 (Standard)
