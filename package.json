@@ -5,12 +5,10 @@
     "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "cf-build": "npx @opennextjs/cloudflare build && node -e \"const fs=require('fs'); if(fs.existsSync('.open-next/assets')){fs.mkdirSync('.vercel/output/static',{recursive:true});fs.cpSync('.open-next/assets','.vercel/output/static',{recursive:true}); if(fs.existsSync('.open-next/worker.js'))fs.copyFileSync('.open-next/worker.js','.vercel/output/static/_worker.js'); console.log('Successfully mapped OpenNext output to .vercel path');}\"",
-        "start": "next start",
-        "lint": "next lint"
+        "cf-build": "npx @opennextjs/cloudflare build && mkdir -p .vercel/output/static && cp -rp .open-next/assets/. .vercel/output/static/ && cp -p .open-next/worker.js .vercel/output/static/_worker.js"
     },
     "dependencies": {
-        "@opennextjs/cloudflare": "^1.0.0",
+        "@opennextjs/cloudflare": "^1.14.8",
         "antd": "^5.12.0",
         "lucide-react": "^0.294.0",
         "next": "15.1.0",
