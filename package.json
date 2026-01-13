@@ -4,28 +4,20 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "npx @opennextjs/cloudflare build && node -e \"const fs=require('fs'); const src='.open-next/assets'; const srcW='.open-next/worker.js'; const dst='.vercel/output/static'; if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});fs.cpSync(src,dst,{recursive:true}); if(fs.existsSync(srcW))fs.copyFileSync(srcW,dst+'/_worker.js'); console.log('Fixed output path');}\"",
-        "preview": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare preview",
-        "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy",
-        "db:init:prod": "wrangler d1 execute webtoon-db --file=./schema.sql --yes",
+        "build": "npx @opennextjs/cloudflare build",
         "start": "next start",
-        "lint": "next lint",
-        "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+        "lint": "next lint"
     },
     "dependencies": {
-        "@ant-design/icons": "^6.1.0",
-        "@ant-design/nextjs-registry": "^1.3.0",
-        "@opennextjs/cloudflare": "latest",
-        "@types/uuid": "^10.0.0",
-        "antd": "5.12.0",
-        "lucide-react": "0.294.0",
+        "@opennextjs/cloudflare": "^0.3.0",
+        "antd": "^5.12.2",
+        "lucide-react": "^0.294.0",
         "next": "15.1.0",
-        "react": "18.3.1",
-        "react-dom": "18.3.1",
-        "uuid": "^13.0.0"
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
     },
     "devDependencies": {
-        "@types/node": "20.10.4",
+        "@types/node": "20.10.0",
         "@types/react": "18.2.45",
         "@types/react-dom": "18.2.18",
         "autoprefixer": "10.4.16",
