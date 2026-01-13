@@ -6,6 +6,7 @@
         "dev": "next dev",
         "build": "next build",
         "pages:build": "npx @cloudflare/next-on-pages",
+        "db:init:prod": "wrangler d1 execute webtoon-db --file=./schema.sql --yes",
         "start": "next start",
         "lint": "next lint"
     },
