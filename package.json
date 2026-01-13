@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "cf-build": "npx @opennextjs/cloudflare build && rm -rf .vercel/output/static && mkdir -p .vercel/output/static && cp -rp .open-next/assets/* .vercel/output/static/ && cp -rp .open-next/worker.js .vercel/output/static/_worker.js && cp -rp .open-next/cloudflare .vercel/output/static/ && cp -rp .open-next/server-functions .vercel/output/static/ && cp -rp .open-next/middleware .vercel/output/static/ || true"
+        "cf-build": "npx @opennextjs/cloudflare build && rm -rf .vercel/output/static && mkdir -p .vercel/output/static && cp -rp .open-next/. .vercel/output/static/ && cp -rp .open-next/assets/. .vercel/output/static/ && [ -f .vercel/output/static/worker.js ] && mv .vercel/output/static/worker.js .vercel/output/static/_worker.js || true"
     },
     "dependencies": {
         "@ant-design/icons": "^5.2.6",
