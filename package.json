@@ -5,8 +5,8 @@
     "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-        "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+        "preview": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare preview",
+        "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy",
         "db:init:prod": "wrangler d1 execute webtoon-db --file=./schema.sql --yes",
         "start": "next start",
         "lint": "next lint",
