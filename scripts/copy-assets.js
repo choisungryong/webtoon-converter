@@ -37,10 +37,10 @@ console.log('📦 Copying assets to Cloudflare Pages directory...');
 console.log(`   From: ${sourceDir}`);
 console.log(`   To:   ${targetDir}`);
 
-// Clean target directory
-if (fs.existsSync(targetDir)) {
-    fs.rmSync(targetDir, { recursive: true, force: true });
-}
+// Clean target directory - DISABLED to preserve Next.js build artifacts
+// if (fs.existsSync(targetDir)) {
+//     fs.rmSync(targetDir, { recursive: true, force: true });
+// }
 
 // Copy assets
 copyRecursive(sourceDir, targetDir);
