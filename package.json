@@ -6,14 +6,14 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-        "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-        "cf-build": "next build && opennextjs-cloudflare build && node scripts/copy-assets.js"
+        "pages:build": "npx @cloudflare/next-on-pages",
+        "preview": "npm run pages:build && wrangler pages dev .vercel/output/static",
+        "deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static",
+        "cf-build": "npx @cloudflare/next-on-pages"
     },
     "dependencies": {
         "@ant-design/icons": "^5.2.6",
         "@ant-design/nextjs-registry": "^1.0.1",
-        "@opennextjs/cloudflare": "^1.14.8",
         "antd": "^5.12.2",
         "lucide-react": "^0.294.0",
         "next": "15.1.0",
@@ -21,6 +21,7 @@
         "react-dom": "^19.0.0"
     },
     "devDependencies": {
+        "@cloudflare/next-on-pages": "^1.13.16",
         "@types/node": "20.10.0",
         "@types/react": "18.2.45",
         "@types/react-dom": "18.2.18",

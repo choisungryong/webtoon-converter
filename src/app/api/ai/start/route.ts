@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getRequestContext } from '@cloudflare/next-on-pages';
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
     return NextResponse.json({
         status: 'alive',
-        message: 'Gemini API Worker is Running!',
+        message: 'Gemini API Worker is Running (Official Adapter)!',
         timestamp: new Date().toISOString()
     });
 }
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
 
-        const { env } = await getCloudflareContext();
+        const { env } = getRequestContext();
 
         // Debug Logging
         console.log('[API/Start] Environment Check:', {
