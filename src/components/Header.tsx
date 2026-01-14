@@ -46,7 +46,8 @@ export default function Header({ mode, onModeChange, theme, onThemeChange }: Hea
             {/* Logo - Centered, Simple */}
             <div style={{
                 display: 'flex',
-                justifyContent: 'center',
+                flexDirection: 'column',
+                alignItems: 'center',
                 paddingTop: '8px',
                 paddingBottom: '24px'
             }}>
@@ -79,6 +80,17 @@ export default function Header({ mode, onModeChange, theme, onThemeChange }: Hea
                         ToonSnap
                     </span>
                 </div>
+                {/* Slogan */}
+                <p style={{
+                    marginTop: '8px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: 'var(--text-secondary)',
+                    opacity: 0.8,
+                    letterSpacing: '0.02em'
+                }}>
+                    당신의 일상을 명작 웹툰으로
+                </p>
             </div>
 
             {/* Tab Switcher */}

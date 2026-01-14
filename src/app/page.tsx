@@ -17,7 +17,7 @@ interface GalleryImage {
 
 export default function Home() {
     // Mode State
-    const [mode, setMode] = useState<AppMode>('photo');
+    const [mode, setMode] = useState<AppMode>('video');
     const [theme, setTheme] = useState<ThemeMode>('dark');
 
     // Apply theme to document
