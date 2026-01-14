@@ -25,6 +25,34 @@ export default function Home() {
         document.documentElement.setAttribute('data-theme', theme);
     }, [theme]);
 
+    // Usage Help Text
+    const HELP_TEXT = {
+        video: (
+            <div className="text-center mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-sm text-gray-400">
+                    💡 <strong className="text-white">사용법:</strong> 영상을 업로드하면 AI가 주요 장면을 자동으로 찾아줍니다.<br />
+                    원하는 장면을 선택하고 스타일을 골라 웹툰으로 변환해보세요! (최대 5장)
+                </p>
+            </div>
+        ),
+        photo: (
+            <div className="text-center mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-sm text-gray-400">
+                    💡 <strong className="text-white">사용법:</strong> 사진을 올리고 원하는 그림체를 선택하세요.<br />
+                    AI가 멋진 웹툰 스타일로 바꿔드립니다!
+                </p>
+            </div>
+        ),
+        gallery: (
+            <div className="text-center mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-sm text-gray-400">
+                    💡 <strong className="text-white">사용법:</strong> 변환된 이미지를 선택해서 삭제하거나,<br />
+                    여러 장을 선택해 <strong className="text-[#CCFF00]">웹툰 보기</strong>로 이어볼 수 있습니다.
+                </p>
+            </div>
+        )
+    };
+
     // Photo Mode State
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -430,6 +458,9 @@ export default function Home() {
                     onThemeChange={setTheme}
                 />
 
+                {/* Help Text */}
+                {HELP_TEXT[mode]}
+
                 {/* Photo Mode */}
                 {mode === 'photo' && (
                     <>
@@ -722,25 +753,26 @@ export default function Home() {
                             )}
                         </Modal>
 
-                        {/* Webtoon View Modal - 세로 스크롤 뷰 */}
+                        {/* Webtoon View Modal - 세로 스크롤 뷰 (Resized) */}
                         <Modal
                             open={webtoonViewOpen}
                             footer={null}
                             onCancel={() => setWebtoonViewOpen(false)}
                             centered
-                            width="420px"
+                            width="480px"
                             style={{ top: 20 }}
                             styles={{
                                 content: {
                                     background: '#fff',
                                     padding: 0,
                                     borderRadius: '8px',
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    maxWidth: '100vw'
                                 }
                             }}
                             closeIcon={<span style={{ color: '#000', fontSize: '20px', background: '#fff', borderRadius: '50%', padding: '4px' }}>×</span>}
                         >
-                            <div className="webtoon-container overflow-y-auto max-h-[85vh] bg-white flex flex-col">
+                            <div className="webtoon-container overflow-y-auto max-h-[85vh] bg-white flex flex-col items-center">
                                 {galleryImages
                                     .filter(img => selectedImages.includes(img.id))
                                     .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id)) // 선택 순서대로 정렬
@@ -750,7 +782,7 @@ export default function Home() {
                                             src={img.url}
                                             alt="Webtoon frame"
                                             className="w-full h-auto block"
-                                            style={{ display: 'block' }}
+                                            style={{ display: 'block', maxWidth: '100%' }}
                                         />
                                     ))}
                             </div>
@@ -762,22 +794,31 @@ export default function Home() {
                                 <span style={{ color: 'var(--text-primary)' }}>
                                     {selectedImages.length}개 선택
                                 </span>
-                                <div className="flex gap-2">
+                                <div className="flex gap-3">
                                     {/* Webtoon View Button */}
                                     <button
                                         onClick={() => setWebtoonViewOpen(true)}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold"
-                                        style={{ background: 'var(--accent-color)', color: '#000' }}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
+                                        style={{
+                                            background: 'var(--accent-color)',
+                                            color: '#000',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                        }}
                                     >
                                         <span style={{ fontSize: '18px' }}>📜</span>
                                         웹툰 보기
                                     </button>
 
+                                    {/* Delete Button (Unified Style) */}
                                     <button
                                         onClick={handleDeleteSelected}
                                         disabled={deleting}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg"
-                                        style={{ background: '#ef4444', color: 'white' }}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
+                                        style={{
+                                            background: '#ef4444',
+                                            color: 'white',
+                                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                                        }}
                                     >
                                         <DeleteOutlined />
                                         삭제

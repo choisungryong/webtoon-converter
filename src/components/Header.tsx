@@ -91,7 +91,7 @@ export default function Header({ mode, onModeChange, theme, onThemeChange }: Hea
                     gap: '4px',
                     border: '1px solid var(--border-color)'
                 }}>
-                    {(['photo', 'video', 'gallery'] as AppMode[]).map((m) => {
+                    {(['video', 'photo', 'gallery'] as AppMode[]).map((m) => {
                         const isActive = mode === m;
                         const labels: Record<AppMode, string> = {
                             photo: '📷 사진',
