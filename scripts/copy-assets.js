@@ -1,14 +1,14 @@
 /**
  * Copy OpenNext assets to Cloudflare Pages expected directory
  * OpenNext outputs to .open-next/assets
- * Cloudflare Pages expects .vercel/output/static
+ * Cloudflare Pages expects .vercel/output (Root)
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const sourceDir = path.join(__dirname, '..', '.open-next', 'assets');
-const targetDir = path.join(__dirname, '..', '.vercel', 'output', 'static');
+const targetDir = path.join(__dirname, '..', '.vercel', 'output');
 
 function copyRecursive(src, dest, overwrite = true) {
     if (!fs.existsSync(src)) {
@@ -26,47 +26,50 @@ function copyRecursive(src, dest, overwrite = true) {
         }
     } else {
         fs.mkdirSync(path.dirname(dest), { recursive: true });
-        // Only verify overwrite flag if destination exists
         if (overwrite || !fs.existsSync(dest)) {
             fs.copyFileSync(src, dest);
         }
     }
 }
 
-console.log('📦 Copying assets to Cloudflare Pages directory...');
+console.log('📦 Copying assets to Cloudflare Pages output root...');
 console.log(`   From: ${sourceDir}`);
 console.log(`   To:   ${targetDir}`);
 
-// Clean target directory - DISABLED to preserve Next.js build artifacts
-// if (fs.existsSync(targetDir)) {
-//     fs.rmSync(targetDir, { recursive: true, force: true });
-// }
+// Clean target directory (Safe to clean now as we are populating the root)
+if (fs.existsSync(targetDir)) {
+    fs.rmSync(targetDir, { recursive: true, force: true });
+}
 
-// Copy assets
-copyRecursive(sourceDir, targetDir);
+// 1. Copy Static Assets (CSS, JS, Images) from .open-next/assets
+// These must be verified to exist
+if (fs.existsSync(sourceDir)) {
+    copyRecursive(sourceDir, targetDir);
+} else {
+    console.error(`❌ Error: Source assets directory not found at ${sourceDir}`);
+}
 
-// Copy everything from .open-next to .vercel/output/static to ensure worker dependencies resolve correctly
+// 2. Copy Server Code (Worker, Functions) from .open-next
+// Do NOT overwrite existing static assets (preserve CSS/JS)
 const openNextDir = path.join(__dirname, '..', '.open-next');
 
 if (fs.existsSync(openNextDir)) {
-    console.log(`📦 Copying ALL OpenNext output to ${targetDir}...`);
+    console.log(`📦 Copying OpenNext server code to ${targetDir}...`);
 
-    // Copy all contents of .open-next recursively to .vercel/output/static, BUT DO NOT OVERWRITE existing assets
+    // Copy everything from .open-next to targetDir
     copyRecursive(openNextDir, targetDir, false);
 
-    // Rename worker.js to _worker.js inside the static directory for Cloudflare Pages detection
-    const workerInStatic = path.join(targetDir, 'worker.js');
+    // Rename worker.js to _worker.js inside the root directory
+    const workerInRoot = path.join(targetDir, 'worker.js');
     const workerAdvanced = path.join(targetDir, '_worker.js');
 
-    if (fs.existsSync(workerInStatic)) {
-        fs.renameSync(workerInStatic, workerAdvanced);
+    if (fs.existsSync(workerInRoot)) {
+        fs.renameSync(workerInRoot, workerAdvanced);
         console.log('   Renamed worker.js to _worker.js for Advanced Mode');
     }
 
     // PATCH: Fix Node.js built-in module import errors by adding "node:" prefix
-    // Cloudflare Workers requires "node:module_name" for compatibility check
     function patchFiles(dir) {
-        // List of Node.js modules to patch (Full List)
         const modulesToPatch = [
             'child_process', 'tty', 'os', 'util', 'fs', 'path',
             'events', 'stream', 'buffer', 'crypto', 'assert',
@@ -77,6 +80,8 @@ if (fs.existsSync(openNextDir)) {
             'constants', 'module', 'process', 'sys', 'timers',
             'http2', 'domain', 'trace_events', 'wasi', 'diagnostics_channel'
         ];
+
+        if (!fs.existsSync(dir)) return;
 
         const entries = fs.readdirSync(dir);
         for (const entry of entries) {
@@ -89,14 +94,11 @@ if (fs.existsSync(openNextDir)) {
                 let modified = false;
 
                 for (const mod of modulesToPatch) {
-                    // Replace require("module") with require("node:module")
                     const requireRegex = new RegExp(`require\\("${mod}"\\)`, 'g');
                     if (requireRegex.test(content)) {
                         content = content.replace(requireRegex, `require("node:${mod}")`);
                         modified = true;
                     }
-
-                    // Replace from "module" with from "node:module"
                     const importRegex = new RegExp(`from "${mod}"`, 'g');
                     if (importRegex.test(content)) {
                         content = content.replace(importRegex, `from "node:${mod}"`);
@@ -116,4 +118,4 @@ if (fs.existsSync(openNextDir)) {
     patchFiles(targetDir);
 }
 
-console.log('✅ Assets copied successfully!');
+console.log('✅ Assets and Worker copied successfully to root!');
