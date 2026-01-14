@@ -16,16 +16,16 @@ export async function POST(request: NextRequest) {
         console.log('[API/Start] POST Request received');
 
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
-        // Style prompts mapping (Simplified with Speech Bubbles)
+        // Style prompts mapping (Simplified with Korean Speech Bubbles & Stylized)
         const STYLE_PROMPTS: Record<string, string> = {
-            'watercolor': 'Transform this image into Studio Ghibli anime style. Add an empty speech bubble.',
-            '3d-cartoon': 'Transform this image into Disney 3D animation style. Add an empty speech bubble.',
-            'dark-fantasy': 'Transform this image into dark fantasy manhwa style. Add an empty speech bubble.',
-            'elegant-fantasy': 'Transform this image into elegant webtoon style. Add an empty speech bubble.',
-            'classic-webtoon': 'Transform this image into classic Korean webtoon style. Add an empty speech bubble.'
+            'watercolor': 'Transform this image into Studio Ghibli 2D anime style. Use bright colors, hand-drawn lines, and slightly exaggerated facial expressions. Remove photorealism. Add a speech bubble containing Korean text.',
+            '3d-cartoon': 'Transform this image into Disney Pixar 3D cartoon style. Use expressive exaggerated features, big eyes, and smooth cartoon rendering. NOT realistic. Add a speech bubble containing Korean text.',
+            'dark-fantasy': 'Transform this image into dark fantasy manhwa style. Sharp lines, high contrast. Add a speech bubble containing Korean text.',
+            'elegant-fantasy': 'Transform this image into Korean romance fantasy manhwa style. Use delicate lines, sparkling eyes, and beautiful 2D illustration style. Remove realistic textures. Add a speech bubble containing Korean text.',
+            'classic-webtoon': 'Transform this image into classic Korean webtoon style. Bold outlines, flat colors. Add a speech bubble containing Korean text.'
         };
 
-        const DEFAULT_PROMPT = 'Transform this image into Korean webtoon manhwa style. Add an empty speech bubble.';
+        const DEFAULT_PROMPT = 'Transform this image into Korean webtoon manhwa style. Add a speech bubble containing Korean text.';
 
         // Read JSON Body
         const body = await request.json() as { image: string, styleId?: string, prompt?: string, userId?: string };
