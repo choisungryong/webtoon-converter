@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         // Style prompts mapping (Simplified with Korean Speech Bubbles & Stylized)
         const STYLE_PROMPTS: Record<string, string> = {
             'watercolor': 'Transform this image into Studio Ghibli 2D anime style. Use bright colors, hand-drawn lines, and slightly exaggerated facial expressions. Remove photorealism. Add a speech bubble containing Korean text.',
-            '3d-cartoon': 'Transform this image into Disney Pixar 3D cartoon style. Use expressive exaggerated features, big eyes, and smooth cartoon rendering. NOT realistic. Add a speech bubble containing Korean text.',
+            '3d-cartoon': 'Transform this image into Disney Pixar 3D cartoon style. Big eyes but natural and balanced proportions. Cute and charming character design. Soft lighting. Add a speech bubble containing Korean text.',
             'dark-fantasy': 'Transform this image into dark fantasy manhwa style. Sharp lines, high contrast. Add a speech bubble containing Korean text.',
             'elegant-fantasy': 'Transform this image into Korean romance fantasy manhwa style. Use delicate lines, sparkling eyes, and beautiful 2D illustration style. Remove realistic textures. Add a speech bubble containing Korean text.',
             'classic-webtoon': 'Transform this image into classic Korean webtoon style. Bold outlines, flat colors. Add a speech bubble containing Korean text.'

@@ -43,6 +43,9 @@ export default function Home() {
     const [userId, setUserId] = useState<string>('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+    // Webtoon View State
+    const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
+
     // Initialize User ID
     useEffect(() => {
         const storedUserId = localStorage.getItem('toonsnap_user_id');
@@ -403,7 +406,7 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <button className="accent-btn w-full" onClick={handleConvert} disabled={converting}>
+                                <button className="accent-btn block mx-auto w-full max-w-xs" onClick={handleConvert} disabled={converting}>
                                     {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
                                 </button>
                             </>
@@ -535,7 +538,7 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <button className="accent-btn w-full" onClick={handleConvert} disabled={converting}>
+                                <button className="accent-btn block mx-auto w-full max-w-xs" onClick={handleConvert} disabled={converting}>
                                     {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
                                 </button>
                             </>
@@ -642,21 +645,67 @@ export default function Home() {
                             )}
                         </Modal>
 
+                        {/* Webtoon View Modal - 세로 스크롤 뷰 */}
+                        <Modal
+                            open={webtoonViewOpen}
+                            footer={null}
+                            onCancel={() => setWebtoonViewOpen(false)}
+                            centered
+                            width="420px"
+                            style={{ top: 20 }}
+                            styles={{
+                                content: {
+                                    background: '#fff',
+                                    padding: 0,
+                                    borderRadius: '8px',
+                                    overflow: 'hidden'
+                                }
+                            }}
+                            closeIcon={<span style={{ color: '#000', fontSize: '20px', background: '#fff', borderRadius: '50%', padding: '4px' }}>×</span>}
+                        >
+                            <div className="webtoon-container overflow-y-auto max-h-[85vh] bg-white flex flex-col">
+                                {galleryImages
+                                    .filter(img => selectedImages.includes(img.id))
+                                    .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id)) // 선택 순서대로 정렬
+                                    .map((img) => (
+                                        <img
+                                            key={img.id}
+                                            src={img.url}
+                                            alt="Webtoon frame"
+                                            className="w-full h-auto block"
+                                            style={{ display: 'block' }}
+                                        />
+                                    ))}
+                            </div>
+                        </Modal>
+
                         {/* Selection Bar */}
                         {selectedImages.length > 0 && (
                             <div className="selection-bar">
                                 <span style={{ color: 'var(--text-primary)' }}>
                                     {selectedImages.length}개 선택
                                 </span>
-                                <button
-                                    onClick={handleDeleteSelected}
-                                    disabled={deleting}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg"
-                                    style={{ background: '#ef4444', color: 'white' }}
-                                >
-                                    <DeleteOutlined />
-                                    삭제
-                                </button>
+                                <div className="flex gap-2">
+                                    {/* Webtoon View Button */}
+                                    <button
+                                        onClick={() => setWebtoonViewOpen(true)}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold"
+                                        style={{ background: 'var(--accent-color)', color: '#000' }}
+                                    >
+                                        <span style={{ fontSize: '18px' }}>📜</span>
+                                        웹툰 보기
+                                    </button>
+
+                                    <button
+                                        onClick={handleDeleteSelected}
+                                        disabled={deleting}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                                        style={{ background: '#ef4444', color: 'white' }}
+                                    >
+                                        <DeleteOutlined />
+                                        삭제
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </>
