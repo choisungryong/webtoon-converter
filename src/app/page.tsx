@@ -158,6 +158,14 @@ export default function Home() {
             message.error('동영상 파일만 가능합니다.');
             return;
         }
+
+        // 1. Upload Limit: 50MB
+        const MAX_SIZE_MB = 50;
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+            message.error(`동영상 용량은 ${MAX_SIZE_MB}MB 이하여야 합니다.`);
+            return;
+        }
+
         setVideoFile(file);
         setExtractedFrames([]);
         setSelectedFrameIndices([]);
@@ -200,47 +208,116 @@ export default function Home() {
         }
     };
 
-    // Video: Extract frames when loaded
+    // Video: Extract frames with basic scene change detection
     const handleVideoLoaded = async () => {
         if (!videoRef.current || !canvasRef.current) return;
         const video = videoRef.current;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         const duration = video.duration;
-        const count = 12;
-        const interval = duration / (count + 1);
-        const timestamps = Array.from({ length: count }, (_, i) => interval * (i + 1));
+
+        // 3. Smart Extraction: Analyze more frames (20) and filter duplicates
+        const analyzeCount = 20;
+        const interval = duration / (analyzeCount + 1);
+        const timestamps = Array.from({ length: analyzeCount }, (_, i) => interval * (i + 1));
         const frames: string[] = [];
+        let previousImageData: ImageData | null = null;
+        const DIFF_THRESHOLD = 30; // Threshold for scene change detection
 
         try {
-            message.loading({ content: '주요 장면 분석 중...', key: 'analyze' });
+            message.loading({ content: '주요 장면 심층 분석 중...', key: 'analyze' });
+
             for (const time of timestamps) {
                 video.currentTime = time;
                 await new Promise(resolve => {
                     video.onseeked = () => resolve(true);
-                    setTimeout(resolve, 500);
+                    setTimeout(resolve, 300); // Seek time optimization
                 });
+
                 if (ctx) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    canvas.width = 320; // Reduce resolution for faster analysis
+                    canvas.height = (320 * video.videoHeight) / video.videoWidth;
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    frames.push(canvas.toDataURL('image/jpeg', 0.8));
+
+                    const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                    if (previousImageData) {
+                        // Calculate difference
+                        const diff = calculateImageDifference(previousImageData, currentImageData);
+                        if (diff > DIFF_THRESHOLD) {
+                            // Only add if significantly different
+                            // Restore full quality for display
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            frames.push(canvas.toDataURL('image/jpeg', 0.8));
+                        }
+                    } else {
+                        // Always keep first frame
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        frames.push(canvas.toDataURL('image/jpeg', 0.8));
+                    }
+                    previousImageData = currentImageData;
                 }
+
+                // Limit to 12 candidates to prevent overflow
+                if (frames.length >= 12) break;
             }
+
+            // Fallback if too few scenes found
+            if (frames.length < 3) {
+                // Try to fill with remaining timestamps if strict filtering removed too many
+            }
+
             setExtractedFrames(frames);
-            setSelectedFrameIndices([0, 1, 2]);
-            message.success({ content: '장면 추출 완료!', key: 'analyze' });
+            // Select up to 3 best candidates (start, middle, end)
+            const autoSelectIndices = frames.length > 2
+                ? [0, Math.floor(frames.length / 2), frames.length - 1]
+                : frames.map((_, i) => i);
+            setSelectedFrameIndices(autoSelectIndices.slice(0, 5)); // cap at 5 just in case
+
+            message.success({ content: `분석 완료! ${frames.length}개의 주요 장면을 찾았습니다.`, key: 'analyze' });
         } catch (e) {
+            console.error(e);
             message.error({ content: '장면 분석 실패', key: 'analyze' });
         } finally {
             setAnalyzing(false);
         }
     };
 
+    // Helper: Simple Pixel Difference Calculation
+    const calculateImageDifference = (img1: ImageData, img2: ImageData) => {
+        const data1 = img1.data;
+        const data2 = img2.data;
+        let diff = 0;
+        let count = 0;
+
+        // Sampling for speed (check every 4th pixel)
+        for (let i = 0; i < data1.length; i += 16) {
+            const r = Math.abs(data1[i] - data2[i]);
+            const g = Math.abs(data1[i + 1] - data2[i + 1]);
+            const b = Math.abs(data1[i + 2] - data2[i + 2]);
+            diff += (r + g + b) / 3;
+            count++;
+        }
+        return diff / count;
+    };
+
     const toggleFrameSelection = (idx: number) => {
-        setSelectedFrameIndices(prev =>
-            prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
-        );
+        setSelectedFrameIndices(prev => {
+            if (prev.includes(idx)) {
+                return prev.filter(i => i !== idx);
+            } else {
+                // 2. Selection Limit: Max 5 Frames
+                if (prev.length >= 5) {
+                    message.warning('최대 5장까지만 선택할 수 있습니다.');
+                    return prev;
+                }
+                return [...prev, idx];
+            }
+        });
     };
 
     // Convert Image(s)
