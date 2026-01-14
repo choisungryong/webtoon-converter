@@ -16,15 +16,16 @@ export async function POST(request: NextRequest) {
         console.log('[API/Start] POST Request received');
 
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
+        // Style prompts mapping (Simplified with Speech Bubbles)
         const STYLE_PROMPTS: Record<string, string> = {
-            'watercolor': 'Transform the ENTIRE image including background and all elements into Studio Ghibli anime style. Soft watercolor textures, Hayao Miyazaki aesthetic, dreamy atmosphere, warm lighting. Convert ALL photorealistic elements to hand-painted anime look. The background scenery must also be stylized, not just the people.',
-            '3d-cartoon': 'Transform the ENTIRE image including background into Disney 3D animation style. Cinematic lighting, Pixar-like soft shading, vibrant colors. Keep eye size natural and balanced, avoid overly large eyes. Balanced facial proportions. Convert ALL elements including environment to cartoon render style, not just characters.',
-            'dark-fantasy': 'Transform the ENTIRE image including background into Solo Leveling manhwa style. High contrast, sharp digital line art, dramatic shadows, intense cinematic vibe, Korean webtoon, bold black outlines. The environment and background must also be stylized in manhwa style.',
-            'elegant-fantasy': 'Transform the ENTIRE image including background into Korean manhwa webtoon style like Omniscient Reader. Elegant digital painting, bold lines, unique fantasy color palette. Convert ALL elements to illustrated style including scenery.',
-            'classic-webtoon': 'Transform the ENTIRE image including background into Korean webtoon manhwa style. Bold black outlines, cel-shading, flat colors. Remove ALL photorealistic textures from people AND environment. Make everything look like a drawn webtoon illustration.'
+            'watercolor': 'Transform this image into Studio Ghibli anime style. Add an empty speech bubble.',
+            '3d-cartoon': 'Transform this image into Disney 3D animation style. Add an empty speech bubble.',
+            'dark-fantasy': 'Transform this image into dark fantasy manhwa style. Add an empty speech bubble.',
+            'elegant-fantasy': 'Transform this image into elegant webtoon style. Add an empty speech bubble.',
+            'classic-webtoon': 'Transform this image into classic Korean webtoon style. Add an empty speech bubble.'
         };
 
-        const DEFAULT_PROMPT = 'Transform this image into Korean webtoon manhwa style. Use bold black outlines, cel-shading, flat colors with minimal gradients, anime-style eyes and faces. Remove all photorealistic textures. Make it look like a drawn illustration from a professional webtoon comic, NOT a photo filter. Strong cartoon aesthetic.';
+        const DEFAULT_PROMPT = 'Transform this image into Korean webtoon manhwa style. Add an empty speech bubble.';
 
         // Read JSON Body
         const body = await request.json() as { image: string, styleId?: string, prompt?: string, userId?: string };
