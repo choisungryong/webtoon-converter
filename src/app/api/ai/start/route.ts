@@ -25,14 +25,26 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
 
+
         const { env } = await getCloudflareContext();
+
+        // Debug Logging
+        console.log('[API/Start] Environment Check:', {
+            hasEnv: !!env,
+            hasGeminiKey: !!env?.GEMINI_API_KEY,
+            keyPrefix: env?.GEMINI_API_KEY ? env.GEMINI_API_KEY.substring(0, 4) + '...' : 'NONE',
+            styleId,
+            userId
+        });
+
         const apiKey = env.GEMINI_API_KEY;
 
-        console.log('[API/Start] Request received. Style:', styleId, 'User:', userId);
-
         if (!apiKey) {
-            console.error('[API/Start] Error: Gemini API Key is missing');
-            return NextResponse.json({ error: 'Gemini API Key missing' }, { status: 500 });
+            console.error('[API/Start] Critical Error: GEMINI_API_KEY is missing in env!');
+            return NextResponse.json({
+                error: 'Server Configuration Error: API Key missing',
+                debug: { hasEnv: !!env, keys: Object.keys(env || {}) }
+            }, { status: 500 });
         }
 
         // Extract Base64 data from Data URI
