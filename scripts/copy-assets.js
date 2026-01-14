@@ -10,6 +10,10 @@ const path = require('path');
 const sourceDir = path.join(__dirname, '..', '.open-next', 'assets');
 const targetDir = path.join(__dirname, '..', '.vercel', 'output');
 
+// Additional backup source: Next.js original build output
+const nextStaticDir = path.join(__dirname, '..', '.next', 'static');
+const targetNextStaticDir = path.join(targetDir, '_next', 'static');
+
 function copyRecursive(src, dest, overwrite = true) {
     if (!fs.existsSync(src)) {
         console.log(`Source not found: ${src}`);
@@ -36,27 +40,35 @@ console.log('📦 Copying assets to Cloudflare Pages output root...');
 console.log(`   From: ${sourceDir}`);
 console.log(`   To:   ${targetDir}`);
 
-// Clean target directory (Safe to clean now as we are populating the root)
+// Clean target directory
 if (fs.existsSync(targetDir)) {
     fs.rmSync(targetDir, { recursive: true, force: true });
 }
 
-// 1. Copy Static Assets (CSS, JS, Images) from .open-next/assets
-// These must be verified to exist
+// 1. Copy OpenNext Assets
 if (fs.existsSync(sourceDir)) {
     copyRecursive(sourceDir, targetDir);
 } else {
     console.error(`❌ Error: Source assets directory not found at ${sourceDir}`);
 }
 
-// 2. Copy Server Code (Worker, Functions) from .open-next
-// Do NOT overwrite existing static assets (preserve CSS/JS)
+// 2. FORCE COPY: Next.js Original Static Assets (CSS/JS)
+// This ensures that even if OpenNext missed them, we have the CSS/JS files.
+if (fs.existsSync(nextStaticDir)) {
+    console.log(`🚑 Emergency: Force copying Next.js static assets from .next/static...`);
+    copyRecursive(nextStaticDir, targetNextStaticDir, true);
+} else {
+    console.warn('⚠️ Warning: .next/static not found. Build might be incomplete.');
+}
+
+// ... existing worker copy and patch logic ...
+// 3. Copy Server Code (Worker)
 const openNextDir = path.join(__dirname, '..', '.open-next');
 
 if (fs.existsSync(openNextDir)) {
     console.log(`📦 Copying OpenNext server code to ${targetDir}...`);
 
-    // Copy everything from .open-next to targetDir
+    // Copy everything from .open-next to targetDir (no overwrite)
     copyRecursive(openNextDir, targetDir, false);
 
     // Rename worker.js to _worker.js inside the root directory
@@ -68,7 +80,7 @@ if (fs.existsSync(openNextDir)) {
         console.log('   Renamed worker.js to _worker.js for Advanced Mode');
     }
 
-    // PATCH: Fix Node.js built-in module import errors by adding "node:" prefix
+    // PATCH: Fix Node.js built-in module import errors
     function patchFiles(dir) {
         const modulesToPatch = [
             'child_process', 'tty', 'os', 'util', 'fs', 'path',
