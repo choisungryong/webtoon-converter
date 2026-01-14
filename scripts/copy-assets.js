@@ -10,7 +10,7 @@ const path = require('path');
 const sourceDir = path.join(__dirname, '..', '.open-next', 'assets');
 const targetDir = path.join(__dirname, '..', '.vercel', 'output', 'static');
 
-function copyRecursive(src, dest) {
+function copyRecursive(src, dest, overwrite = true) {
     if (!fs.existsSync(src)) {
         console.log(`Source not found: ${src}`);
         return;
@@ -22,11 +22,14 @@ function copyRecursive(src, dest) {
         fs.mkdirSync(dest, { recursive: true });
         const entries = fs.readdirSync(src);
         for (const entry of entries) {
-            copyRecursive(path.join(src, entry), path.join(dest, entry));
+            copyRecursive(path.join(src, entry), path.join(dest, entry), overwrite);
         }
     } else {
         fs.mkdirSync(path.dirname(dest), { recursive: true });
-        fs.copyFileSync(src, dest);
+        // Only verify overwrite flag if destination exists
+        if (overwrite || !fs.existsSync(dest)) {
+            fs.copyFileSync(src, dest);
+        }
     }
 }
 
@@ -48,8 +51,8 @@ const openNextDir = path.join(__dirname, '..', '.open-next');
 if (fs.existsSync(openNextDir)) {
     console.log(`📦 Copying ALL OpenNext output to ${targetDir}...`);
 
-    // Copy all contents of .open-next recursively to .vercel/output/static
-    copyRecursive(openNextDir, targetDir);
+    // Copy all contents of .open-next recursively to .vercel/output/static, BUT DO NOT OVERWRITE existing assets
+    copyRecursive(openNextDir, targetDir, false);
 
     // Rename worker.js to _worker.js inside the static directory for Cloudflare Pages detection
     const workerInStatic = path.join(targetDir, 'worker.js');
