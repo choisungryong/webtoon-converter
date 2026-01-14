@@ -129,37 +129,37 @@ export default function Home() {
     };
 
     // Delete selected images
+    // Delete selected images
     const handleDeleteSelected = async () => {
         if (selectedImages.length === 0) return;
 
-        Modal.confirm({
-            title: `${selectedImages.length}개 이미지 삭제`,
-            icon: <ExclamationCircleOutlined />,
-            content: '선택한 이미지를 삭제하시겠습니까?',
-            okText: '삭제',
-            okType: 'danger',
-            cancelText: '취소',
-            onOk: async () => {
-                setDeleting(true);
-                try {
-                    // 순차 삭제 처리로 변경 및 오류 로깅 강화
-                    for (const id of selectedImages) {
-                        await fetch(`/api/gallery/${id}`, {
-                            method: 'DELETE',
-                            headers: { 'x-user-id': userId }
-                        });
-                    }
-                    setGalleryImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
-                    setSelectedImages([]);
-                    message.success('삭제되었습니다.');
-                } catch (err: any) {
-                    console.error('삭제 오류:', err);
-                    message.error(`삭제 실패: ${err.message || '알 수 없는 오류'}`);
-                } finally {
-                    setDeleting(false);
-                }
+        if (!window.confirm(`${selectedImages.length}개의 이미지를 정말 삭제하시겠습니까?\n삭제된 이미지는 복구할 수 없습니다.`)) {
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            // 순차 삭제 처리
+            for (const id of selectedImages) {
+                await fetch(`/api/gallery/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-user-id': userId }
+                });
             }
-        });
+
+            // UI에서 즉시 제거 (상태 업데이트 보장)
+            setGalleryImages(prev => {
+                const newImages = prev.filter(img => !selectedImages.includes(img.id));
+                return [...newImages]; // 새로운 배열 참조 반환
+            });
+            setSelectedImages([]);
+            message.success('성공적으로 삭제되었습니다.');
+        } catch (err: any) {
+            console.error('삭제 오류:', err);
+            message.error(`삭제 실패: ${err.message || '알 수 없는 오류'}`);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     // Photo Mode: Handle file selection
@@ -804,22 +804,37 @@ export default function Home() {
 
                         {/* Selection Bar */}
                         {selectedImages.length > 0 && (
-                            <div className="selection-bar">
-                                <span style={{ color: 'var(--text-primary)' }}>
-                                    {selectedImages.length}개 선택
+                            <div className="selection-bar animate-fade-in" style={{
+                                width: 'auto',
+                                minWidth: '320px',
+                                gap: '24px', // 버튼 간격 대폭 증가 (오클릭 방지)
+                                padding: '16px 32px'
+                            }}>
+                                <span style={{
+                                    color: 'var(--text-primary)',
+                                    fontWeight: 'bold',
+                                    fontSize: '16px',
+                                    paddingRight: '12px',
+                                    borderRight: '1px solid var(--border-color)'
+                                }}>
+                                    {selectedImages.length}개 선택됨
                                 </span>
-                                <div className="flex gap-3">
+
+                                <div className="flex gap-4">
                                     {/* Webtoon View Button */}
                                     <button
                                         onClick={() => setWebtoonViewOpen(true)}
-                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
+                                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95"
                                         style={{
+                                            height: '48px', // 높이 통일
                                             background: 'var(--accent-color)',
                                             color: '#000',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                                            border: 'none',
+                                            minWidth: '120px'
                                         }}
                                     >
-                                        <span style={{ fontSize: '18px' }}>📜</span>
+                                        <span style={{ fontSize: '20px' }}>📜</span>
                                         웹툰 보기
                                     </button>
 
@@ -827,15 +842,19 @@ export default function Home() {
                                     <button
                                         onClick={handleDeleteSelected}
                                         disabled={deleting}
-                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95"
+                                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95"
                                         style={{
+                                            height: '48px', // 높이 통일
                                             background: '#ef4444',
                                             color: 'white',
-                                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)',
+                                            border: 'none',
+                                            minWidth: '120px'
                                         }}
                                     >
-                                        <DeleteOutlined />
-                                        삭제
+                                        <DeleteOutlined style={{ fontSize: '18px' }} />
+                                        삭제하기
+
                                     </button>
                                 </div>
                             </div>
