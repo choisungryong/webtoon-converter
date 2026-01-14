@@ -2,3 +2,12 @@ name = "webtoon-converter"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "webtoon-db"
+database_id = "1281fc1f-362e-46ce-944e-eafdedd050f5"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "webtoon-storage"
