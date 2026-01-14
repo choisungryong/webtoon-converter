@@ -18,11 +18,11 @@ export async function POST(request: NextRequest) {
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
         // Style prompts mapping (Simplified with Korean Speech Bubbles & Stylized)
         const STYLE_PROMPTS: Record<string, string> = {
-            'watercolor': 'Transform this image into Studio Ghibli 2D anime style. Use bright colors, hand-drawn lines, and slightly exaggerated facial expressions. Remove photorealism. Add a speech bubble containing Korean text.',
-            '3d-cartoon': 'Transform this image into Disney Pixar 3D cartoon style. Big eyes but natural and balanced proportions. Cute and charming character design. Soft lighting. Add a speech bubble containing Korean text.',
-            'dark-fantasy': 'Transform this image into dark fantasy manhwa style. Sharp lines, high contrast. Add a speech bubble containing Korean text.',
-            'elegant-fantasy': 'Transform this image into Korean romance fantasy manhwa style. Use delicate lines, sparkling eyes, and beautiful 2D illustration style. Remove realistic textures. Add a speech bubble containing Korean text.',
-            'classic-webtoon': 'Transform this image into classic Korean webtoon style. Bold outlines, flat colors. Add a speech bubble containing Korean text.'
+            'watercolor': 'Transform this image into Studio Ghibli 2D anime style. Use bright colors, hand-drawn lines, and slightly exaggerated facial expressions. Remove photorealism. Add a speech bubble. IMPORTANT: The text inside the bubble MUST be natural, grammatically correct colloquial Korean (Hangul) that fits the situation. Do not use machine-translated style. Make it witty and emotional.',
+            '3d-cartoon': 'Transform this image into Disney Pixar 3D cartoon style. Big eyes but natural and balanced proportions. Cute and charming character design. Soft lighting. Add a speech bubble. IMPORTANT: The text inside the bubble MUST be natural, grammatically correct colloquial Korean (Hangul). Like a line from a Korean animation movie. Cute and lively tone.',
+            'dark-fantasy': 'Transform this image into dark fantasy manhwa style. Sharp lines, high contrast. Add a speech bubble. IMPORTANT: The text inside the bubble MUST be natural, grammatically correct Korean (Hangul). Use a serious, dramatic, or monologue tone suitable for an action webtoon.',
+            'elegant-fantasy': 'Transform this image into Korean romance fantasy manhwa style. Use delicate lines, sparkling eyes, and beautiful 2D illustration style. Remove realistic textures. Add a speech bubble. IMPORTANT: The text inside the bubble MUST be natural, grammatically correct Korean (Hangul). Use an elegant, emotional, or poetic tone suitable for a romance novel.',
+            'classic-webtoon': 'Transform this image into classic Korean webtoon style. Bold outlines, flat colors. Add a speech bubble. IMPORTANT: The text inside the bubble MUST be natural, grammatically correct colloquial Korean (Hangul). Use a slice-of-life, humorous, or casual tone like a daily webtoon.'
         };
 
         const DEFAULT_PROMPT = 'Transform this image into Korean webtoon manhwa style. Add a speech bubble containing Korean text.';
