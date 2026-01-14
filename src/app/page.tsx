@@ -514,8 +514,13 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <div className="flex justify-center mt-4 w-full">
-                                    <button className="accent-btn w-full max-w-xs" onClick={handleConvert} disabled={converting}>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
+                                    <button
+                                        className="accent-btn"
+                                        onClick={handleConvert}
+                                        disabled={converting}
+                                        style={{ width: '100%', maxWidth: '320px' }}
+                                    >
                                         {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
                                     </button>
                                 </div>
@@ -648,8 +653,13 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <div className="flex justify-center mt-4 w-full">
-                                    <button className="accent-btn w-full max-w-xs" onClick={handleConvert} disabled={converting}>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
+                                    <button
+                                        className="accent-btn"
+                                        onClick={handleConvert}
+                                        disabled={converting}
+                                        style={{ width: '100%', maxWidth: '320px' }}
+                                    >
                                         {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
                                     </button>
                                 </div>
