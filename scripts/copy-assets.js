@@ -59,6 +59,41 @@ if (fs.existsSync(openNextDir)) {
         fs.renameSync(workerInStatic, workerAdvanced);
         console.log('   Renamed worker.js to _worker.js for Advanced Mode');
     }
+
+    // PATCH: Fix "child_process" import error by adding "node:" prefix
+    // Cloudflare Workers requires "node:child_process" for compatibility check
+    function patchFiles(dir) {
+        const entries = fs.readdirSync(dir);
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry);
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) {
+                patchFiles(fullPath);
+            } else if (fullPath.endsWith('.js') || fullPath.endsWith('.mjs')) {
+                let content = fs.readFileSync(fullPath, 'utf8');
+                let modified = false;
+
+                // Replace require("child_process") with require("node:child_process")
+                if (content.includes('require("child_process")')) {
+                    content = content.replace(/require\("child_process"\)/g, 'require("node:child_process")');
+                    modified = true;
+                }
+                // Replace from "child_process" with from "node:child_process"
+                if (content.includes('from "child_process"')) {
+                    content = content.replace(/from "child_process"/g, 'from "node:child_process"');
+                    modified = true;
+                }
+
+                if (modified) {
+                    fs.writeFileSync(fullPath, content);
+                    console.log(`   🔧 Patched child_process in: ${entry}`);
+                }
+            }
+        }
+    }
+
+    console.log('🛠️ Patching files for Cloudflare compatibility...');
+    patchFiles(targetDir);
 }
 
 console.log('✅ Assets copied successfully!');
