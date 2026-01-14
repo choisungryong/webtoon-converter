@@ -63,13 +63,16 @@ if (fs.existsSync(openNextDir)) {
     // PATCH: Fix Node.js built-in module import errors by adding "node:" prefix
     // Cloudflare Workers requires "node:module_name" for compatibility check
     function patchFiles(dir) {
-        // List of Node.js modules to patch
+        // List of Node.js modules to patch (Full List)
         const modulesToPatch = [
             'child_process', 'tty', 'os', 'util', 'fs', 'path',
             'events', 'stream', 'buffer', 'crypto', 'assert',
             'url', 'querystring', 'zlib', 'http', 'https', 'net',
             'tls', 'dgram', 'dns', 'perf_hooks', 'punycode',
-            'readline', 'repl', 'string_decoder', 'v8', 'vm'
+            'readline', 'repl', 'string_decoder', 'v8', 'vm',
+            'async_hooks', 'worker_threads', 'inspector', 'cluster',
+            'constants', 'module', 'process', 'sys', 'timers',
+            'http2', 'domain', 'trace_events', 'wasi', 'diagnostics_channel'
         ];
 
         const entries = fs.readdirSync(dir);
