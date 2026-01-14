@@ -514,9 +514,11 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <button className="accent-btn block mx-auto w-full max-w-xs" onClick={handleConvert} disabled={converting}>
-                                    {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
-                                </button>
+                                <div className="flex justify-center mt-4 w-full">
+                                    <button className="accent-btn w-full max-w-xs" onClick={handleConvert} disabled={converting}>
+                                        {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
+                                    </button>
+                                </div>
                             </>
                         )}
 
@@ -646,9 +648,11 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <button className="accent-btn block mx-auto w-full max-w-xs" onClick={handleConvert} disabled={converting}>
-                                    {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
-                                </button>
+                                <div className="flex justify-center mt-4 w-full">
+                                    <button className="accent-btn w-full max-w-xs" onClick={handleConvert} disabled={converting}>
+                                        {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
+                                    </button>
+                                </div>
                             </>
                         )}
 

@@ -47,25 +47,43 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
                             <div style={{
                                 width: '100%',
                                 aspectRatio: '1',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: getStyleGradient(style.id)
+                                position: 'relative',
+                                background: '#333' // Loading placeholder
                             }}>
+                                <img
+                                    src={style.thumbnail}
+                                    alt={style.name}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        display: 'block'
+                                    }}
+                                />
                                 {isSelected && (
-                                    <CheckCircleFilled style={{
-                                        fontSize: '20px',
-                                        color: 'var(--accent-color)',
-                                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
-                                    }} />
+                                    <div style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'rgba(0,0,0,0.4)',
+                                        backdropFilter: 'blur(2px)'
+                                    }}>
+                                        <CheckCircleFilled style={{
+                                            fontSize: '24px',
+                                            color: 'var(--accent-color)',
+                                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+                                        }} />
+                                    </div>
                                 )}
                             </div>
                             {/* Name */}
                             <div style={{
-                                padding: '6px 4px',
+                                padding: '8px 4px',
                                 textAlign: 'center',
-                                fontSize: '10px',
-                                fontWeight: 500,
+                                fontSize: '11px',
+                                fontWeight: 600,
                                 color: 'var(--text-secondary)',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
@@ -80,24 +98,14 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
 
             {/* Description */}
             <p style={{
-                fontSize: '11px',
+                fontSize: '12px',
                 color: 'var(--text-muted)',
                 textAlign: 'center',
-                marginTop: '12px'
+                marginTop: '16px',
+                minHeight: '1.5em'
             }}>
                 {STYLE_OPTIONS.find(s => s.id === selectedStyleId)?.description}
             </p>
         </div>
     );
-}
-
-function getStyleGradient(styleId: string): string {
-    const gradients: Record<string, string> = {
-        'watercolor': 'linear-gradient(135deg, #87CEEB 0%, #98D8AA 50%, #F5DEB3 100%)',
-        '3d-cartoon': 'linear-gradient(135deg, #FFB6C1 0%, #87CEEB 50%, #DDA0DD 100%)',
-        'dark-fantasy': 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-        'elegant-fantasy': 'linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 50%, #4a1942 100%)',
-        'classic-webtoon': 'linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #1abc9c 100%)',
-    };
-    return gradients[styleId] || 'linear-gradient(135deg, #333 0%, #666 100%)';
 }
