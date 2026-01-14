@@ -60,9 +60,18 @@ if (fs.existsSync(openNextDir)) {
         console.log('   Renamed worker.js to _worker.js for Advanced Mode');
     }
 
-    // PATCH: Fix "child_process" import error by adding "node:" prefix
-    // Cloudflare Workers requires "node:child_process" for compatibility check
+    // PATCH: Fix Node.js built-in module import errors by adding "node:" prefix
+    // Cloudflare Workers requires "node:module_name" for compatibility check
     function patchFiles(dir) {
+        // List of Node.js modules to patch
+        const modulesToPatch = [
+            'child_process', 'tty', 'os', 'util', 'fs', 'path',
+            'events', 'stream', 'buffer', 'crypto', 'assert',
+            'url', 'querystring', 'zlib', 'http', 'https', 'net',
+            'tls', 'dgram', 'dns', 'perf_hooks', 'punycode',
+            'readline', 'repl', 'string_decoder', 'v8', 'vm'
+        ];
+
         const entries = fs.readdirSync(dir);
         for (const entry of entries) {
             const fullPath = path.join(dir, entry);
@@ -73,20 +82,25 @@ if (fs.existsSync(openNextDir)) {
                 let content = fs.readFileSync(fullPath, 'utf8');
                 let modified = false;
 
-                // Replace require("child_process") with require("node:child_process")
-                if (content.includes('require("child_process")')) {
-                    content = content.replace(/require\("child_process"\)/g, 'require("node:child_process")');
-                    modified = true;
-                }
-                // Replace from "child_process" with from "node:child_process"
-                if (content.includes('from "child_process"')) {
-                    content = content.replace(/from "child_process"/g, 'from "node:child_process"');
-                    modified = true;
+                for (const mod of modulesToPatch) {
+                    // Replace require("module") with require("node:module")
+                    const requireRegex = new RegExp(`require\\("${mod}"\\)`, 'g');
+                    if (requireRegex.test(content)) {
+                        content = content.replace(requireRegex, `require("node:${mod}")`);
+                        modified = true;
+                    }
+
+                    // Replace from "module" with from "node:module"
+                    const importRegex = new RegExp(`from "${mod}"`, 'g');
+                    if (importRegex.test(content)) {
+                        content = content.replace(importRegex, `from "node:${mod}"`);
+                        modified = true;
+                    }
                 }
 
                 if (modified) {
                     fs.writeFileSync(fullPath, content);
-                    console.log(`   🔧 Patched child_process in: ${entry}`);
+                    console.log(`   🔧 Patched Node.js modules in: ${entry}`);
                 }
             }
         }
