@@ -44,7 +44,7 @@ copyRecursive(sourceDir, targetDir);
 
 // Also copy the worker.js if needed
 const workerSrc = path.join(__dirname, '..', '.open-next', 'worker.js');
-const workerDest = path.join(__dirname, '..', '.vercel', 'output', '_worker.js');
+const workerDest = path.join(__dirname, '..', '.vercel', 'output', 'static', '_worker.js');
 if (fs.existsSync(workerSrc)) {
     fs.mkdirSync(path.dirname(workerDest), { recursive: true });
     fs.copyFileSync(workerSrc, workerDest);
