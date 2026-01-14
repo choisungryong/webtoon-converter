@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
+export async function GET(request: NextRequest) {
+    return NextResponse.json({
+        status: 'alive',
+        message: 'Gemini API Worker is Running!',
+        timestamp: new Date().toISOString()
+    });
+}
+
 export async function POST(request: NextRequest) {
     try {
+        console.log('[API/Start] POST Request received');
+
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
         const STYLE_PROMPTS: Record<string, string> = {
             'watercolor': 'Transform the ENTIRE image including background and all elements into Studio Ghibli anime style. Soft watercolor textures, Hayao Miyazaki aesthetic, dreamy atmosphere, warm lighting. Convert ALL photorealistic elements to hand-painted anime look. The background scenery must also be stylized, not just the people.',
@@ -24,7 +34,6 @@ export async function POST(request: NextRequest) {
         if (!image) {
             return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
-
 
         const { env } = await getCloudflareContext();
 
