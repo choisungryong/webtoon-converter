@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getRequestContext } from '@cloudflare/next-on-pages';
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
     try {
-        const { env } = await getCloudflareContext();
+        const { env } = getRequestContext();
 
         if (!env.DB || !env.R2) {
             return NextResponse.json({ error: 'DB or R2 binding failed' }, { status: 500 });

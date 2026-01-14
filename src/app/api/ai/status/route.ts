@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getRequestContext } from '@cloudflare/next-on-pages';
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const { env } = await getCloudflareContext();
+        const { env } = getRequestContext();
         const apiToken = env.REPLICATE_API_TOKEN;
 
         if (!apiToken) {

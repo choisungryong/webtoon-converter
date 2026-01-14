@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getRequestContext } from '@cloudflare/next-on-pages';
+
+export const runtime = 'edge';
 
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { env } = await getCloudflareContext();
+        const { env } = getRequestContext();
         const { id } = await params;
 
         if (!env.DB || !env.R2) {
