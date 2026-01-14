@@ -41,6 +41,7 @@ export default function Home() {
     const [deleting, setDeleting] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [userId, setUserId] = useState<string>('');
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     // Initialize User ID
     useEffect(() => {
@@ -581,15 +582,21 @@ export default function Home() {
                                     <div
                                         key={img.id}
                                         className={`gallery-item ${selectedImages.includes(img.id) ? 'selected' : ''}`}
-                                        onClick={() => toggleImageSelection(img.id)}
+                                        onClick={() => setPreviewImage(img.url)}
                                     >
-                                        <Image
+                                        <img
                                             src={img.url}
                                             alt="Gallery"
-                                            className="w-full aspect-square object-cover"
-                                            preview={selectedImages.length === 0}
+                                            className="gallery-thumbnail"
                                         />
-                                        <div className="select-circle">
+                                        {/* 체크 원 - 클릭 시 선택/해제 */}
+                                        <div
+                                            className="select-circle"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleImageSelection(img.id);
+                                            }}
+                                        >
                                             {selectedImages.includes(img.id) && (
                                                 <CheckCircleFilled style={{ color: 'white', fontSize: '14px' }} />
                                             )}
@@ -602,6 +609,38 @@ export default function Home() {
                                 <p style={{ color: 'var(--text-muted)' }}>변환된 이미지가 없습니다.</p>
                             </GlassCard>
                         )}
+
+                        {/* 원본 이미지 미리보기 모달 */}
+                        <Modal
+                            open={!!previewImage}
+                            footer={null}
+                            onCancel={() => setPreviewImage(null)}
+                            centered
+                            width="90vw"
+                            style={{ maxWidth: '600px' }}
+                            styles={{
+                                content: {
+                                    background: 'rgba(0,0,0,0.9)',
+                                    padding: '12px',
+                                    borderRadius: '16px'
+                                }
+                            }}
+                            closeIcon={<span style={{ color: 'white', fontSize: '20px' }}>×</span>}
+                        >
+                            {previewImage && (
+                                <img
+                                    src={previewImage}
+                                    alt="Original"
+                                    style={{
+                                        width: '100%',
+                                        height: 'auto',
+                                        borderRadius: '8px',
+                                        maxHeight: '80vh',
+                                        objectFit: 'contain'
+                                    }}
+                                />
+                            )}
+                        </Modal>
 
                         {/* Selection Bar */}
                         {selectedImages.length > 0 && (

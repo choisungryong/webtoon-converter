@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Spin, Image, Modal, message } from 'antd';
+import { Spin, Modal, message } from 'antd';
 import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 
 import Link from 'next/link';
@@ -19,6 +19,7 @@ export default function GalleryPage() {
     const [images, setImages] = useState<GalleryImage[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     const fetchImages = async () => {
         setLoading(true);
@@ -93,14 +94,15 @@ export default function GalleryPage() {
                 ) : images.length > 0 ? (
                     <div className="gallery-grid">
                         {images.map((img) => (
-                            <div key={img.id} className="gallery-item group">
-                                <Image
+                            <div
+                                key={img.id}
+                                className="gallery-item group"
+                                onClick={() => setPreviewImage(img.url)}
+                            >
+                                <img
                                     src={img.url}
                                     alt="Generated"
-                                    className="w-full aspect-square object-cover"
-                                    preview={{
-                                        mask: <span className="text-sm">확대</span>
-                                    }}
+                                    className="gallery-thumbnail"
                                 />
                                 {/* Delete Button */}
                                 <button
@@ -126,6 +128,38 @@ export default function GalleryPage() {
                         </Link>
                     </GlassCard>
                 )}
+
+                {/* 원본 이미지 미리보기 모달 */}
+                <Modal
+                    open={!!previewImage}
+                    footer={null}
+                    onCancel={() => setPreviewImage(null)}
+                    centered
+                    width="90vw"
+                    style={{ maxWidth: '800px' }}
+                    styles={{
+                        content: {
+                            background: 'rgba(0,0,0,0.9)',
+                            padding: '12px',
+                            borderRadius: '16px'
+                        }
+                    }}
+                    closeIcon={<span style={{ color: 'white', fontSize: '20px' }}>×</span>}
+                >
+                    {previewImage && (
+                        <img
+                            src={previewImage}
+                            alt="Original"
+                            style={{
+                                width: '100%',
+                                height: 'auto',
+                                borderRadius: '8px',
+                                maxHeight: '85vh',
+                                objectFit: 'contain'
+                            }}
+                        />
+                    )}
+                </Modal>
             </div>
         </main>
     );

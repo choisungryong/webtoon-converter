@@ -223,6 +223,54 @@ body {
 @media (max-width: 640px) {
     .gallery-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+}
+
+/* Gallery Item Thumbnail - 고정 크기 */
+.gallery-item .ant-image {
+    display: block;
+    width: 100%;
+}
+
+.gallery-item .ant-image img {
+    width: 100%;
+    height: 120px;
+    /* 고정 썸네일 높이 */
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+@media (min-width: 640px) {
+    .gallery-item .ant-image img {
+        height: 140px;
+    }
+}
+
+@media (min-width: 768px) {
+    .gallery-item .ant-image img {
+        height: 160px;
+    }
+}
+
+/* Gallery Thumbnail - 고정 크기 썸네일 */
+.gallery-thumbnail {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+}
+
+@media (min-width: 640px) {
+    .gallery-thumbnail {
+        height: 140px;
+    }
+}
+
+@media (min-width: 768px) {
+    .gallery-thumbnail {
+        height: 160px;
     }
 }
 
@@ -233,11 +281,24 @@ body {
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s ease;
+    /* 모바일 터치 지원 */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.gallery-item:active {
+    transform: scale(0.98);
+    opacity: 0.9;
 }
 
 .gallery-item.selected {
     transform: scale(0.95);
     box-shadow: 0 0 0 3px var(--accent-color);
+}
+
+.gallery-item.selected:active {
+    transform: scale(0.93);
 }
 
 .gallery-item .select-circle {
@@ -293,4 +354,68 @@ body {
 
 .animate-fade-in {
     animation: fadeIn 0.4s ease forwards;
+}
+
+/* Delete Button for Gallery Items */
+.delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.gallery-item:hover .delete-btn,
+.gallery-item:active .delete-btn {
+    opacity: 1;
+}
+
+/* 모바일에서는 항상 표시 */
+@media (max-width: 768px) {
+    .delete-btn {
+        opacity: 0.9;
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
+
+.delete-btn:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.1);
+}
+
+.delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 모바일 터치 영역 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    .gallery-item {
+        /* 터치 디바이스에서 hover 대신 사용 */
+    }
+
+    .gallery-item:active {
+        transform: scale(0.97);
+    }
+
+    .select-circle {
+        /* 터치 영역 확대 */
+        width: 32px;
+        height: 32px;
+    }
 }
