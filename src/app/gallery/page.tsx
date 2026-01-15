@@ -31,7 +31,13 @@ export default function GalleryPage() {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/gallery?type=${activeTab}`);
+            const userId = localStorage.getItem('toonsnap_user_id');
+            const headers: HeadersInit = {};
+            if (userId) {
+                headers['x-user-id'] = userId;
+            }
+
+            const res = await fetch(`/api/gallery?type=${activeTab}`, { headers });
             const data = await res.json();
             setImages(data.images || []);
             setSelectedImages([]); // Reset selection on tab change

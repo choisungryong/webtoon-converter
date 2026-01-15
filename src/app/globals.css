@@ -220,6 +220,20 @@ body {
     gap: 8px;
 }
 
+@media (min-width: 1024px) {
+    .gallery-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .gallery-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+    }
+}
+
 @media (max-width: 640px) {
     .gallery-grid {
         grid-template-columns: repeat(2, 1fr);

@@ -18,17 +18,19 @@ export async function GET(request: NextRequest) {
         let results;
 
         if (userId) {
+            // For 'image' type, also include NULL types (legacy data)
+            const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
+
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE user_id = ? AND type = ? ORDER BY created_at DESC LIMIT 50`
+                `SELECT * FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
             ).bind(userId, type);
             results = (await stmt.all()).results;
         } else {
-            // Anonymous users can only see their own images (filtered by userId which is passed in header)
-            // But if userId is missing (should not happen if client sends it), we return empty or public ones?
-            // Existing logic seemed to return "non-user" images if userId was missing, but let's stick to the logic.
-            // Wait, existing logic was: if (userId) ... else ... WHERE user_id IS NULL
+            // Anonymous/Public fallback
+            const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
+
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE user_id IS NULL AND type = ? ORDER BY created_at DESC LIMIT 50`
+                `SELECT * FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
             ).bind(type);
             results = (await stmt.all()).results;
         }
