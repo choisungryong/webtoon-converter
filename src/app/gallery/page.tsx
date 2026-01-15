@@ -380,7 +380,7 @@ export default function GalleryPage() {
                                             : previewImage
                                     }
                                     alt="Preview"
-                                    className="max-h-[70vh] w-auto object-contain rounded-lg"
+                                    className="max-h-[50vh] w-auto object-contain rounded-lg"
                                 />
                             </div>
 

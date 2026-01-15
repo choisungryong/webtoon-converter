@@ -241,6 +241,19 @@ body {
     }
 }
 
+/* Gallery Item - 선택 오버레이용 relative 포지션 */
+.gallery-item {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.gallery-item:hover {
+    transform: scale(1.02);
+}
+
 /* Gallery Item Thumbnail - 고정 크기 */
 .gallery-item .ant-image {
     display: block;
