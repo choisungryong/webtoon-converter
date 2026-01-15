@@ -240,7 +240,7 @@ export default function GalleryPage() {
                                 : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            📸 컷 보관소
+                            🖼️ 마이스냅
                         </button>
                         <button
                             onClick={() => setActiveTab('webtoon')}
@@ -249,7 +249,7 @@ export default function GalleryPage() {
                                 : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            📜 툰 보관소
+                            📖 마이웹툰
                         </button>
                     </div>
 
@@ -336,7 +336,7 @@ export default function GalleryPage() {
 
                 {/* Selection Action Bar (Image Tab & Selection active) */}
                 {activeTab === 'image' && selectedImages.length > 0 && (
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-3 flex items-center gap-4 shadow-2xl z-50 animate-fade-in">
+                    <div className="fixed bottom-8 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-3 flex items-center justify-center gap-3 md:gap-4 shadow-2xl z-50 animate-fade-in max-w-md mx-auto">
                         <button
                             onClick={() => { setSelectedImages([]); setIsSelectionMode(false); }}
                             className="text-white/60 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
@@ -352,7 +352,7 @@ export default function GalleryPage() {
                             onClick={() => setWebtoonViewOpen(true)}
                             className="bg-[#CCFF00] text-black px-4 py-2 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-sm"
                         >
-                            <span>📜</span> 웹툰 보기
+                            <span>📖</span> 웹툰 보기
                         </button>
                         <button
                             onClick={handleBulkDelete}
