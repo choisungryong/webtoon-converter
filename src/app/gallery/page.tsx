@@ -273,7 +273,7 @@ export default function GalleryPage() {
                                     <div
                                         className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer z-10 ${selectedImages.includes(img.id)
                                             ? 'bg-[#CCFF00] border-[#CCFF00] scale-100 opacity-100'
-                                            : 'border-white/60 bg-black/40 scale-95 opacity-0 group-hover:opacity-100'
+                                            : 'border-white/60 bg-black/40 scale-100 opacity-50 hover:opacity-100 hover:bg-black/60 hover:border-white'
                                             }`}
                                         onClick={(e) => {
                                             e.stopPropagation();
