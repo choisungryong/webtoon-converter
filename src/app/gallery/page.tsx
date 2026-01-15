@@ -26,6 +26,7 @@ export default function GalleryPage() {
     const [deleting, setDeleting] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
+    const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
 
     const fetchImages = async () => {
         setLoading(true);
