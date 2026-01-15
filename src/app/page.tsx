@@ -73,17 +73,10 @@ export default function Home() {
     const [extractedFrames, setExtractedFrames] = useState<string[]>([]);
     const [selectedFrameIndices, setSelectedFrameIndices] = useState<number[]>([]);
 
-    // Gallery Mode State
-    const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-    const [selectedImages, setSelectedImages] = useState<string[]>([]);
-    const [galleryLoading, setGalleryLoading] = useState(false);
-    const [deleting, setDeleting] = useState(false);
+    // Video Analysis State
+    const [analyzing, setAnalyzing] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [userId, setUserId] = useState<string>('');
-    const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-    // Webtoon View State
-    const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
 
     // Initialize User ID
     useEffect(() => {
@@ -102,76 +95,10 @@ export default function Home() {
     const [converting, setConverting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [aiImages, setAiImages] = useState<string[]>([]);
-    const [analyzing, setAnalyzing] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Load gallery when mode changes
-    useEffect(() => {
-        if (mode === 'gallery' && userId) {
-            fetchGallery();
-        }
-    }, [mode, userId]);
-
-    const fetchGallery = async () => {
-        setGalleryLoading(true);
-        try {
-            const res = await fetch('/api/gallery', {
-                headers: { 'x-user-id': userId }
-            });
-            const data = await res.json();
-            setGalleryImages(data.images || []);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setGalleryLoading(false);
-        }
-    };
-
-    // Toggle image selection in gallery
-    const toggleImageSelection = (id: string) => {
-        setSelectedImages(prev =>
-            prev.includes(id)
-                ? prev.filter(i => i !== id)
-                : [...prev, id]
-        );
-    };
-
-    // Delete selected images
-    // Delete selected images
-    const handleDeleteSelected = async () => {
-        if (selectedImages.length === 0) return;
-
-        if (!window.confirm(`${selectedImages.length}개의 이미지를 정말 삭제하시겠습니까?\n삭제된 이미지는 복구할 수 없습니다.`)) {
-            return;
-        }
-
-        setDeleting(true);
-        try {
-            // 순차 삭제 처리
-            for (const id of selectedImages) {
-                await fetch(`/api/gallery/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'x-user-id': userId }
-                });
-            }
-
-            // UI에서 즉시 제거 (상태 업데이트 보장)
-            setGalleryImages(prev => {
-                const newImages = prev.filter(img => !selectedImages.includes(img.id));
-                return [...newImages]; // 새로운 배열 참조 반환
-            });
-            setSelectedImages([]);
-            message.success('성공적으로 삭제되었습니다.');
-        } catch (err: any) {
-            console.error('삭제 오류:', err);
-            message.error(`삭제 실패: ${err.message || '알 수 없는 오류'}`);
-        } finally {
-            setDeleting(false);
-        }
-    };
 
     // Photo Mode: Handle file selection
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,7 +366,6 @@ export default function Home() {
         setExtractedFrames([]);
         setSelectedFrameIndices([]);
         setAiImages([]);
-        setSelectedImages([]);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
@@ -704,175 +630,9 @@ export default function Home() {
                         )}
                     </>
                 )}
-
-                {/* Gallery Mode */}
-                {mode === 'gallery' && (
-                    <>
-                        {galleryLoading ? (
-                            <div className="py-20 text-center">
-                                <Spin size="large" />
-                            </div>
-                        ) : galleryImages.length > 0 ? (
-                            <div className="gallery-grid">
-                                {galleryImages.map((img) => (
-                                    <div
-                                        key={img.id}
-                                        className={`gallery-item ${selectedImages.includes(img.id) ? 'selected' : ''}`}
-                                        onClick={() => setPreviewImage(img.url)}
-                                    >
-                                        <img
-                                            src={img.url}
-                                            alt="Gallery"
-                                            className="gallery-thumbnail"
-                                        />
-                                        {/* 체크 원 - 클릭 시 선택/해제 */}
-                                        <div
-                                            className="select-circle"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleImageSelection(img.id);
-                                            }}
-                                        >
-                                            {selectedImages.includes(img.id) && (
-                                                <CheckCircleFilled style={{ color: 'white', fontSize: '14px' }} />
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <GlassCard className="text-center py-12">
-                                <p style={{ color: 'var(--text-muted)' }}>변환된 이미지가 없습니다.</p>
-                            </GlassCard>
-                        )}
-
-                        {/* 원본 이미지 미리보기 모달 */}
-                        <Modal
-                            open={!!previewImage}
-                            footer={null}
-                            onCancel={() => setPreviewImage(null)}
-                            centered
-                            width="90vw"
-                            style={{ maxWidth: '600px' }}
-                            styles={{
-                                content: {
-                                    background: 'rgba(0,0,0,0.9)',
-                                    padding: '12px',
-                                    borderRadius: '16px'
-                                }
-                            }}
-                            closeIcon={<span style={{ color: 'white', fontSize: '20px' }}>×</span>}
-                        >
-                            {previewImage && (
-                                <img
-                                    src={previewImage}
-                                    alt="Original"
-                                    style={{
-                                        width: '100%',
-                                        height: 'auto',
-                                        borderRadius: '8px',
-                                        maxHeight: '80vh',
-                                        objectFit: 'contain'
-                                    }}
-                                />
-                            )}
-                        </Modal>
-
-                        {/* Webtoon View Modal - 세로 스크롤 뷰 (Resized) */}
-                        <Modal
-                            open={webtoonViewOpen}
-                            footer={null}
-                            onCancel={() => setWebtoonViewOpen(false)}
-                            centered
-                            width="480px"
-                            style={{ top: 20 }}
-                            styles={{
-                                content: {
-                                    background: '#fff',
-                                    padding: 0,
-                                    borderRadius: '8px',
-                                    overflow: 'hidden',
-                                    maxWidth: '100vw'
-                                }
-                            }}
-                            closeIcon={<span style={{ color: '#000', fontSize: '20px', background: '#fff', borderRadius: '50%', padding: '4px' }}>×</span>}
-                        >
-                            <div className="webtoon-container overflow-y-auto max-h-[85vh] bg-white flex flex-col items-center">
-                                {galleryImages
-                                    .filter(img => selectedImages.includes(img.id))
-                                    .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id)) // 선택 순서대로 정렬
-                                    .map((img) => (
-                                        <img
-                                            key={img.id}
-                                            src={img.url}
-                                            alt="Webtoon frame"
-                                            className="w-full h-auto block"
-                                            style={{ display: 'block', maxWidth: '100%' }}
-                                        />
-                                    ))}
-                            </div>
-                        </Modal>
-
-                        {/* Selection Bar */}
-                        {selectedImages.length > 0 && (
-                            <div className="selection-bar animate-fade-in" style={{
-                                width: 'auto',
-                                minWidth: '320px',
-                                gap: '24px', // 버튼 간격 대폭 증가 (오클릭 방지)
-                                padding: '16px 32px'
-                            }}>
-                                <span style={{
-                                    color: 'var(--text-primary)',
-                                    fontWeight: 'bold',
-                                    fontSize: '16px',
-                                    paddingRight: '12px',
-                                    borderRight: '1px solid var(--border-color)'
-                                }}>
-                                    {selectedImages.length}개 선택됨
-                                </span>
-
-                                <div className="flex gap-4">
-                                    {/* Webtoon View Button */}
-                                    <button
-                                        onClick={() => setWebtoonViewOpen(true)}
-                                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95"
-                                        style={{
-                                            height: '48px', // 높이 통일
-                                            background: 'var(--accent-color)',
-                                            color: '#000',
-                                            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                                            border: 'none',
-                                            minWidth: '120px'
-                                        }}
-                                    >
-                                        <span style={{ fontSize: '20px' }}>📜</span>
-                                        웹툰 보기
-                                    </button>
-
-                                    {/* Delete Button (Unified Style) */}
-                                    <button
-                                        onClick={handleDeleteSelected}
-                                        disabled={deleting}
-                                        className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95"
-                                        style={{
-                                            height: '48px', // 높이 통일
-                                            background: '#ef4444',
-                                            color: 'white',
-                                            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)',
-                                            border: 'none',
-                                            minWidth: '120px'
-                                        }}
-                                    >
-                                        <DeleteOutlined style={{ fontSize: '18px' }} />
-                                        삭제하기
-
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </>
+            </>
                 )}
-            </div>
-        </main>
+        </div>
+        </main >
     );
 }
