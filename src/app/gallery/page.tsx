@@ -171,11 +171,47 @@ export default function GalleryPage() {
         }
     };
 
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+    const toggleSelectionMode = () => {
+        setIsSelectionMode(prev => {
+            if (prev) setSelectedImages([]); // Clear selection when exiting mode
+            return !prev;
+        });
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedImages.length === 0) return;
+        Modal.confirm({
+            title: '선택한 이미지 삭제',
+            icon: <ExclamationCircleOutlined />,
+            content: `선택한 ${selectedImages.length}장의 이미지를 삭제하시겠습니까?`,
+            okText: '삭제',
+            okType: 'danger',
+            cancelText: '취소',
+            onOk: async () => {
+                setDeleting('bulk');
+                try {
+                    await Promise.all(selectedImages.map(id => fetch(`/api/gallery/${id}`, { method: 'DELETE' })));
+                    setImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
+                    setSelectedImages([]);
+                    setIsSelectionMode(false);
+                    message.success('삭제되었습니다.');
+                } catch (err) {
+                    console.error(err);
+                    message.error('삭제에 실패했습니다.');
+                } finally {
+                    setDeleting(null);
+                }
+            }
+        });
+    };
+
     return (
         <main className="min-h-screen bg-[#0a0a0a] p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="flex justify-between items-center animate-fade-in">
+                <div className="flex justify-between items-center animate-fade-in flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                         <Link href="/" className="text-gray-400 hover:text-white transition-colors">
                             ← 홈
@@ -186,9 +222,9 @@ export default function GalleryPage() {
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex bg-white/10 rounded-lg p-1">
+                    <div className="flex bg-white/10 rounded-lg p-1 order-last md:order-none w-full md:w-auto justify-center">
                         <button
-                            onClick={() => setActiveTab('image')}
+                            onClick={() => { setActiveTab('image'); setIsSelectionMode(false); }}
                             className={`px-4 py-2 rounded-md transition-all ${activeTab === 'image'
                                 ? 'bg-[#CCFF00] text-black font-bold shadow-lg'
                                 : 'text-gray-400 hover:text-white'
@@ -197,7 +233,7 @@ export default function GalleryPage() {
                             📸 컷 보관소
                         </button>
                         <button
-                            onClick={() => setActiveTab('webtoon')}
+                            onClick={() => { setActiveTab('webtoon'); setIsSelectionMode(false); }}
                             className={`px-4 py-2 rounded-md transition-all ${activeTab === 'webtoon'
                                 ? 'bg-[#CCFF00] text-black font-bold shadow-lg'
                                 : 'text-gray-400 hover:text-white'
@@ -207,14 +243,26 @@ export default function GalleryPage() {
                         </button>
                     </div>
 
-                    <button
-                        onClick={fetchImages}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50"
-                    >
-                        <ReloadOutlined spin={loading} />
-                        새로고침
-                    </button>
+                    <div className="flex gap-2">
+                        {activeTab === 'image' && (
+                            <button
+                                onClick={toggleSelectionMode}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isSelectionMode
+                                    ? 'bg-white text-black font-bold'
+                                    : 'bg-white/10 hover:bg-white/20 text-white'
+                                    }`}
+                            >
+                                {isSelectionMode ? '선택 취소' : '선택하기'}
+                            </button>
+                        )}
+                        <button
+                            onClick={fetchImages}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50"
+                        >
+                            <ReloadOutlined spin={loading} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Gallery Content */}
@@ -229,20 +277,15 @@ export default function GalleryPage() {
                                 key={img.id}
                                 className={`gallery-item group ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
                                 onClick={() => {
-                                    if (activeTab === 'image') {
-                                        // Toggle selection logic for webtoon creation only in image tab
-                                        if (selectedImages.length > 0 || (window.event as any)?.ctrlKey) {
-                                            setSelectedImages(prev =>
-                                                prev.includes(img.id)
-                                                    ? prev.filter(i => i !== img.id)
-                                                    : [...prev, img.id]
-                                            );
-                                        } else {
-                                            setPreviewImage(img.url);
-                                            setViewMode('processed'); // Default to processed view
-                                        }
+                                    if (isSelectionMode) {
+                                        setSelectedImages(prev =>
+                                            prev.includes(img.id)
+                                                ? prev.filter(i => i !== img.id)
+                                                : [...prev, img.id]
+                                        );
                                     } else {
                                         setPreviewImage(img.url);
+                                        setViewMode('processed');
                                     }
                                 }}
                             >
@@ -252,36 +295,16 @@ export default function GalleryPage() {
                                     className="gallery-thumbnail"
                                 />
 
-                                {activeTab === 'image' && (
+                                {isSelectionMode && (
                                     <div
                                         className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${selectedImages.includes(img.id)
                                             ? 'bg-[#CCFF00] border-[#CCFF00]'
-                                            : 'border-white/50 hover:border-white bg-black/30'
+                                            : 'border-white/50 bg-black/30'
                                             }`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedImages(prev =>
-                                                prev.includes(img.id)
-                                                    ? prev.filter(i => i !== img.id)
-                                                    : [...prev, img.id]
-                                            );
-                                        }}
                                     >
                                         {selectedImages.includes(img.id) && <CheckCircleFilled className="text-black text-sm" />}
                                     </div>
                                 )}
-
-                                {/* Delete Button */}
-                                <button
-                                    className="delete-btn"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDelete(img.id);
-                                    }}
-                                    disabled={deleting === img.id}
-                                >
-                                    {deleting === img.id ? '...' : <DeleteOutlined />}
-                                </button>
                             </div>
                         ))}
                     </div>
@@ -298,18 +321,24 @@ export default function GalleryPage() {
                     </GlassCard>
                 )}
 
-                {/* Selection Action Bar (Image Tab Only) */}
-                {activeTab === 'image' && selectedImages.length > 0 && (
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 flex items-center gap-6 shadow-2xl z-50 animate-fade-in">
-                        <span className="text-white font-bold ml-2">
-                            {selectedImages.length}장 선택됨
+                {/* Selection Action Bar (Image Tab & Selection Mode) */}
+                {isSelectionMode && selectedImages.length > 0 && (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-3 flex items-center gap-4 shadow-2xl z-50 animate-fade-in">
+                        <span className="text-white font-bold px-2">
+                            {selectedImages.length}장
                         </span>
-                        <div className="h-8 w-px bg-white/10"></div>
+                        <div className="h-6 w-px bg-white/10"></div>
                         <button
                             onClick={() => setWebtoonViewOpen(true)}
-                            className="bg-[#CCFF00] text-black px-6 py-2 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                            className="bg-[#CCFF00] text-black px-4 py-2 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-sm"
                         >
                             <span>📜</span> 웹툰 보기
+                        </button>
+                        <button
+                            onClick={handleBulkDelete}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 text-sm"
+                        >
+                            <DeleteOutlined /> 삭제
                         </button>
                     </div>
                 )}
@@ -335,8 +364,8 @@ export default function GalleryPage() {
                 >
                     {previewImage && (
                         <div className="flex flex-col">
-                            {/* Toggle (Only for Cut Archive and if original exists) */}
-                            {activeTab === 'image' && images.find(i => i.url === previewImage)?.original_url && (
+                            {/* Toggle (Only if original exists) */}
+                            {images.find(i => i.url === previewImage)?.original_url && (
                                 <div className="flex justify-center p-4 bg-black/20">
                                     <div className="flex bg-black/40 rounded-lg p-1">
                                         <button
@@ -373,7 +402,19 @@ export default function GalleryPage() {
                                 />
                             </div>
 
-                            <div className="p-4 border-t border-white/10 flex justify-end gap-3 bg-[#1a1a1a]">
+                            <div className="p-4 border-t border-white/10 flex justify-between bg-[#1a1a1a]">
+                                <button
+                                    onClick={() => {
+                                        const imgId = images.find(i => i.url === previewImage)?.id;
+                                        if (imgId) {
+                                            handleDelete(imgId);
+                                            setPreviewImage(null);
+                                        }
+                                    }}
+                                    className="px-4 py-2 text-red-500 hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition-colors"
+                                >
+                                    <DeleteOutlined /> 삭제
+                                </button>
                                 <button
                                     onClick={() => handleDownload(
                                         viewMode === 'original'
