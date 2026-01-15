@@ -2,6 +2,7 @@
 
 // runtime config removed to use default nodejs_compat
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { message, Progress, Image, Spin, Modal } from 'antd';
 import { CheckCircleFilled, LoadingOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 
@@ -16,8 +17,18 @@ interface GalleryImage {
 }
 
 export default function Home() {
+    const router = useRouter();
+
     // Mode State
     const [mode, setMode] = useState<AppMode>('video');
+
+    const handleModeChange = (newMode: AppMode) => {
+        if (newMode === 'gallery') {
+            router.push('/gallery');
+        } else {
+            setMode(newMode);
+        }
+    };
     const [theme, setTheme] = useState<ThemeMode>('dark');
 
     // Apply theme to document
