@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Spin, Modal, message } from 'antd';
 import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleFilled, DownloadOutlined } from '@ant-design/icons';
 
@@ -27,6 +27,24 @@ export default function GalleryPage() {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Mobile long-press handlers
+    const handleTouchStart = (imgId: string) => {
+        longPressTimerRef.current = setTimeout(() => {
+            setIsSelectionMode(true);
+            setSelectedImages(prev => prev.includes(imgId) ? prev : [...prev, imgId]);
+            if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback
+        }, 500);
+    };
+
+    const handleTouchEnd = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
 
     const fetchImages = async () => {
         setLoading(true);
@@ -259,9 +277,20 @@ export default function GalleryPage() {
                                 key={img.id}
                                 className={`gallery-item group ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
                                 onClick={() => {
-                                    setPreviewImage(img.url);
-                                    setViewMode('processed');
+                                    if (isSelectionMode && activeTab === 'image') {
+                                        setSelectedImages(prev =>
+                                            prev.includes(img.id)
+                                                ? prev.filter(i => i !== img.id)
+                                                : [...prev, img.id]
+                                        );
+                                    } else {
+                                        setPreviewImage(img.url);
+                                        setViewMode('processed');
+                                    }
                                 }}
+                                onTouchStart={() => activeTab === 'image' && handleTouchStart(img.id)}
+                                onTouchEnd={handleTouchEnd}
+                                onTouchMove={handleTouchEnd}
                             >
                                 <img
                                     src={img.url}
@@ -273,7 +302,9 @@ export default function GalleryPage() {
                                     <div
                                         className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer z-10 ${selectedImages.includes(img.id)
                                             ? 'bg-[#CCFF00] border-[#CCFF00] scale-100 opacity-100'
-                                            : 'border-white/60 bg-black/40 scale-95 opacity-0 group-hover:opacity-100 hover:bg-black/60 hover:border-white'
+                                            : isSelectionMode
+                                                ? 'border-white/60 bg-black/40 scale-100 opacity-100'
+                                                : 'border-white/60 bg-black/40 scale-95 opacity-0 group-hover:opacity-100 hover:bg-black/60 hover:border-white'
                                             }`}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -306,6 +337,13 @@ export default function GalleryPage() {
                 {/* Selection Action Bar (Image Tab & Selection active) */}
                 {activeTab === 'image' && selectedImages.length > 0 && (
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-3 flex items-center gap-4 shadow-2xl z-50 animate-fade-in">
+                        <button
+                            onClick={() => { setSelectedImages([]); setIsSelectionMode(false); }}
+                            className="text-white/60 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                            title="선택 취소"
+                        >
+                            ✕
+                        </button>
                         <span className="text-white font-bold px-2">
                             {selectedImages.length}장
                         </span>
@@ -425,7 +463,7 @@ export default function GalleryPage() {
                             background: '#fff',
                             padding: '0',
                             borderRadius: '8px',
-                            overflow: 'hidden',
+                            overflow: 'visible',
                             maxHeight: '90vh',
                             display: 'flex',
                             flexDirection: 'column'
