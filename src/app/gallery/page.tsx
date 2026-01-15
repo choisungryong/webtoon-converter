@@ -171,14 +171,7 @@ export default function GalleryPage() {
         }
     };
 
-    const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-    const toggleSelectionMode = () => {
-        setIsSelectionMode(prev => {
-            if (prev) setSelectedImages([]); // Clear selection when exiting mode
-            return !prev;
-        });
-    };
 
     const handleBulkDelete = () => {
         if (selectedImages.length === 0) return;
@@ -224,7 +217,7 @@ export default function GalleryPage() {
                     {/* Tabs */}
                     <div className="flex bg-white/10 rounded-lg p-1 order-last md:order-none w-full md:w-auto justify-center">
                         <button
-                            onClick={() => { setActiveTab('image'); setIsSelectionMode(false); }}
+                            onClick={() => setActiveTab('image')}
                             className={`px-4 py-2 rounded-md transition-all ${activeTab === 'image'
                                 ? 'bg-[#CCFF00] text-black font-bold shadow-lg'
                                 : 'text-gray-400 hover:text-white'
@@ -233,7 +226,7 @@ export default function GalleryPage() {
                             📸 컷 보관소
                         </button>
                         <button
-                            onClick={() => { setActiveTab('webtoon'); setIsSelectionMode(false); }}
+                            onClick={() => setActiveTab('webtoon')}
                             className={`px-4 py-2 rounded-md transition-all ${activeTab === 'webtoon'
                                 ? 'bg-[#CCFF00] text-black font-bold shadow-lg'
                                 : 'text-gray-400 hover:text-white'
@@ -244,23 +237,13 @@ export default function GalleryPage() {
                     </div>
 
                     <div className="flex gap-2">
-                        {activeTab === 'image' && (
-                            <button
-                                onClick={toggleSelectionMode}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isSelectionMode
-                                    ? 'bg-white text-black font-bold'
-                                    : 'bg-white/10 hover:bg-white/20 text-white'
-                                    }`}
-                            >
-                                {isSelectionMode ? '선택 취소' : '선택하기'}
-                            </button>
-                        )}
                         <button
                             onClick={fetchImages}
                             disabled={loading}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50"
                         >
                             <ReloadOutlined spin={loading} />
+                            새로고침
                         </button>
                     </div>
                 </div>
@@ -277,16 +260,8 @@ export default function GalleryPage() {
                                 key={img.id}
                                 className={`gallery-item group ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
                                 onClick={() => {
-                                    if (isSelectionMode) {
-                                        setSelectedImages(prev =>
-                                            prev.includes(img.id)
-                                                ? prev.filter(i => i !== img.id)
-                                                : [...prev, img.id]
-                                        );
-                                    } else {
-                                        setPreviewImage(img.url);
-                                        setViewMode('processed');
-                                    }
+                                    setPreviewImage(img.url);
+                                    setViewMode('processed');
                                 }}
                             >
                                 <img
@@ -295,12 +270,20 @@ export default function GalleryPage() {
                                     className="gallery-thumbnail"
                                 />
 
-                                {isSelectionMode && (
+                                {activeTab === 'image' && (
                                     <div
-                                        className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer z-10 ${selectedImages.includes(img.id)
-                                            ? 'bg-[#CCFF00] border-[#CCFF00]'
-                                            : 'border-white/50 bg-black/30'
+                                        className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer z-10 ${selectedImages.includes(img.id)
+                                            ? 'bg-[#CCFF00] border-[#CCFF00] scale-100 opacity-100'
+                                            : 'border-white/60 bg-black/40 scale-95 opacity-0 group-hover:opacity-100'
                                             }`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedImages(prev =>
+                                                prev.includes(img.id)
+                                                    ? prev.filter(i => i !== img.id)
+                                                    : [...prev, img.id]
+                                            );
+                                        }}
                                     >
                                         {selectedImages.includes(img.id) && <CheckCircleFilled className="text-black text-sm" />}
                                     </div>
@@ -321,8 +304,8 @@ export default function GalleryPage() {
                     </GlassCard>
                 )}
 
-                {/* Selection Action Bar (Image Tab & Selection Mode) */}
-                {isSelectionMode && selectedImages.length > 0 && (
+                {/* Selection Action Bar (Image Tab & Selection active) */}
+                {activeTab === 'image' && selectedImages.length > 0 && (
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl p-3 flex items-center gap-4 shadow-2xl z-50 animate-fade-in">
                         <span className="text-white font-bold px-2">
                             {selectedImages.length}장
