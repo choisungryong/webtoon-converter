@@ -17,13 +17,7 @@ export default function Home() {
     // Mode State
     const [mode, setMode] = useState<AppMode>('video');
 
-    const handleModeChange = (newMode: AppMode) => {
-        if (newMode === 'gallery') {
-            router.push('/gallery');
-        } else {
-            setMode(newMode);
-        }
-    };
+
     const [theme, setTheme] = useState<ThemeMode>('dark');
 
     // Apply theme to document
@@ -365,8 +359,12 @@ export default function Home() {
     };
 
     const handleModeChange = (m: AppMode) => {
-        setMode(m);
-        if (m !== 'gallery') handleReset();
+        if (m === 'gallery') {
+            router.push('/gallery');
+        } else {
+            setMode(m);
+            handleReset();
+        }
     };
 
     return (
