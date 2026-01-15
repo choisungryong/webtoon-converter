@@ -3,18 +3,13 @@
 // runtime config removed to use default nodejs_compat
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, Progress, Image, Spin, Modal } from 'antd';
-import { CheckCircleFilled, LoadingOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { message, Image, Spin } from 'antd';
+import { CheckCircleFilled } from '@ant-design/icons';
 
 import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
 import { StyleOption, DEFAULT_STYLE } from '../data/styles';
-
-interface GalleryImage {
-    id: string;
-    url: string;
-}
 
 export default function Home() {
     const router = useRouter();
@@ -630,9 +625,7 @@ export default function Home() {
                         )}
                     </>
                 )}
-            </>
-                )}
-        </div>
-        </main >
+            </div>
+        </main>
     );
 }
