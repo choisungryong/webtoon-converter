@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
         if (env.R2) {
             try {
-                // Convert Base64 to ArrayBuffer
+                // 1. Save Generated Image to R2
                 const binaryString = atob(generatedImageBase64);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
@@ -146,11 +146,30 @@ export async function POST(request: NextRequest) {
                     httpMetadata: { contentType: generatedMimeType }
                 });
 
+                // 2. Save Original Image to R2 (if available)
+                let originalR2Key = null;
+                if (image) {
+                    const originalBase64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
+                    if (originalBase64Match) {
+                        const originalMime = `image/${originalBase64Match[1]}`;
+                        const originalData = atob(originalBase64Match[2]);
+                        const originalBytes = new Uint8Array(originalData.length);
+                        for (let i = 0; i < originalData.length; i++) {
+                            originalBytes[i] = originalData.charCodeAt(i);
+                        }
+
+                        originalR2Key = `originals/${imageId}.${originalBase64Match[1] === 'jpeg' ? 'jpg' : originalBase64Match[1]}`;
+                        await env.R2.put(originalR2Key, originalBytes, {
+                            httpMetadata: { contentType: originalMime }
+                        });
+                    }
+                }
+
                 // Save to D1 database
                 if (env.DB) {
                     await env.DB.prepare(
-                        `INSERT INTO generated_images (id, r2_key, prompt, user_id) VALUES (?, ?, ?, ?)`
-                    ).bind(imageId, r2Key, prompt, userId).run();
+                        `INSERT INTO generated_images (id, r2_key, original_r2_key, type, prompt, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+                    ).bind(imageId, r2Key, originalR2Key, 'image', prompt, userId).run();
                     savedToGallery = true;
                     console.log('Saved to gallery:', imageId, 'User:', userId);
                 }
