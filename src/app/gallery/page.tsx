@@ -188,7 +188,6 @@ export default function GalleryPage() {
                     await Promise.all(selectedImages.map(id => fetch(`/api/gallery/${id}`, { method: 'DELETE' })));
                     setImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
                     setSelectedImages([]);
-                    setIsSelectionMode(false);
                     message.success('삭제되었습니다.');
                 } catch (err) {
                     console.error(err);
