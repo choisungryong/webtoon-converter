@@ -126,18 +126,12 @@ export default function GalleryPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: webtoonDataUrl, userId })
                 });
-                message.success('툰 보관소에 저장되었습니다!');
-                setActiveTab('webtoon'); // Switch to Toon Archive
+                message.success('마이웹툰에 저장되었습니다!');
+                setActiveTab('webtoon'); // Switch to My Webtoon
                 setWebtoonViewOpen(false);
+                setSelectedImages([]); // Clear selection
+                setIsSelectionMode(false);
             }
-
-            // 6. Download Locally
-            const link = document.createElement('a');
-            link.href = webtoonDataUrl;
-            link.download = `webtoon-${Date.now()}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
 
         } catch (err) {
             console.error(err);
@@ -499,7 +493,7 @@ export default function GalleryPage() {
                                 className="px-6 py-2.5 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
                             >
                                 {savingWebtoon ? <Spin size="small" /> : <DownloadOutlined />}
-                                툰 보관소에 저장
+                                마이웹툰에 저장
                             </button>
                         </div>
                     </div>
