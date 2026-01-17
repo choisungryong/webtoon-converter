@@ -216,45 +216,41 @@ export default function GalleryPage() {
         }
     };
 
-    const handleBulkDelete = () => {
+    const handleBulkDelete = async () => {
         if (selectedImages.length === 0) return;
-        Modal.confirm({
-            title: '선택한 이미지 삭제',
-            icon: <ExclamationCircleOutlined />,
-            content: `선택한 ${selectedImages.length}장의 이미지를 삭제하시겠습니까?`,
-            okText: '삭제',
-            okType: 'danger',
-            cancelText: '취소',
-            onOk: async () => {
-                setDeleting('bulk');
-                try {
-                    const results = await Promise.all(selectedImages.map(id =>
-                        fetch(`/api/gallery/${id}`, {
-                            method: 'DELETE'
-                        }).then(res => ({ id, ok: res.ok }))
-                    ));
 
-                    const failed = results.filter(r => !r.ok);
-                    if (failed.length > 0) {
-                        console.error('Failed to delete some images:', failed);
-                        message.warning(`${failed.length}장의 이미지를 삭제하지 못했습니다.`);
-                    }
+        if (!window.confirm(`선택한 ${selectedImages.length}장의 이미지를 삭제하시겠습니까?`)) {
+            return;
+        }
 
-                    const successfulIds = results.filter(r => r.ok).map(r => r.id);
-                    setImages(prev => prev.filter(img => !successfulIds.includes(img.id)));
-                    setSelectedImages(prev => prev.filter(id => !successfulIds.includes(id)));
+        setDeleting('bulk');
+        try {
+            const results = await Promise.all(selectedImages.map(id =>
+                fetch(`/api/gallery/${id}`, {
+                    method: 'DELETE'
+                }).then(res => ({ id, ok: res.ok }))
+            ));
 
-                    if (failed.length === 0) {
-                        message.success('삭제되었습니다.');
-                    }
-                } catch (err) {
-                    console.error(err);
-                    message.error('삭제 중 오류가 발생했습니다.');
-                } finally {
-                    setDeleting(null);
-                }
+            const failed = results.filter(r => !r.ok);
+            if (failed.length > 0) {
+                console.error('Failed to delete some images:', failed);
+                message.warning(`${failed.length}장의 이미지를 삭제하지 못했습니다.`);
             }
-        });
+
+            const successfulIds = results.filter(r => r.ok).map(r => r.id);
+            setImages(prev => prev.filter(img => !successfulIds.includes(img.id)));
+            setSelectedImages(prev => prev.filter(id => !successfulIds.includes(id)));
+
+            if (failed.length === 0) {
+                message.success('삭제되었습니다.');
+            }
+        } catch (err) {
+            console.error(err);
+            message.error('삭제 중 오류가 발생했습니다.');
+        } finally {
+            setDeleting(null);
+            setIsSelectionMode(false);
+        }
     };
 
     return (
