@@ -55,7 +55,7 @@ export default function GalleryPage() {
                 headers['x-user-id'] = userId;
             }
 
-            const res = await fetch(`/api/gallery?type=${activeTab}`, { headers });
+            const res = await fetch(`/api/gallery?type=${activeTab}`, { ...headers, cache: 'no-store' });
             const data = await res.json();
             setImages(data.images || []);
             setSelectedImages([]); // Reset selection on tab change
