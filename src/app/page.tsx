@@ -90,6 +90,7 @@ export default function Home() {
     const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
     const [editedImages, setEditedImages] = useState<Record<number, string>>({});
     const [isSaving, setIsSaving] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -334,6 +335,7 @@ export default function Home() {
         setConverting(true);
         setProgress(0);
         setAiImages([]);
+        setIsSaved(false);
 
         try {
             for (let i = 0; i < imagesToConvert.length; i++) {
@@ -394,6 +396,7 @@ export default function Home() {
         setExtractedFrames([]);
         setSelectedFrameIndices([]);
         setAiImages([]);
+        setIsSaved(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
@@ -573,7 +576,7 @@ export default function Home() {
                                     }}>변환 결과</p>
                                     <button
                                         onClick={async () => {
-                                            if (isSaving) return;
+                                            if (isSaving || isSaved) return;
                                             setIsSaving(true);
                                             try {
                                                 for (let i = 0; i < aiImages.length; i++) {
@@ -588,27 +591,28 @@ export default function Home() {
                                                     });
                                                 }
                                                 message.success('갤러리에 저장되었습니다.');
+                                                setIsSaved(true);
                                             } catch (e) {
                                                 message.error('저장 실패');
                                             } finally {
                                                 setIsSaving(false);
                                             }
                                         }}
-                                        disabled={isSaving}
-                                        className="transition-transform hover:scale-105 active:scale-95"
+                                        disabled={isSaving || isSaved}
+                                        className={`transition-transform ${!isSaved && !isSaving ? 'hover:scale-105 active:scale-95' : ''}`}
                                         style={{
-                                            background: isSaving ? '#666' : 'var(--accent-color)',
-                                            color: '#000',
-                                            border: 'none',
+                                            background: isSaving || isSaved ? '#333' : 'var(--accent-color)',
+                                            color: isSaved ? '#fff' : '#000',
+                                            border: isSaved ? '1px solid #555' : 'none',
                                             padding: '8px 16px',
                                             borderRadius: '8px',
                                             fontSize: '13px',
                                             fontWeight: 600,
-                                            cursor: isSaving ? 'not-allowed' : 'pointer',
+                                            cursor: (isSaving || isSaved) ? 'default' : 'pointer',
                                             opacity: isSaving ? 0.7 : 1
                                         }}
                                     >
-                                        {isSaving ? '⏳ 저장 중...' : '📁 갤러리 저장'}
+                                        {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장 완료' : '📁 갤러리 저장'}
                                     </button>
                                 </div>
                                 <div style={{
@@ -771,7 +775,7 @@ export default function Home() {
                                     }}>변환 결과</p>
                                     <button
                                         onClick={async () => {
-                                            if (isSaving) return;
+                                            if (isSaving || isSaved) return;
                                             setIsSaving(true);
                                             try {
                                                 for (let i = 0; i < aiImages.length; i++) {
@@ -786,27 +790,28 @@ export default function Home() {
                                                     });
                                                 }
                                                 message.success('갤러리에 저장되었습니다.');
+                                                setIsSaved(true);
                                             } catch (e) {
                                                 message.error('저장 실패');
                                             } finally {
                                                 setIsSaving(false);
                                             }
                                         }}
-                                        disabled={isSaving}
-                                        className="transition-transform hover:scale-105 active:scale-95"
+                                        disabled={isSaving || isSaved}
+                                        className={`transition-transform ${!isSaved && !isSaving ? 'hover:scale-105 active:scale-95' : ''}`}
                                         style={{
-                                            background: isSaving ? '#666' : 'var(--accent-color)',
-                                            color: '#000',
-                                            border: 'none',
+                                            background: isSaving || isSaved ? '#333' : 'var(--accent-color)',
+                                            color: isSaved ? '#fff' : '#000',
+                                            border: isSaved ? '1px solid #555' : 'none',
                                             padding: '8px 16px',
                                             borderRadius: '8px',
                                             fontSize: '13px',
                                             fontWeight: 600,
-                                            cursor: isSaving ? 'not-allowed' : 'pointer',
+                                            cursor: (isSaving || isSaved) ? 'default' : 'pointer',
                                             opacity: isSaving ? 0.7 : 1
                                         }}
                                     >
-                                        {isSaving ? '⏳ 저장 중...' : '📁 갤러리 저장'}
+                                        {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장 완료' : '📁 갤러리 저장'}
                                     </button>
                                 </div>
                                 <div style={{
