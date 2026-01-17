@@ -41,16 +41,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (!results || results.length === 0) {
-            return NextResponse.json({
-                images: [],
-                apiVersion: 'v-debug-early-return',
-                debug: {
-                    receivedUserId: userId,
-                    queryType: type,
-                    resultsCount: 0,
-                    message: 'No images found for this user'
-                }
-            });
+            return NextResponse.json({ images: [] });
         }
 
         const imagesWithUrls = results.map((img: any) => ({
@@ -62,15 +53,7 @@ export async function GET(request: NextRequest) {
             type: img.type
         }));
 
-        return NextResponse.json({
-            images: imagesWithUrls,
-            apiVersion: 'v-debug-refresh',
-            debug: {
-                receivedUserId: userId,
-                queryType: type,
-                resultsCount: results.length
-            }
-        });
+        return NextResponse.json({ images: imagesWithUrls });
 
     } catch (error) {
         console.error('Gallery Fetch Error:', error);
@@ -105,11 +88,7 @@ export async function POST(request: NextRequest) {
             `INSERT INTO generated_images (id, r2_key, type, prompt, user_id) VALUES (?, ?, ?, ?, ?)`
         ).bind(imageId, r2Key, 'image', 'User Edited Image', userId).run();
 
-        return NextResponse.json({
-            success: true,
-            imageId,
-            debug: { savedUserId: userId }
-        });
+        return NextResponse.json({ success: true, imageId });
 
     } catch (error) {
         console.error('Gallery Save Error:', error);

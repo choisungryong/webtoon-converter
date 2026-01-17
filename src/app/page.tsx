@@ -585,7 +585,6 @@ export default function Home() {
                                                 }
                                                 // ... (existing save logic loop)
                                                 for (let i = 0; i < aiImages.length; i++) {
-                                                    console.log('Saving image for User ID:', userId); // DEBUG
                                                     const imageToSave = editedImages[i] || aiImages[i];
                                                     const res = await fetch('/api/gallery', {
                                                         method: 'POST',

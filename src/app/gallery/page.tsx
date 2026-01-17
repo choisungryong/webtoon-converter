@@ -73,9 +73,8 @@ export default function GalleryPage() {
             }
 
             // Fallback: Headers are being stripped, so we use Query Param as primary method
-            const url = `/api/gallery?type=${activeTab}&userId=${currentUserId}&t=${Date.now()}`;
-            const res = await fetch(url, { headers, cache: 'no-store' }); // Cache busting
-            console.log('Fetch Status:', res.status);
+            const url = `/api/gallery?type=${activeTab}&userId=${currentUserId}`;
+            const res = await fetch(url, { headers, cache: 'no-store' });
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
@@ -83,11 +82,6 @@ export default function GalleryPage() {
             }
 
             const data = await res.json();
-            console.log('Full API Response:', data); // Unconditional Log
-
-            if (data.debug) {
-                console.log('Server Debug Info:', data.debug);
-            }
 
             if (data.error) {
                 throw new Error(data.error);
