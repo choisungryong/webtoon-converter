@@ -152,7 +152,9 @@ export default function GalleryPage() {
             onOk: async () => {
                 setDeleting(imageId);
                 try {
-                    await fetch(`/api/gallery/${imageId}`, { method: 'DELETE' });
+                    const res = await fetch(`/api/gallery/${imageId}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Failed to delete');
+
                     setImages(prev => prev.filter(img => img.id !== imageId));
                     message.success('이미지가 삭제되었습니다.');
                 } catch (err) {
@@ -183,8 +185,6 @@ export default function GalleryPage() {
         }
     };
 
-
-
     const handleBulkDelete = () => {
         if (selectedImages.length === 0) return;
         Modal.confirm({
@@ -197,13 +197,26 @@ export default function GalleryPage() {
             onOk: async () => {
                 setDeleting('bulk');
                 try {
-                    await Promise.all(selectedImages.map(id => fetch(`/api/gallery/${id}`, { method: 'DELETE' })));
-                    setImages(prev => prev.filter(img => !selectedImages.includes(img.id)));
-                    setSelectedImages([]);
-                    message.success('삭제되었습니다.');
+                    const results = await Promise.all(selectedImages.map(id =>
+                        fetch(`/api/gallery/${id}`, { method: 'DELETE' }).then(res => ({ id, ok: res.ok }))
+                    ));
+
+                    const failed = results.filter(r => !r.ok);
+                    if (failed.length > 0) {
+                        console.error('Failed to delete some images:', failed);
+                        message.warning(`${failed.length}장의 이미지를 삭제하지 못했습니다.`);
+                    }
+
+                    const successfulIds = results.filter(r => r.ok).map(r => r.id);
+                    setImages(prev => prev.filter(img => !successfulIds.includes(img.id)));
+                    setSelectedImages(prev => prev.filter(id => !successfulIds.includes(id)));
+
+                    if (failed.length === 0) {
+                        message.success('삭제되었습니다.');
+                    }
                 } catch (err) {
                     console.error(err);
-                    message.error('삭제에 실패했습니다.');
+                    message.error('삭제 중 오류가 발생했습니다.');
                 } finally {
                     setDeleting(null);
                 }
@@ -350,7 +363,10 @@ export default function GalleryPage() {
                             <span>📖</span> 웹툰 보기
                         </button>
                         <button
-                            onClick={handleBulkDelete}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleBulkDelete();
+                            }}
                             className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 text-sm"
                         >
                             <DeleteOutlined /> 삭제
