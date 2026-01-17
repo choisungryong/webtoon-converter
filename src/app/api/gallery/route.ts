@@ -39,7 +39,16 @@ export async function GET(request: NextRequest) {
         }
 
         if (!results || results.length === 0) {
-            return NextResponse.json({ images: [] });
+            return NextResponse.json({
+                images: [],
+                apiVersion: 'v-debug-early-return',
+                debug: {
+                    receivedUserId: userId,
+                    queryType: type,
+                    resultsCount: 0,
+                    message: 'No images found for this user'
+                }
+            });
         }
 
         const imagesWithUrls = results.map((img: any) => ({
