@@ -72,7 +72,8 @@ export default function GalleryPage() {
                 console.warn('No User ID found in localStorage during fetch!');
             }
 
-            const res = await fetch(`/api/gallery?type=${activeTab}`, { ...headers, cache: 'no-store' });
+            const res = await fetch(`/api/gallery?type=${activeTab}&t=${Date.now()}`, { ...headers, cache: 'no-store' }); // Cache busting
+            console.log('Fetch Status:', res.status);
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
@@ -80,6 +81,7 @@ export default function GalleryPage() {
             }
 
             const data = await res.json();
+            console.log('Full API Response:', data); // Unconditional Log
 
             if (data.debug) {
                 console.log('Server Debug Info:', data.debug);
