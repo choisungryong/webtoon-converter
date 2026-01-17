@@ -137,7 +137,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         }
     };
 
-    // Drag handlers
+    // Drag handlers (Mouse)
     const handleMouseDown = (e: React.MouseEvent, bubbleId: string) => {
         e.stopPropagation();
         const bubble = bubbles.find(b => b.id === bubbleId);
@@ -147,6 +147,22 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         setDragOffset({
             x: e.clientX - rect.left - bubble.x,
             y: e.clientY - rect.top - bubble.y
+        });
+        setIsDragging(true);
+        setSelectedBubbleId(bubbleId);
+    };
+
+    // Touch handlers for mobile
+    const handleTouchStart = (e: React.TouchEvent, bubbleId: string) => {
+        e.stopPropagation();
+        const bubble = bubbles.find(b => b.id === bubbleId);
+        if (!bubble || !canvasContainerRef.current) return;
+
+        const touch = e.touches[0];
+        const rect = canvasContainerRef.current.getBoundingClientRect();
+        setDragOffset({
+            x: touch.clientX - rect.left - bubble.x,
+            y: touch.clientY - rect.top - bubble.y
         });
         setIsDragging(true);
         setSelectedBubbleId(bubbleId);
@@ -170,7 +186,31 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         ));
     }, [isDragging, selectedBubbleId, dragOffset, imageSize]);
 
+    const handleTouchMove = useCallback((e: TouchEvent) => {
+        if (!isDragging || !selectedBubbleId || !canvasContainerRef.current) return;
+
+        e.preventDefault(); // Prevent scrolling while dragging
+        const touch = e.touches[0];
+        const rect = canvasContainerRef.current.getBoundingClientRect();
+        const newX = touch.clientX - rect.left - dragOffset.x;
+        const newY = touch.clientY - rect.top - dragOffset.y;
+
+        setBubbles(prev => prev.map(b =>
+            b.id === selectedBubbleId
+                ? {
+                    ...b,
+                    x: Math.max(0, Math.min(newX, imageSize.width - b.width)),
+                    y: Math.max(0, Math.min(newY, imageSize.height - b.height))
+                }
+                : b
+        ));
+    }, [isDragging, selectedBubbleId, dragOffset, imageSize]);
+
     const handleMouseUp = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
         setIsDragging(false);
     }, []);
 
@@ -178,12 +218,16 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('touchmove', handleTouchMove, { passive: false });
+            window.addEventListener('touchend', handleTouchEnd);
             return () => {
                 window.removeEventListener('mousemove', handleMouseMove);
                 window.removeEventListener('mouseup', handleMouseUp);
+                window.removeEventListener('touchmove', handleTouchMove);
+                window.removeEventListener('touchend', handleTouchEnd);
             };
         }
-    }, [isDragging, handleMouseMove, handleMouseUp]);
+    }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
     // Click outside to deselect
     const handleCanvasClick = (e: React.MouseEvent) => {
@@ -432,6 +476,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                             <div
                                 key={bubble.id}
                                 onMouseDown={(e) => handleMouseDown(e, bubble.id)}
+                                onTouchStart={(e) => handleTouchStart(e, bubble.id)}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedBubbleId(bubble.id);
@@ -474,6 +519,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                         <div
                             key={bubble.id}
                             onMouseDown={(e) => handleMouseDown(e, bubble.id)}
+                            onTouchStart={(e) => handleTouchStart(e, bubble.id)}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedBubbleId(bubble.id);

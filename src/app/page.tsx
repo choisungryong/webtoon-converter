@@ -563,12 +563,46 @@ export default function Home() {
 
                         {aiImages.length > 0 && (
                             <GlassCard>
-                                <p style={{
-                                    color: 'var(--accent-color)',
-                                    fontWeight: 500,
-                                    marginBottom: '16px',
-                                    paddingLeft: '4px'
-                                }}>변환 결과</p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                    <p style={{
+                                        color: 'var(--accent-color)',
+                                        fontWeight: 500,
+                                        paddingLeft: '4px',
+                                        margin: 0
+                                    }}>변환 결과</p>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                for (let i = 0; i < aiImages.length; i++) {
+                                                    const imageToSave = editedImages[i] || aiImages[i];
+                                                    await fetch('/api/gallery', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            image: imageToSave,
+                                                            userId: userId
+                                                        })
+                                                    });
+                                                }
+                                                message.success('갤러리에 저장되었습니다!');
+                                            } catch (e) {
+                                                message.error('저장 실패');
+                                            }
+                                        }}
+                                        style={{
+                                            background: 'var(--accent-color)',
+                                            color: '#000',
+                                            border: 'none',
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        📁 갤러리 저장
+                                    </button>
+                                </div>
                                 <div style={{
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(2, 1fr)',
