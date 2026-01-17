@@ -19,22 +19,21 @@ export async function GET(request: NextRequest) {
         let results;
 
         if (userId) {
-            // TEMPORARY: Show ALL images to recover lost data (User ID mismatch suspicion)
+            // Strict mode: Only show images for the current user
             // For 'image' type, also include NULL types (legacy data)
             const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
 
-            // Modified to ignore userId filter temporarily
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE ${typeCondition} ORDER BY created_at DESC LIMIT 50`
-            ).bind(type);
+                `SELECT * FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
+            ).bind(userId, type);
             results = (await stmt.all()).results;
         } else {
-            // Anonymous/Public fallback - TEMPORARY: Show ALL images here too
+            // Anonymous/Public fallback - Show ONLY anonymous (public) images
             const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
 
-            // Modified to ignore user_id IS NULL check
+            // Modified to strict anonymous check only
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE ${typeCondition} ORDER BY created_at DESC LIMIT 50`
+                `SELECT * FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
             ).bind(type);
             results = (await stmt.all()).results;
         }

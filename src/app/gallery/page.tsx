@@ -93,8 +93,10 @@ export default function GalleryPage() {
     };
 
     useEffect(() => {
-        fetchImages();
-    }, [activeTab]);
+        if (userId) {
+            fetchImages();
+        }
+    }, [activeTab, userId]);
 
     const handleWebtoonSave = async () => {
         if (selectedImages.length === 0) return;
