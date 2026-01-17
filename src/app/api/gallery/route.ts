@@ -19,12 +19,14 @@ export async function GET(request: NextRequest) {
         let results;
 
         if (userId) {
+            // TEMPORARY: Show ALL images to recover lost data (User ID mismatch suspicion)
             // For 'image' type, also include NULL types (legacy data)
             const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
 
+            // Modified to ignore userId filter temporarily
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE (user_id = ? OR user_id IS NULL) AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
-            ).bind(userId, type);
+                `SELECT * FROM generated_images WHERE ${typeCondition} ORDER BY created_at DESC LIMIT 50`
+            ).bind(type);
             results = (await stmt.all()).results;
         } else {
             // Anonymous/Public fallback
