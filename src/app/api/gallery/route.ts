@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             images: imagesWithUrls,
+            apiVersion: 'v-debug-refresh',
             debug: {
                 receivedUserId: userId,
                 queryType: type,
@@ -72,45 +73,35 @@ export async function POST(request: NextRequest) {
         const body = await request.json() as { image: string, userId: string };
         const { image, userId } = body;
 
-        if (!env.DB || !env.R2) {
-            return NextResponse.json({ error: 'System configuration error (DB/R2)' }, { status: 500 });
-        }
+        // ... (validation checks omitted for brevity, logic remains same)
+        if (!env.DB || !env.R2) return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
+        if (!image || !userId) return NextResponse.json({ error: 'Missing data' }, { status: 400 });
 
-        if (!image || !userId) {
-            return NextResponse.json({ error: 'Missing image or userId' }, { status: 400 });
-        }
-
-        // Extract Base64 data
+        // ... (decoding logic omitted)
         const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!base64Match) {
-            return NextResponse.json({ error: 'Invalid image format' }, { status: 400 });
-        }
-
+        if (!base64Match) return NextResponse.json({ error: 'Invalid image' }, { status: 400 });
         const mimeType = `image/${base64Match[1]}`;
-        const base64Data = base64Match[2];
-        const binaryString = atob(base64Data);
+        const binaryString = atob(base64Match[2]);
         const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
+        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
         const imageId = crypto.randomUUID();
-        const r2Key = `generated/${imageId}.png`; // Always save as png/jpeg based on input? Here assuming png/original ext for key
+        const r2Key = `generated/${imageId}.png`;
 
-        // Save to R2
-        await env.R2.put(r2Key, bytes, {
-            httpMetadata: { contentType: mimeType }
-        });
+        await env.R2.put(r2Key, bytes, { httpMetadata: { contentType: mimeType } });
 
-        // Save to DB
         await env.DB.prepare(
             `INSERT INTO generated_images (id, r2_key, type, prompt, user_id) VALUES (?, ?, ?, ?, ?)`
         ).bind(imageId, r2Key, 'image', 'User Edited Image', userId).run();
 
-        return NextResponse.json({ success: true, imageId });
+        return NextResponse.json({
+            success: true,
+            imageId,
+            debug: { savedUserId: userId }
+        });
 
     } catch (error) {
         console.error('Gallery Save Error:', error);
-        return NextResponse.json({ error: 'Failed to save to gallery', message: (error as Error).message }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to save', message: (error as Error).message }, { status: 500 });
     }
 }

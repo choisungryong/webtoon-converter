@@ -11,3 +11,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+// Force rebuild: v-debug-refresh
