@@ -51,7 +51,14 @@ export async function GET(request: NextRequest) {
             type: img.type
         }));
 
-        return NextResponse.json({ images: imagesWithUrls });
+        return NextResponse.json({
+            images: imagesWithUrls,
+            debug: {
+                receivedUserId: userId,
+                queryType: type,
+                resultsCount: results.length
+            }
+        });
 
     } catch (error) {
         console.error('Gallery Fetch Error:', error);

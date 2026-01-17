@@ -81,6 +81,10 @@ export default function GalleryPage() {
 
             const data = await res.json();
 
+            if (data.debug) {
+                console.log('Server Debug Info:', data.debug);
+            }
+
             if (data.error) {
                 throw new Error(data.error);
             }
