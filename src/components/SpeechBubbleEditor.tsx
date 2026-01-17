@@ -50,6 +50,10 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+    // Resize state
+    const [isResizing, setIsResizing] = useState(false);
+    const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, w: 0, h: 0 });
+
     // Load image dimensions
     useEffect(() => {
         const img = new Image();
@@ -137,6 +141,25 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         }
     };
 
+    // Resize handlers
+    const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, bubbleId: string) => {
+        e.stopPropagation();
+        const bubble = bubbles.find(b => b.id === bubbleId);
+        if (!bubble) return;
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        setResizeStart({
+            x: clientX,
+            y: clientY,
+            w: bubble.width,
+            h: bubble.height
+        });
+        setIsResizing(true);
+        setSelectedBubbleId(bubbleId);
+    };
+
     // Drag handlers (Mouse)
     const handleMouseDown = (e: React.MouseEvent, bubbleId: string) => {
         e.stopPropagation();
@@ -169,7 +192,23 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
     };
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
-        if (!isDragging || !selectedBubbleId || !canvasContainerRef.current) return;
+        if ((!isDragging && !isResizing) || !selectedBubbleId || !canvasContainerRef.current) return;
+
+        if (isResizing) {
+            const dx = e.clientX - resizeStart.x;
+            const dy = e.clientY - resizeStart.y;
+
+            setBubbles(prev => prev.map(b =>
+                b.id === selectedBubbleId
+                    ? {
+                        ...b,
+                        width: Math.max(60, resizeStart.w + dx),
+                        height: Math.max(40, resizeStart.h + dy)
+                    }
+                    : b
+            ));
+            return;
+        }
 
         const rect = canvasContainerRef.current.getBoundingClientRect();
         const newX = e.clientX - rect.left - dragOffset.x;
@@ -187,10 +226,26 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
     }, [isDragging, selectedBubbleId, dragOffset, imageSize]);
 
     const handleTouchMove = useCallback((e: TouchEvent) => {
-        if (!isDragging || !selectedBubbleId || !canvasContainerRef.current) return;
+        if ((!isDragging && !isResizing) || !selectedBubbleId || !canvasContainerRef.current) return;
 
-        e.preventDefault(); // Prevent scrolling while dragging
+        e.preventDefault(); // Prevent scrolling while dragging or resizing
         const touch = e.touches[0];
+
+        if (isResizing) {
+            const dx = touch.clientX - resizeStart.x;
+            const dy = touch.clientY - resizeStart.y;
+
+            setBubbles(prev => prev.map(b =>
+                b.id === selectedBubbleId
+                    ? {
+                        ...b,
+                        width: Math.max(60, resizeStart.w + dx),
+                        height: Math.max(40, resizeStart.h + dy)
+                    }
+                    : b
+            ));
+            return;
+        }
         const rect = canvasContainerRef.current.getBoundingClientRect();
         const newX = touch.clientX - rect.left - dragOffset.x;
         const newY = touch.clientY - rect.top - dragOffset.y;
@@ -208,14 +263,16 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
 
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
+        setIsResizing(false);
     }, []);
 
     const handleTouchEnd = useCallback(() => {
         setIsDragging(false);
+        setIsResizing(false);
     }, []);
 
     useEffect(() => {
-        if (isDragging) {
+        if (isDragging || isResizing) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
             window.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -227,7 +284,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                 window.removeEventListener('touchend', handleTouchEnd);
             };
         }
-    }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+    }, [isDragging, isResizing, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
     // Click outside to deselect
     const handleCanvasClick = (e: React.MouseEvent) => {
@@ -510,6 +567,26 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                                 }}>
                                     {bubble.text}
                                 </span>
+                                {
+                                    isSelected && (
+                                        <div
+                                            onMouseDown={(e) => handleResizeStart(e, bubble.id)}
+                                            onTouchStart={(e) => handleResizeStart(e, bubble.id)}
+                                            style={{
+                                                position: 'absolute',
+                                                right: -6,
+                                                bottom: -6,
+                                                width: 16,
+                                                height: 16,
+                                                background: '#fff',
+                                                border: '2px solid #000',
+                                                borderRadius: '50%',
+                                                cursor: 'se-resize',
+                                                zIndex: 10
+                                            }}
+                                        />
+                                    )
+                                }
                             </div>
                         );
                     }
@@ -603,74 +680,98 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                             }}>
                                 {bubble.text}
                             </span>
+                            {
+                                isSelected && (
+                                    <div
+                                        onMouseDown={(e) => handleResizeStart(e, bubble.id)}
+                                        onTouchStart={(e) => handleResizeStart(e, bubble.id)}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '12%',
+                                            bottom: '12%',
+                                            width: 16,
+                                            height: 16,
+                                            background: '#fff',
+                                            border: '2px solid #000',
+                                            borderRadius: '50%',
+                                            cursor: 'se-resize',
+                                            zIndex: 10
+                                        }}
+                                    />
+                                )
+                            }
                         </div>
                     );
                 })}
 
                 {/* Hint */}
-                {bubbles.length === 0 && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        background: 'rgba(0,0,0,0.7)',
-                        color: 'white',
-                        padding: '16px 24px',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        pointerEvents: 'none'
-                    }}>
-                        상단 "말풍선 추가" 버튼을 클릭하세요
-                    </div>
-                )}
-            </div>
+                {
+                    bubbles.length === 0 && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            background: 'rgba(0,0,0,0.7)',
+                            color: 'white',
+                            padding: '16px 24px',
+                            borderRadius: '12px',
+                            fontSize: '14px',
+                            pointerEvents: 'none'
+                        }}>
+                            상단 "말풍선 추가" 버튼을 클릭하세요
+                        </div>
+                    )
+                }
+            </div >
 
             {/* Selected Bubble Editor */}
-            {selectedBubble && (
-                <div style={{
-                    marginTop: '12px',
-                    padding: '16px',
-                    background: 'var(--bg-card)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)'
-                }}>
-                    <div style={{ marginBottom: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                        ✏️ 선택된 말풍선 편집
+            {
+                selectedBubble && (
+                    <div style={{
+                        marginTop: '12px',
+                        padding: '16px',
+                        background: 'var(--bg-card)',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <div style={{ marginBottom: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                            ✏️ 선택된 말풍선 편집
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                value={selectedBubble.text}
+                                onChange={(e) => handleTextChange(e.target.value)}
+                                placeholder="대사를 입력하세요"
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-secondary)',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '14px'
+                                }}
+                            />
+                            <button
+                                onClick={handleDeleteBubble}
+                                style={{
+                                    padding: '12px 16px',
+                                    background: 'rgba(239, 68, 68, 0.2)',
+                                    color: '#ef4444',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                🗑️
+                            </button>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <input
-                            type="text"
-                            value={selectedBubble.text}
-                            onChange={(e) => handleTextChange(e.target.value)}
-                            placeholder="대사를 입력하세요"
-                            style={{
-                                flex: 1,
-                                padding: '12px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                fontSize: '14px'
-                            }}
-                        />
-                        <button
-                            onClick={handleDeleteBubble}
-                            style={{
-                                padding: '12px 16px',
-                                background: 'rgba(239, 68, 68, 0.2)',
-                                color: '#ef4444',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontSize: '14px'
-                            }}
-                        >
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Bottom Actions */}
             <div style={{
@@ -709,7 +810,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                     ✨ 완료
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 
