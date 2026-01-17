@@ -9,6 +9,7 @@ import { CheckCircleFilled } from '@ant-design/icons';
 import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
+import SpeechBubbleEditor from '../components/SpeechBubbleEditor';
 import { StyleOption, DEFAULT_STYLE } from '../data/styles';
 
 export default function Home() {
@@ -39,7 +40,7 @@ export default function Home() {
             <div className="text-center mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-sm text-gray-400">
                     💡 <strong className="text-white">사용법:</strong> 사진을 올리고 원하는 그림체를 선택하세요.<br />
-                    AI가 멋진 웹툰 스타일로 바꿔드립니다!
+                    AI가 멋진 웹툰 스타일로 바꿔드립니다! (최대 5장)
                 </p>
             </div>
         ),
@@ -53,9 +54,9 @@ export default function Home() {
         )
     };
 
-    // Photo Mode State
-    const [photoFile, setPhotoFile] = useState<File | null>(null);
-    const [photoPreview, setPhotoPreview] = useState<string>('');
+    // Photo Mode State (Multiple Selection)
+    const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+    const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
 
     // Video Mode State
     const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -85,21 +86,44 @@ export default function Home() {
     const [progress, setProgress] = useState(0);
     const [aiImages, setAiImages] = useState<string[]>([]);
 
+    // Speech Bubble Editor State
+    const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+    const [editedImages, setEditedImages] = useState<Record<number, string>>({});
+
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Photo Mode: Handle file selection
+    // Photo Mode: Handle multiple file selection
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) {
-            message.error('이미지 파일만 가능합니다.');
-            return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const imageFiles: File[] = [];
+        const previews: string[] = [];
+
+        const maxFiles = Math.min(files.length, 5 - photoPreviews.length);
+
+        for (let i = 0; i < maxFiles; i++) {
+            const file = files[i];
+            if (!file.type.startsWith('image/')) {
+                message.error(`${file.name}은(는) 이미지 파일이 아닙니다.`);
+                continue;
+            }
+            imageFiles.push(file);
+            previews.push(URL.createObjectURL(file));
         }
-        setPhotoFile(file);
-        setPhotoPreview(URL.createObjectURL(file));
+
+        if (photoPreviews.length + previews.length > 5) {
+            message.warning('최대 5장까지만 선택할 수 있습니다.');
+        }
+
+        setPhotoFiles(prev => [...prev, ...imageFiles]);
+        setPhotoPreviews(prev => [...prev, ...previews]);
         setAiImages([]);
+
+        // Reset input to allow selecting same file again
+        e.target.value = '';
     };
 
     const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,19 +171,33 @@ export default function Home() {
         e.preventDefault();
         setIsDragging(false);
 
-        const file = e.dataTransfer.files?.[0];
-        if (!file) return;
+        const files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
 
         if (mode === 'photo') {
-            if (file.type.startsWith('image/')) {
-                setPhotoFile(file);
-                setPhotoPreview(URL.createObjectURL(file));
+            const imageFiles: File[] = [];
+            const previews: string[] = [];
+            const maxFiles = Math.min(files.length, 5 - photoPreviews.length);
+
+            for (let i = 0; i < maxFiles; i++) {
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    imageFiles.push(file);
+                    previews.push(URL.createObjectURL(file));
+                }
+            }
+
+            if (previews.length > 0) {
+                setPhotoFiles(prev => [...prev, ...imageFiles]);
+                setPhotoPreviews(prev => [...prev, ...previews]);
                 setAiImages([]);
-            } else {
-                message.error('이미지 파일만 가능합니다.');
+            }
+
+            if (photoPreviews.length + previews.length >= 5) {
+                message.warning('최대 5장까지만 선택할 수 있습니다.');
             }
         } else if (mode === 'video') {
-            processVideoFile(file);
+            processVideoFile(files[0]);
         }
     };
 
@@ -279,11 +317,11 @@ export default function Home() {
     const handleConvert = async () => {
         let imagesToConvert: string[] = [];
         if (mode === 'photo') {
-            if (!photoPreview) {
+            if (photoPreviews.length === 0) {
                 message.warning('먼저 사진을 업로드해 주세요!');
                 return;
             }
-            imagesToConvert = [photoPreview];
+            imagesToConvert = photoPreviews;
         } else if (mode === 'video') {
             if (selectedFrameIndices.length === 0) {
                 message.warning('변환할 장면을 선택해 주세요!');
@@ -349,8 +387,8 @@ export default function Home() {
     };
 
     const handleReset = () => {
-        setPhotoFile(null);
-        setPhotoPreview('');
+        setPhotoFiles([]);
+        setPhotoPreviews([]);
         setVideoFile(null);
         setExtractedFrames([]);
         setSelectedFrameIndices([]);
@@ -395,7 +433,8 @@ export default function Home() {
                 {mode === 'photo' && (
                     <>
                         <GlassCard padding="lg">
-                            {!photoPreview ? (
+                            {/* Upload Area - always show if under 5 photos */}
+                            {photoPreviews.length < 5 && (
                                 <label
                                     className="upload-area block cursor-pointer"
                                     onDragOver={handleDragOver}
@@ -403,13 +442,15 @@ export default function Home() {
                                     onDrop={handleDrop}
                                     style={{
                                         borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
-                                        background: isDragging ? 'var(--accent-glow)' : 'transparent'
+                                        background: isDragging ? 'var(--accent-glow)' : 'transparent',
+                                        marginBottom: photoPreviews.length > 0 ? '16px' : '0'
                                     }}
                                 >
                                     <input
                                         ref={fileInputRef}
                                         type="file"
                                         accept="image/*"
+                                        multiple
                                         style={{ display: 'none' }}
                                         onChange={handlePhotoSelect}
                                     />
@@ -417,29 +458,92 @@ export default function Home() {
                                         <span style={{ fontSize: '32px' }}>📷</span>
                                     </div>
                                     <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-                                        사진을 선택하세요!
+                                        {photoPreviews.length === 0 ? '사진을 선택하세요!' : '사진 추가하기'}
                                     </p>
                                     <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
-                                        드래그 & 드롭 · 클릭
+                                        드래그 & 드롭 · 클릭 (최대 5장)
                                     </p>
                                 </label>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="preview-container relative">
-                                        <img src={photoPreview} alt="Preview" />
+                            )}
+
+                            {/* Photo Grid Preview */}
+                            {photoPreviews.length > 0 && (
+                                <div>
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        marginBottom: '12px'
+                                    }}>
+                                        <p style={{ color: 'var(--accent-color)', fontWeight: 500, fontSize: '14px' }}>
+                                            선택된 사진 ({photoPreviews.length}/5)
+                                        </p>
                                         <button
                                             onClick={handleReset}
-                                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
-                                            style={{ background: 'rgba(0,0,0,0.6)', color: 'white' }}
+                                            style={{
+                                                color: 'var(--text-muted)',
+                                                fontSize: '13px',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer'
+                                            }}
                                         >
-                                            ✕
+                                            전체 삭제
                                         </button>
+                                    </div>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                        gap: '8px'
+                                    }}>
+                                        {photoPreviews.map((preview, idx) => (
+                                            <div key={idx} style={{
+                                                position: 'relative',
+                                                borderRadius: '8px',
+                                                overflow: 'hidden',
+                                                aspectRatio: '1'
+                                            }}>
+                                                <img
+                                                    src={preview}
+                                                    alt={`Photo ${idx + 1}`}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        setPhotoFiles(prev => prev.filter((_, i) => i !== idx));
+                                                        setPhotoPreviews(prev => prev.filter((_, i) => i !== idx));
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '4px',
+                                                        right: '4px',
+                                                        width: '22px',
+                                                        height: '22px',
+                                                        borderRadius: '50%',
+                                                        background: 'rgba(0,0,0,0.7)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
                         </GlassCard>
 
-                        {photoPreview && (
+                        {photoPreviews.length > 0 && (
                             <>
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
@@ -451,7 +555,7 @@ export default function Home() {
                                         disabled={converting}
                                         style={{ width: '100%', maxWidth: '320px' }}
                                     >
-                                        {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
+                                        {converting ? `변환 중... ${progress}%` : `✨ ${photoPreviews.length}장 웹툰으로 변환하기`}
                                     </button>
                                 </div>
                             </>
@@ -474,9 +578,26 @@ export default function Home() {
                                     {aiImages.map((img, idx) => (
                                         <div key={idx} style={{
                                             borderRadius: '12px',
-                                            overflow: 'hidden'
+                                            overflow: 'hidden',
+                                            position: 'relative'
                                         }}>
-                                            <Image src={img} alt={`Result ${idx}`} style={{ width: '100%' }} />
+                                            <Image
+                                                src={editedImages[idx] || img}
+                                                alt={`Result ${idx}`}
+                                                style={{ width: '100%' }}
+                                                preview={{ mask: '크게 보기' }}
+                                            />
+                                            <div className="bubble-edit-overlay">
+                                                <button
+                                                    className="bubble-edit-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingImageIndex(idx);
+                                                    }}
+                                                >
+                                                    💬 말풍선 추가
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -613,9 +734,26 @@ export default function Home() {
                                     {aiImages.map((img, idx) => (
                                         <div key={idx} style={{
                                             borderRadius: '12px',
-                                            overflow: 'hidden'
+                                            overflow: 'hidden',
+                                            position: 'relative'
                                         }}>
-                                            <Image src={img} alt={`Result ${idx}`} style={{ width: '100%' }} />
+                                            <Image
+                                                src={editedImages[idx] || img}
+                                                alt={`Result ${idx}`}
+                                                style={{ width: '100%' }}
+                                                preview={{ mask: '크게 보기' }}
+                                            />
+                                            <div className="bubble-edit-overlay">
+                                                <button
+                                                    className="bubble-edit-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingImageIndex(idx);
+                                                    }}
+                                                >
+                                                    💬 말풍선 추가
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -624,6 +762,41 @@ export default function Home() {
                     </>
                 )}
             </div>
+
+            {/* Speech Bubble Editor Modal */}
+            {editingImageIndex !== null && aiImages[editingImageIndex] && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0, 0, 0, 0.9)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '16px'
+                }}>
+                    <div style={{
+                        width: '100%',
+                        maxWidth: '600px',
+                        maxHeight: '90vh',
+                        overflow: 'auto'
+                    }}>
+                        <SpeechBubbleEditor
+                            imageSrc={aiImages[editingImageIndex]}
+                            suggestedText="대사를 입력하세요"
+                            onSave={(compositeImageDataUrl) => {
+                                setEditedImages(prev => ({
+                                    ...prev,
+                                    [editingImageIndex]: compositeImageDataUrl
+                                }));
+                                setEditingImageIndex(null);
+                                message.success('말풍선이 추가되었습니다!');
+                            }}
+                            onCancel={() => setEditingImageIndex(null)}
+                        />
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
