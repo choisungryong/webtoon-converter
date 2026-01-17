@@ -29,11 +29,12 @@ export async function GET(request: NextRequest) {
             ).bind(type);
             results = (await stmt.all()).results;
         } else {
-            // Anonymous/Public fallback
+            // Anonymous/Public fallback - TEMPORARY: Show ALL images here too
             const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
 
+            // Modified to ignore user_id IS NULL check
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
+                `SELECT * FROM generated_images WHERE ${typeCondition} ORDER BY created_at DESC LIMIT 50`
             ).bind(type);
             results = (await stmt.all()).results;
         }
