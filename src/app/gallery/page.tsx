@@ -153,13 +153,17 @@ export default function GalleryPage() {
                 setDeleting(imageId);
                 try {
                     const res = await fetch(`/api/gallery/${imageId}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error('Failed to delete');
+
+                    if (!res.ok) {
+                        const errorData = await res.json().catch(() => ({}));
+                        throw new Error(errorData.details || errorData.error || 'Failed to delete');
+                    }
 
                     setImages(prev => prev.filter(img => img.id !== imageId));
                     message.success('이미지가 삭제되었습니다.');
-                } catch (err) {
+                } catch (err: any) {
                     console.error(err);
-                    message.error('삭제에 실패했습니다.');
+                    message.error(err.message || '삭제에 실패했습니다.');
                 } finally {
                     setDeleting(null);
                 }
