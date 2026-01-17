@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 
 export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
     try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
             const typeCondition = type === 'image' ? "(type = ? OR type IS NULL)" : "type = ?";
 
             const stmt = await env.DB.prepare(
-                `SELECT * FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
+                `SELECT * FROM generated_images WHERE (user_id = ? OR user_id IS NULL) AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
             ).bind(userId, type);
             results = (await stmt.all()).results;
         } else {
