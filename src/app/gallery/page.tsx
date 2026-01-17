@@ -46,13 +46,27 @@ export default function GalleryPage() {
         }
     };
 
+    const [userId, setUserId] = useState<string>('');
+
+    // Initialize User ID
+    useEffect(() => {
+        const storedUserId = localStorage.getItem('toonsnap_user_id');
+        if (storedUserId) {
+            setUserId(storedUserId);
+        } else {
+            const newUserId = crypto.randomUUID();
+            localStorage.setItem('toonsnap_user_id', newUserId);
+            setUserId(newUserId);
+        }
+    }, []);
+
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const userId = localStorage.getItem('toonsnap_user_id');
+            const currentUserId = localStorage.getItem('toonsnap_user_id');
             const headers: HeadersInit = {};
-            if (userId) {
-                headers['x-user-id'] = userId;
+            if (currentUserId) {
+                headers['x-user-id'] = currentUserId;
             }
 
             const res = await fetch(`/api/gallery?type=${activeTab}`, { ...headers, cache: 'no-store' });
@@ -354,6 +368,7 @@ export default function GalleryPage() {
                                 ✨ 작품 만들러 가기
                             </button>
                         </Link>
+                        <p className="text-xs text-gray-600 mt-4">User ID: {userId?.slice(0, 8)}...</p>
                     </GlassCard>
                 )}
 
