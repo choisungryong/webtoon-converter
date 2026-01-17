@@ -167,35 +167,31 @@ export default function GalleryPage() {
     };
 
     const handleDelete = async (imageId: string) => {
-        Modal.confirm({
-            title: '이미지 삭제',
-            icon: <ExclamationCircleOutlined />,
-            content: '이 이미지를 삭제하시겠습니까?',
-            okText: '삭제',
-            okType: 'danger',
-            cancelText: '취소',
-            onOk: async () => {
-                setDeleting(imageId);
-                try {
-                    const res = await fetch(`/api/gallery/${imageId}`, {
-                        method: 'DELETE'
-                    });
+        if (!window.confirm('이 이미지를 삭제하시겠습니까?')) {
+            return;
+        }
 
-                    if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({}));
-                        throw new Error(errorData.details || errorData.error || 'Failed to delete');
-                    }
+        setDeleting(imageId);
+        try {
+            const res = await fetch(`/api/gallery/${imageId}`, {
+                method: 'DELETE'
+            });
 
-                    setImages(prev => prev.filter(img => img.id !== imageId));
-                    message.success('이미지가 삭제되었습니다.');
-                } catch (err: any) {
-                    console.error(err);
-                    message.error(err.message || '삭제에 실패했습니다.');
-                } finally {
-                    setDeleting(null);
-                }
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.details || errorData.error || 'Failed to delete');
             }
-        });
+
+            setImages(prev => prev.filter(img => img.id !== imageId));
+            message.success('이미지가 삭제되었습니다.');
+            // If deleting via modal, close it
+            if (previewImage) setPreviewImage(null);
+        } catch (err: any) {
+            console.error(err);
+            message.error(err.message || '삭제에 실패했습니다.');
+        } finally {
+            setDeleting(null);
+        }
     };
 
     const handleDownload = async (url: string, filename: string) => {
