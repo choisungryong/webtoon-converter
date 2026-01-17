@@ -89,6 +89,7 @@ export default function Home() {
     // Speech Bubble Editor State
     const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
     const [editedImages, setEditedImages] = useState<Record<number, string>>({});
+    const [isSaving, setIsSaving] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -572,6 +573,8 @@ export default function Home() {
                                     }}>변환 결과</p>
                                     <button
                                         onClick={async () => {
+                                            if (isSaving) return;
+                                            setIsSaving(true);
                                             try {
                                                 for (let i = 0; i < aiImages.length; i++) {
                                                     const imageToSave = editedImages[i] || aiImages[i];
@@ -587,20 +590,24 @@ export default function Home() {
                                                 message.success('갤러리에 저장되었습니다!');
                                             } catch (e) {
                                                 message.error('저장 실패');
+                                            } finally {
+                                                setIsSaving(false);
                                             }
                                         }}
+                                        disabled={isSaving}
                                         style={{
-                                            background: 'var(--accent-color)',
+                                            background: isSaving ? '#666' : 'var(--accent-color)',
                                             color: '#000',
                                             border: 'none',
                                             padding: '8px 16px',
                                             borderRadius: '8px',
                                             fontSize: '13px',
                                             fontWeight: 600,
-                                            cursor: 'pointer'
+                                            cursor: isSaving ? 'not-allowed' : 'pointer',
+                                            opacity: isSaving ? 0.7 : 1
                                         }}
                                     >
-                                        📁 갤러리 저장
+                                        {isSaving ? '⏳ 저장 중...' : '📁 갤러리 저장'}
                                     </button>
                                 </div>
                                 <div style={{
@@ -763,6 +770,8 @@ export default function Home() {
                                     }}>변환 결과</p>
                                     <button
                                         onClick={async () => {
+                                            if (isSaving) return;
+                                            setIsSaving(true);
                                             try {
                                                 for (let i = 0; i < aiImages.length; i++) {
                                                     const imageToSave = editedImages[i] || aiImages[i];
@@ -778,20 +787,24 @@ export default function Home() {
                                                 message.success('갤러리에 저장되었습니다!');
                                             } catch (e) {
                                                 message.error('저장 실패');
+                                            } finally {
+                                                setIsSaving(false);
                                             }
                                         }}
+                                        disabled={isSaving}
                                         style={{
-                                            background: 'var(--accent-color)',
+                                            background: isSaving ? '#666' : 'var(--accent-color)',
                                             color: '#000',
                                             border: 'none',
                                             padding: '8px 16px',
                                             borderRadius: '8px',
                                             fontSize: '13px',
                                             fontWeight: 600,
-                                            cursor: 'pointer'
+                                            cursor: isSaving ? 'not-allowed' : 'pointer',
+                                            opacity: isSaving ? 0.7 : 1
                                         }}
                                     >
-                                        📁 갤러리 저장
+                                        {isSaving ? '⏳ 저장 중...' : '📁 갤러리 저장'}
                                     </button>
                                 </div>
                                 <div style={{
