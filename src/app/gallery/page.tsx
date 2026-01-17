@@ -269,7 +269,6 @@ export default function GalleryPage() {
                         {images.map((img) => (
                             <div
                                 key={img.id}
-                                className={`gallery-item group ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
                                 onClick={() => {
                                     if (isSelectionMode && activeTab === 'image') {
                                         setSelectedImages(prev =>
@@ -285,6 +284,8 @@ export default function GalleryPage() {
                                 onTouchStart={() => activeTab === 'image' && handleTouchStart(img.id)}
                                 onTouchEnd={handleTouchEnd}
                                 onTouchMove={handleTouchEnd}
+                                onContextMenu={(e) => e.preventDefault()}
+                                className={`gallery-item group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
                             >
                                 <img
                                     src={img.url}
