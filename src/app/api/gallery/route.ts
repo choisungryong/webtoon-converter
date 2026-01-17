@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'DB binding failed' }, { status: 500 });
         }
 
-        const url = new URL(request.url);
+        // const url = new URL(request.url); // Removed duplicate declaration
         const type = url.searchParams.get('type') || 'image';
 
         let results;
