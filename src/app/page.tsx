@@ -581,7 +581,7 @@ export default function Home() {
                                             try {
                                                 for (let i = 0; i < aiImages.length; i++) {
                                                     const imageToSave = editedImages[i] || aiImages[i];
-                                                    await fetch('/api/gallery', {
+                                                    const res = await fetch('/api/gallery', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({
@@ -589,11 +589,17 @@ export default function Home() {
                                                             userId: userId
                                                         })
                                                     });
+
+                                                    if (!res.ok) {
+                                                        const errData = await res.json().catch(() => ({}));
+                                                        throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
+                                                    }
                                                 }
                                                 message.success('갤러리에 저장되었습니다.');
                                                 setIsSaved(true);
-                                            } catch (e) {
-                                                message.error('저장 실패');
+                                            } catch (e: any) {
+                                                console.error(e);
+                                                message.error(e.message || '저장 실패');
                                             } finally {
                                                 setIsSaving(false);
                                             }
