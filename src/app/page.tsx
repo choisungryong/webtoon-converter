@@ -579,7 +579,13 @@ export default function Home() {
                                             if (isSaving || isSaved) return;
                                             setIsSaving(true);
                                             try {
+                                                if (!userId) {
+                                                    message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
+                                                    return;
+                                                }
+                                                // ... (existing save logic loop)
                                                 for (let i = 0; i < aiImages.length; i++) {
+                                                    console.log('Saving image for User ID:', userId); // DEBUG
                                                     const imageToSave = editedImages[i] || aiImages[i];
                                                     const res = await fetch('/api/gallery', {
                                                         method: 'POST',

@@ -64,9 +64,12 @@ export default function GalleryPage() {
         setLoading(true);
         try {
             const currentUserId = localStorage.getItem('toonsnap_user_id');
+            console.log('Fetching Gallery for User ID:', currentUserId); // DEBUG
             const headers: HeadersInit = {};
             if (currentUserId) {
                 headers['x-user-id'] = currentUserId;
+            } else {
+                console.warn('No User ID found in localStorage during fetch!');
             }
 
             const res = await fetch(`/api/gallery?type=${activeTab}`, { ...headers, cache: 'no-store' });
