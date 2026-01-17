@@ -753,120 +753,119 @@ export default function Home() {
 
                         {aiImages.length > 0 && (
                             <GlassCard>
-                                {aiImages.length > 0 && (
-                                    <GlassCard>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                            <p style={{
-                                                color: 'var(--accent-color)',
-                                                fontWeight: 500,
-                                                paddingLeft: '4px',
-                                                margin: 0
-                                            }}>변환 결과</p>
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        for (let i = 0; i < aiImages.length; i++) {
-                                                            const imageToSave = editedImages[i] || aiImages[i];
-                                                            await fetch('/api/gallery', {
-                                                                method: 'POST',
-                                                                headers: { 'Content-Type': 'application/json' },
-                                                                body: JSON.stringify({
-                                                                    image: imageToSave,
-                                                                    userId: userId
-                                                                })
-                                                            });
-                                                        }
-                                                        message.success('갤러리에 저장되었습니다!');
-                                                    } catch (e) {
-                                                        message.error('저장 실패');
-                                                    }
-                                                }}
-                                                style={{
-                                                    background: 'var(--accent-color)',
-                                                    color: '#000',
-                                                    border: 'none',
-                                                    padding: '8px 16px',
-                                                    borderRadius: '8px',
-                                                    fontSize: '13px',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                📁 갤러리 저장
-                                            </button>
-                                        </div>
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'repeat(2, 1fr)',
-                                            gap: '12px',
-                                            padding: '4px'
-                                        }}>
-                                            {aiImages.map((img, idx) => (
-                                                <div key={idx} style={{
-                                                    borderRadius: '12px',
-                                                    overflow: 'hidden',
-                                                    position: 'relative'
-                                                }}>
-                                                    <Image
-                                                        src={editedImages[idx] || img}
-                                                        alt={`Result ${idx}`}
-                                                        style={{ width: '100%' }}
-                                                        preview={{ mask: '크게 보기' }}
-                                                    />
-                                                    <div className="bubble-edit-overlay">
-                                                        <button
-                                                            className="bubble-edit-btn"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingImageIndex(idx);
-                                                            }}
-                                                        >
-                                                            {editedImages[idx] ? '✏️ 말풍선 수정' : '💬 말풍선 추가'}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </GlassCard>
-                                )}
-                            </>
-                        )}
-                    </div>
 
-                {/* Speech Bubble Editor Modal */}
-                {editingImageIndex !== null && aiImages[editingImageIndex] && (
-                    <div style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0, 0, 0, 0.9)',
-                        zIndex: 1000,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '16px'
-                    }}>
-                        <div style={{
-                            width: '100%',
-                            maxWidth: '600px',
-                            maxHeight: '90vh',
-                            overflow: 'auto'
-                        }}>
-                            <SpeechBubbleEditor
-                                imageSrc={aiImages[editingImageIndex]}
-                                suggestedText="대사를 입력하세요"
-                                onSave={(compositeImageDataUrl) => {
-                                    setEditedImages(prev => ({
-                                        ...prev,
-                                        [editingImageIndex]: compositeImageDataUrl
-                                    }));
-                                    setEditingImageIndex(null);
-                                    message.success('말풍선이 추가되었습니다!');
-                                }}
-                                onCancel={() => setEditingImageIndex(null)}
-                            />
-                        </div>
-                    </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                    <p style={{
+                                        color: 'var(--accent-color)',
+                                        fontWeight: 500,
+                                        paddingLeft: '4px',
+                                        margin: 0
+                                    }}>변환 결과</p>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                for (let i = 0; i < aiImages.length; i++) {
+                                                    const imageToSave = editedImages[i] || aiImages[i];
+                                                    await fetch('/api/gallery', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            image: imageToSave,
+                                                            userId: userId
+                                                        })
+                                                    });
+                                                }
+                                                message.success('갤러리에 저장되었습니다!');
+                                            } catch (e) {
+                                                message.error('저장 실패');
+                                            }
+                                        }}
+                                        style={{
+                                            background: 'var(--accent-color)',
+                                            color: '#000',
+                                            border: 'none',
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        📁 갤러리 저장
+                                    </button>
+                                </div>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: '12px',
+                                    padding: '4px'
+                                }}>
+                                    {aiImages.map((img, idx) => (
+                                        <div key={idx} style={{
+                                            borderRadius: '12px',
+                                            overflow: 'hidden',
+                                            position: 'relative'
+                                        }}>
+                                            <Image
+                                                src={editedImages[idx] || img}
+                                                alt={`Result ${idx}`}
+                                                style={{ width: '100%' }}
+                                                preview={{ mask: '크게 보기' }}
+                                            />
+                                            <div className="bubble-edit-overlay">
+                                                <button
+                                                    className="bubble-edit-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingImageIndex(idx);
+                                                    }}
+                                                >
+                                                    {editedImages[idx] ? '✏️ 말풍선 수정' : '💬 말풍선 추가'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </GlassCard>
+                        )}
+                    </>
                 )}
+            </div>
+
+            {/* Speech Bubble Editor Modal */}
+            {editingImageIndex !== null && aiImages[editingImageIndex] && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0, 0, 0, 0.9)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '16px'
+                }}>
+                    <div style={{
+                        width: '100%',
+                        maxWidth: '600px',
+                        maxHeight: '90vh',
+                        overflow: 'auto'
+                    }}>
+                        <SpeechBubbleEditor
+                            imageSrc={aiImages[editingImageIndex]}
+                            suggestedText="대사를 입력하세요"
+                            onSave={(compositeImageDataUrl) => {
+                                setEditedImages(prev => ({
+                                    ...prev,
+                                    [editingImageIndex]: compositeImageDataUrl
+                                }));
+                                setEditingImageIndex(null);
+                                message.success('말풍선이 추가되었습니다!');
+                            }}
+                            onCancel={() => setEditingImageIndex(null)}
+                        />
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
