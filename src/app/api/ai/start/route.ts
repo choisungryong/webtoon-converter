@@ -132,55 +132,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: errorMessage }, { status: 500 });
         }
 
-        // Save to R2 for persistence (Gallery Feature)
+        // Save to R2 for persistence (Gallery Feature) - REMOVED TO PREVENT DUPLICATE SAVES
+        // The frontend now handles saving explicitly via /api/gallery
         const imageId = crypto.randomUUID();
-        const r2Key = `generated/${imageId}.png`;
+        // const r2Key = `generated/${imageId}.png`; // Disabled
         let savedToGallery = false;
 
+        /* Auto-save disabled to prevent duplicates (Original vs Edited)
         if (env.R2) {
             try {
-                // 1. Save Generated Image to R2
-                const binaryString = atob(generatedImageBase64);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-
-                await env.R2.put(r2Key, bytes, {
-                    httpMetadata: { contentType: generatedMimeType }
-                });
-
-                // 2. Save Original Image to R2 (if available)
-                let originalR2Key = null;
-                if (image) {
-                    const originalBase64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
-                    if (originalBase64Match) {
-                        const originalMime = `image/${originalBase64Match[1]}`;
-                        const originalData = atob(originalBase64Match[2]);
-                        const originalBytes = new Uint8Array(originalData.length);
-                        for (let i = 0; i < originalData.length; i++) {
-                            originalBytes[i] = originalData.charCodeAt(i);
-                        }
-
-                        originalR2Key = `originals/${imageId}.${originalBase64Match[1] === 'jpeg' ? 'jpg' : originalBase64Match[1]}`;
-                        await env.R2.put(originalR2Key, originalBytes, {
-                            httpMetadata: { contentType: originalMime }
-                        });
-                    }
-                }
-
-                // Save to D1 database
-                if (env.DB) {
-                    await env.DB.prepare(
-                        `INSERT INTO generated_images (id, r2_key, original_r2_key, type, prompt, user_id) VALUES (?, ?, ?, ?, ?, ?)`
-                    ).bind(imageId, r2Key, originalR2Key, 'image', prompt, userId).run();
-                    savedToGallery = true;
-                    console.log('Saved to gallery:', imageId, 'User:', userId);
-                }
+                // ... (R2 and DB logic removed)
             } catch (saveError) {
                 console.error('Failed to save to gallery:', saveError);
             }
         }
+        */
 
         // Return generated image as Data URI
         const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
