@@ -56,12 +56,23 @@ export default function GalleryPage() {
             }
 
             const res = await fetch(`/api/gallery?type=${activeTab}`, { ...headers, cache: 'no-store' });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.details || errData.error || `Server Error: ${res.status}`);
+            }
+
             const data = await res.json();
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
             setImages(data.images || []);
             setSelectedImages([]); // Reset selection on tab change
-        } catch (err) {
-            console.error(err);
-            message.error('갤러리를 불러오는데 실패했습니다.');
+        } catch (err: any) {
+            console.error('Fetch Error:', err);
+            message.error(err.message || '갤러리를 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
         }
