@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     try {
         const { env } = getRequestContext();
-        const userId = request.headers.get('x-user-id');
+        const url = new URL(request.url);
+        // Header is being stripped in Cloudflare environment, fallback to Query Param
+        const userId = request.headers.get('x-user-id') || url.searchParams.get('userId');
 
         if (!env.DB) {
             return NextResponse.json({ error: 'DB binding failed' }, { status: 500 });

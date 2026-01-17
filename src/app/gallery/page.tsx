@@ -72,7 +72,9 @@ export default function GalleryPage() {
                 console.warn('No User ID found in localStorage during fetch!');
             }
 
-            const res = await fetch(`/api/gallery?type=${activeTab}&t=${Date.now()}`, { ...headers, cache: 'no-store' }); // Cache busting
+            // Fallback: Headers are being stripped, so we use Query Param as primary method
+            const url = `/api/gallery?type=${activeTab}&userId=${currentUserId}&t=${Date.now()}`;
+            const res = await fetch(url, { headers, cache: 'no-store' }); // Cache busting
             console.log('Fetch Status:', res.status);
 
             if (!res.ok) {
