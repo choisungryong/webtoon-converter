@@ -176,8 +176,15 @@ export default function GalleryPage() {
             cancelText: '취소',
             onOk: async () => {
                 setDeleting(imageId);
+                const userId = localStorage.getItem('toonsnap_user_id');
+                const headers: HeadersInit = {};
+                if (userId) headers['x-user-id'] = userId;
+
                 try {
-                    const res = await fetch(`/api/gallery/${imageId}`, { method: 'DELETE' });
+                    const res = await fetch(`/api/gallery/${imageId}`, {
+                        method: 'DELETE',
+                        headers: headers
+                    });
 
                     if (!res.ok) {
                         const errorData = await res.json().catch(() => ({}));
@@ -226,8 +233,15 @@ export default function GalleryPage() {
             onOk: async () => {
                 setDeleting('bulk');
                 try {
+                    const userId = localStorage.getItem('toonsnap_user_id');
+                    const headers: HeadersInit = {};
+                    if (userId) headers['x-user-id'] = userId;
+
                     const results = await Promise.all(selectedImages.map(id =>
-                        fetch(`/api/gallery/${id}`, { method: 'DELETE' }).then(res => ({ id, ok: res.ok }))
+                        fetch(`/api/gallery/${id}`, {
+                            method: 'DELETE',
+                            headers: headers
+                        }).then(res => ({ id, ok: res.ok }))
                     ));
 
                     const failed = results.filter(r => !r.ok);
