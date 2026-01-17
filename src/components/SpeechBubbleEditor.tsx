@@ -330,7 +330,8 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
 
                     // Draw white text
                     ctx.fillStyle = '#ffffff';
-                    const fontSize = Math.round(14 * scale);
+                    // Dynamic font size based on height ratio (0.3)
+                    const fontSize = Math.round(scaledHeight * 0.3);
                     ctx.font = `500 ${fontSize}px 'Noto Sans KR', 'Nanum Gothic', sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -384,7 +385,8 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
 
                 // Draw text
                 ctx.fillStyle = '#000000';
-                const fontSize = Math.round(15 * scale);
+                // Dynamic font size based on height ratio (0.3)
+                const fontSize = Math.round(scaledHeight * 0.3);
                 ctx.font = `700 ${fontSize}px 'Noto Sans KR', 'Nanum Gothic', sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -527,6 +529,9 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                     const isThought = bubble.style === 'thought';
                     const isShout = bubble.style === 'shout';
 
+                    // Dynamic font size based on bubble height (0.3 ratio)
+                    const dynamicFontSize = Math.max(12, Math.round(bubble.height * 0.3));
+
                     // Shout style - black box with white text (narration style)
                     if (isShout) {
                         return (
@@ -558,7 +563,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                             >
                                 <span style={{
                                     fontFamily: "'Noto Sans KR', 'Nanum Gothic', sans-serif",
-                                    fontSize: '14px',
+                                    fontSize: `${dynamicFontSize}px`,
                                     fontWeight: 500,
                                     color: '#ffffff',
                                     textAlign: 'center',
@@ -671,7 +676,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
 
                             <span style={{
                                 fontFamily: "'Noto Sans KR', 'Nanum Gothic', sans-serif",
-                                fontSize: '15px',
+                                fontSize: `${dynamicFontSize}px`,
                                 fontWeight: 700,
                                 color: '#000000',
                                 textAlign: 'center',
