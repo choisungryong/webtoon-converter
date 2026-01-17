@@ -223,7 +223,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                 }
                 : b
         ));
-    }, [isDragging, selectedBubbleId, dragOffset, imageSize]);
+    }, [isDragging, isResizing, selectedBubbleId, dragOffset, imageSize, resizeStart]);
 
     const handleTouchMove = useCallback((e: TouchEvent) => {
         if ((!isDragging && !isResizing) || !selectedBubbleId || !canvasContainerRef.current) return;
@@ -259,7 +259,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                 }
                 : b
         ));
-    }, [isDragging, selectedBubbleId, dragOffset, imageSize]);
+    }, [isDragging, isResizing, selectedBubbleId, dragOffset, imageSize, resizeStart]);
 
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
