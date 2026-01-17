@@ -587,7 +587,7 @@ export default function Home() {
                                                         })
                                                     });
                                                 }
-                                                message.success('갤러리에 저장되었습니다!');
+                                                message.success('갤러리에 저장되었습니다.');
                                             } catch (e) {
                                                 message.error('저장 실패');
                                             } finally {
@@ -595,6 +595,7 @@ export default function Home() {
                                             }
                                         }}
                                         disabled={isSaving}
+                                        className="transition-transform hover:scale-105 active:scale-95"
                                         style={{
                                             background: isSaving ? '#666' : 'var(--accent-color)',
                                             color: '#000',
@@ -784,7 +785,7 @@ export default function Home() {
                                                         })
                                                     });
                                                 }
-                                                message.success('갤러리에 저장되었습니다!');
+                                                message.success('갤러리에 저장되었습니다.');
                                             } catch (e) {
                                                 message.error('저장 실패');
                                             } finally {
@@ -792,6 +793,7 @@ export default function Home() {
                                             }
                                         }}
                                         disabled={isSaving}
+                                        className="transition-transform hover:scale-105 active:scale-95"
                                         style={{
                                             background: isSaving ? '#666' : 'var(--accent-color)',
                                             color: '#000',

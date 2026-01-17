@@ -372,7 +372,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                         opacity: loadingSuggestions ? 0.7 : 1
                     }}
                 >
-                    {loadingSuggestions ? '⏳ AI 분석중...' : '➕ 말풍선 추가'}
+                    {loadingSuggestions ? '⏳ 말풍선 추천중...' : '➕ 말풍선 추가'}
                 </button>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
