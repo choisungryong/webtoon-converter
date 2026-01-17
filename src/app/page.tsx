@@ -90,6 +90,7 @@ export default function Home() {
     const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
     const [editedImages, setEditedImages] = useState<Record<number, string>>({});
     const [isSaving, setIsSaving] = useState(false);
+    const isSavingRef = useRef(false);
     const [isSaved, setIsSaved] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -576,7 +577,8 @@ export default function Home() {
                                     }}>변환 결과</p>
                                     <button
                                         onClick={async () => {
-                                            if (isSaving || isSaved) return;
+                                            if (isSavingRef.current || isSaved) return;
+                                            isSavingRef.current = true;
                                             setIsSaving(true);
                                             try {
                                                 if (!userId) {
@@ -605,6 +607,7 @@ export default function Home() {
                                             } catch (e: any) {
                                                 console.error(e);
                                                 message.error(e.message || '저장 실패');
+                                                isSavingRef.current = false; // Reset lock on error
                                             } finally {
                                                 setIsSaving(false);
                                             }
