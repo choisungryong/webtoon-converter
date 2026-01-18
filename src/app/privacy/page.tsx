@@ -111,7 +111,7 @@ export default function PrivacyPage() {
                         <div className="p-4 bg-white/5 rounded-lg">
                             <p className="text-gray-400">
                                 <strong className="text-gray-300">담당:</strong> ToonSnap 운영팀<br />
-                                <strong className="text-gray-300">이메일:</strong> support@toonsnap.io
+                                <strong className="text-gray-300">이메일:</strong> twinspa0713@gmail.com
                             </p>
                         </div>
                     </section>
