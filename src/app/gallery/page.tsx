@@ -390,6 +390,26 @@ export default function GalleryPage() {
                     </div>
                 </div>
 
+                {/* Help Text */}
+                <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
+                    {activeTab === 'image' ? (
+                        <p className="text-sm text-gray-400">
+                            💡 <strong className="text-white">마이스냅:</strong> 변환된 이미지가 여기에 저장됩니다.<br />
+                            <span className="text-gray-500">
+                                • 이미지를 길게 눌러 선택 → <strong className="text-[#CCFF00]">웹툰 보기</strong>로 합쳐보세요!<br />
+                                • 클릭하면 크게 보고 다운로드/공유할 수 있습니다.
+                            </span>
+                        </p>
+                    ) : (
+                        <p className="text-sm text-gray-400">
+                            💡 <strong className="text-white">마이웹툰:</strong> 여러 이미지를 합쳐 만든 웹툰이 저장됩니다.<br />
+                            <span className="text-gray-500">
+                                • 마이스냅에서 이미지들을 선택하고 "웹툰 저장"을 누르면 이곳에 추가됩니다.
+                            </span>
+                        </p>
+                    )}
+                </div>
+
                 {/* Gallery Content */}
                 {loading ? (
                     <div className="flex justify-center py-20">
