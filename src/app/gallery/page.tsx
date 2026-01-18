@@ -116,7 +116,9 @@ export default function GalleryPage() {
         // Ensure we use the PRODUCTION domain for both Image and Link, 
         // because Kakao cannot access Localhost images/links.
         const productionOrigin = 'https://webtoon-converter.pages.dev';
-        const targetOrigin = window.location.hostname === 'localhost' ? productionOrigin : window.location.origin;
+
+        // Force Production URL always to match Kakao Developers settings
+        const targetOrigin = productionOrigin;
 
         const absoluteImageUrl = new URL(imageUrl, targetOrigin).toString();
         const shareLink = new URL('/gallery', targetOrigin).toString();
