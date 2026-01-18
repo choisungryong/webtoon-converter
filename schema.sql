@@ -22,3 +22,16 @@ CREATE TABLE IF NOT EXISTS generated_images (
 
 CREATE INDEX IF NOT EXISTS idx_images_created_at ON generated_images(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_images_type ON generated_images(type);
+
+-- Q&A Board
+CREATE TABLE IF NOT EXISTS qna_posts (
+  id TEXT PRIMARY KEY,
+  author_name TEXT DEFAULT '익명',
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  answer TEXT,
+  answered_at INTEGER,
+  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_qna_created_at ON qna_posts(created_at DESC);
