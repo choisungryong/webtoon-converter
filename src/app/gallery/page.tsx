@@ -112,12 +112,15 @@ export default function GalleryPage() {
             return;
         }
 
+        // Convert relative URL to absolute URL (Required for Kakao)
+        const absoluteImageUrl = new URL(imageUrl, window.location.origin).toString();
+
         (window as any).Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
                 title: 'ToonSnap 웹툰 변환',
                 description: '나만의 웹툰 스타일 이미지를 확인해보세요!',
-                imageUrl: imageUrl,
+                imageUrl: absoluteImageUrl,
                 link: {
                     mobileWebUrl: window.location.href,
                     webUrl: window.location.href,
