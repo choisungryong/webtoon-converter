@@ -39,10 +39,10 @@ export default function ContactPage() {
                             일반 문의, 제휴 제안, 버그 신고 등 모든 문의를 받습니다.
                         </p>
                         <a
-                            href="mailto:support@toonsnap.io"
+                            href="mailto:twinspa0713@gmail.com"
                             className="inline-flex items-center gap-2 text-[#CCFF00] hover:underline font-medium"
                         >
-                            support@toonsnap.io
+                            twinspa0713@gmail.com
                         </a>
                         <p className="text-gray-500 text-xs mt-2">
                             영업일 기준 24시간 이내 답변
@@ -58,10 +58,10 @@ export default function ContactPage() {
                             서비스 개선 아이디어나 사용 후기를 공유해 주세요.
                         </p>
                         <a
-                            href="mailto:feedback@toonsnap.io"
+                            href="mailto:twinspa0713@gmail.com"
                             className="inline-flex items-center gap-2 text-[#CCFF00] hover:underline font-medium"
                         >
-                            feedback@toonsnap.io
+                            twinspa0713@gmail.com
                         </a>
                         <p className="text-gray-500 text-xs mt-2">
                             여러분의 의견이 서비스를 발전시킵니다
@@ -117,11 +117,11 @@ export default function ContactPage() {
                         기업 제휴, 광고, 미디어 관련 문의는 별도의 채널로 연락해 주세요.
                     </p>
                     <a
-                        href="mailto:business@toonsnap.io"
+                        href="mailto:twinspa0713@gmail.com"
                         className="inline-flex items-center gap-2 bg-[#CCFF00] text-black px-6 py-3 rounded-xl font-bold hover:bg-[#bbe600] transition-colors"
                     >
                         <MailOutlined />
-                        business@toonsnap.io
+                        twinspa0713@gmail.com
                     </a>
                 </div>
             </div>
