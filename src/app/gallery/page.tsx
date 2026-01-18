@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Spin, Modal, message } from 'antd';
-import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleFilled, DownloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleFilled, DownloadOutlined, ShareAltOutlined, MessageOutlined } from '@ant-design/icons';
 
 import Link from 'next/link';
 import GlassCard from '../../components/GlassCard';
@@ -59,6 +59,81 @@ export default function GalleryPage() {
             setUserId(newUserId);
         }
     }, []);
+
+    // Initialize Kakao SDK
+    useEffect(() => {
+        if (typeof window !== 'undefined' && (window as any).Kakao) {
+            if (!(window as any).Kakao.isInitialized()) {
+                // REPLACE WITH YOUR ACTUAL KAKAO JAVASCRIPT KEY
+                (window as any).Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY || 'ced8744ba3c227fa310cba489c339bb0');
+            }
+        }
+    }, []);
+
+    const handleShare = async (imageUrl: string) => {
+        // 1. Try generic Web Share API (Mobile native share sheet)
+        if (navigator.share) {
+            try {
+                // We verify if it is a blob URL or remote URL. 
+                // Creating a file object might be better for image sharing support on some platforms.
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], 'image.png', { type: blob.type });
+
+                await navigator.share({
+                    title: 'ToonSnap Image',
+                    text: 'Check out this Webtoon style image!',
+                    files: [file]
+                });
+                return;
+            } catch (err) {
+                console.log('Error sharing:', err);
+                // Fallback or user cancelled
+            }
+        }
+
+        // Fallback: Copy to clipboard if Web Share fails or not supported (Desktop)
+        try {
+            await navigator.clipboard.writeText(imageUrl);
+            message.success('이미지 주소가 복사되었습니다!');
+        } catch (err) {
+            message.error('공유하기를 지원하지 않는 환경입니다.');
+        }
+    };
+
+    const handleKakaoShare = (imageUrl: string) => {
+        if (typeof window === 'undefined' || !(window as any).Kakao) {
+            message.error('카카오 SDK가 로드되지 않았습니다.');
+            return;
+        }
+
+        if (!(window as any).Kakao.isInitialized()) {
+            message.error('카카오 키 설정이 필요합니다.');
+            return;
+        }
+
+        (window as any).Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+                title: 'ToonSnap 웹툰 변환',
+                description: '나만의 웹툰 스타일 이미지를 확인해보세요!',
+                imageUrl: imageUrl,
+                link: {
+                    mobileWebUrl: window.location.href,
+                    webUrl: window.location.href,
+                },
+            },
+            buttons: [
+                {
+                    title: '웹으로 보기',
+                    link: {
+                        mobileWebUrl: window.location.href,
+                        webUrl: window.location.href,
+                    },
+                },
+            ],
+        });
+    };
 
     const fetchImages = async () => {
         setLoading(true);
@@ -490,6 +565,30 @@ export default function GalleryPage() {
                                 >
                                     <DownloadOutlined /> 저장하기
                                 </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleShare(
+                                            viewMode === 'original'
+                                                ? images.find(i => i.url === previewImage)?.original_url || previewImage
+                                                : previewImage
+                                        )}
+                                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg flex items-center gap-2 transition-colors"
+                                        title="공유하기 / 인스타그램"
+                                    >
+                                        <ShareAltOutlined />
+                                    </button>
+                                    <button
+                                        onClick={() => handleKakaoShare(
+                                            viewMode === 'original'
+                                                ? images.find(i => i.url === previewImage)?.original_url || previewImage
+                                                : previewImage
+                                        )}
+                                        className="px-4 py-2 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-2 transition-colors font-bold"
+                                        title="카카오톡 공유"
+                                    >
+                                        <MessageOutlined />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

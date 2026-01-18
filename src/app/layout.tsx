@@ -16,6 +16,9 @@ export default function RootLayout({
 }) {
     return (
         <html lang="ko">
+            <head>
+                <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js" integrity="sha384-l+xbElFSnP5k7wK9OhEMsJD1flc6cnFXZS5WfLLi+kWnlxNW75ly9AfFjHWYZgWq" crossOrigin="anonymous"></script>
+            </head>
             <body className="bg-[#0a0a0a] min-h-screen flex flex-col">
                 <AntdRegistry>
                     <main className="flex-1">
