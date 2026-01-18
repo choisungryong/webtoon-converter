@@ -113,7 +113,13 @@ export default function GalleryPage() {
         }
 
         // Convert relative URL to absolute URL (Required for Kakao)
-        const absoluteImageUrl = new URL(imageUrl, window.location.origin).toString();
+        // Ensure we use the PRODUCTION domain for both Image and Link, 
+        // because Kakao cannot access Localhost images/links.
+        const productionOrigin = 'https://webtoon-converter.pages.dev';
+        const targetOrigin = window.location.hostname === 'localhost' ? productionOrigin : window.location.origin;
+
+        const absoluteImageUrl = new URL(imageUrl, targetOrigin).toString();
+        const shareLink = new URL('/gallery', targetOrigin).toString();
 
         (window as any).Kakao.Share.sendDefault({
             objectType: 'feed',
@@ -122,16 +128,16 @@ export default function GalleryPage() {
                 description: '나만의 웹툰 스타일 이미지를 확인해보세요!',
                 imageUrl: absoluteImageUrl,
                 link: {
-                    mobileWebUrl: window.location.href,
-                    webUrl: window.location.href,
+                    mobileWebUrl: shareLink,
+                    webUrl: shareLink,
                 },
             },
             buttons: [
                 {
                     title: '웹으로 보기',
                     link: {
-                        mobileWebUrl: window.location.href,
-                        webUrl: window.location.href,
+                        mobileWebUrl: shareLink,
+                        webUrl: shareLink,
                     },
                 },
             ],
