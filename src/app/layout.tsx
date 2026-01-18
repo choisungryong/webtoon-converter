@@ -37,6 +37,11 @@ export default function RootLayout({
         <html lang="ko">
             <head>
                 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"></script>
+                <script
+                    async
+                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6317560792339884"
+                    crossOrigin="anonymous"
+                ></script>
             </head>
             <body className="bg-[#0a0a0a] min-h-screen flex flex-col">
                 <AntdRegistry>
