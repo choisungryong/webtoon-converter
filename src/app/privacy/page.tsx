@@ -52,12 +52,21 @@ export default function PrivacyPage() {
 
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">3. 개인정보의 보관 및 파기</h2>
+                        <div className="mb-4 p-4 bg-[#CCFF00]/10 border border-[#CCFF00]/30 rounded-lg">
+                            <p className="text-[#CCFF00] font-semibold mb-2">🔒 원본 미보관 정책</p>
+                            <p className="text-gray-300 text-sm leading-relaxed">
+                                ToonSnap은 이용자가 업로드한 <strong>원본 사진 및 영상을 절대 저장하지 않습니다.</strong><br />
+                                업로드된 원본 파일은 AI 변환 처리 후 즉시 폐기되며, 서버에 보관되지 않습니다.<br />
+                                오직 변환이 완료된 결과물만 이용자의 갤러리에 저장됩니다.
+                            </p>
+                        </div>
                         <p className="leading-relaxed mb-4">
-                            이용자가 업로드한 이미지와 변환 결과물은 갤러리에 저장되며, 이용자가 직접 삭제하거나 계정 비활성화 시 파기됩니다.
+                            변환 결과물은 갤러리에 저장되며, 이용자가 직접 삭제하거나 계정 비활성화 시 파기됩니다.
                         </p>
                         <ul className="list-disc list-inside space-y-2 text-gray-400">
-                            <li>변환된 이미지: 이용자 삭제 시까지 보관</li>
-                            <li>서비스 로그: 최대 90일간 보관 후 자동 삭제</li>
+                            <li><strong className="text-gray-300">원본 이미지/영상:</strong> 변환 후 즉시 삭제 (서버 미보관)</li>
+                            <li><strong className="text-gray-300">변환된 이미지:</strong> 이용자 삭제 시까지 보관</li>
+                            <li><strong className="text-gray-300">서비스 로그:</strong> 최대 90일간 보관 후 자동 삭제</li>
                         </ul>
                     </section>
 
