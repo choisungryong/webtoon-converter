@@ -11,7 +11,9 @@ import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
 import SpeechBubbleEditor from '../components/SpeechBubbleEditor';
 import WebtoonDrawingAnimation from '../components/WebtoonDrawingAnimation';
+import WebtoonViewer from '../components/WebtoonViewer';
 import { StyleOption, DEFAULT_STYLE } from '../data/styles';
+import type { PanelLayout } from '../types/layout';
 
 export default function Home() {
     const router = useRouter();
@@ -95,6 +97,11 @@ export default function Home() {
     const [isSaving, setIsSaving] = useState(false);
     const isSavingRef = useRef(false);
     const [isSaved, setIsSaved] = useState(false);
+
+    // Smart Layout State
+    const [smartLayoutEnabled, setSmartLayoutEnabled] = useState(false);
+    const [panelLayouts, setPanelLayouts] = useState<PanelLayout[]>([]);
+    const [analyzingLayout, setAnalyzingLayout] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -747,38 +754,104 @@ export default function Home() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Smart Layout Toggle */}
                                 <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(2, 1fr)',
-                                    gap: '12px',
-                                    padding: '4px'
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '16px',
+                                    padding: '12px 16px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    borderRadius: '12px'
                                 }}>
-                                    {aiImages.map((img, idx) => (
-                                        <div key={idx} style={{
-                                            borderRadius: '12px',
-                                            overflow: 'hidden',
-                                            position: 'relative'
-                                        }}>
-                                            <Image
-                                                src={editedImages[idx] || img}
-                                                alt={`Result ${idx}`}
-                                                style={{ width: '100%' }}
-                                                preview={{ mask: '크게 보기' }}
-                                            />
-                                            <div className="bubble-edit-overlay">
-                                                <button
-                                                    className="bubble-edit-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingImageIndex(idx);
-                                                    }}
-                                                >
-                                                    💬 말풍선 추가
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                    <div>
+                                        <span style={{ color: '#fff', fontWeight: 500 }}>🎨 스마트 레이아웃</span>
+                                        <p style={{ color: '#888', fontSize: '11px', margin: '4px 0 0 0' }}>
+                                            AI가 패널 배치를 자동 최적화
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            if (!smartLayoutEnabled && aiImages.length > 0) {
+                                                setAnalyzingLayout(true);
+                                                try {
+                                                    const res = await fetch('/api/ai/analyze-layout', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ images: aiImages })
+                                                    });
+                                                    const data = await res.json();
+                                                    if (data.success && data.layouts) {
+                                                        setPanelLayouts(data.layouts);
+                                                    }
+                                                } catch (e) {
+                                                    console.error('Layout analysis failed:', e);
+                                                }
+                                                setAnalyzingLayout(false);
+                                            }
+                                            setSmartLayoutEnabled(!smartLayoutEnabled);
+                                        }}
+                                        disabled={analyzingLayout}
+                                        style={{
+                                            background: smartLayoutEnabled
+                                                ? 'var(--accent-color)'
+                                                : 'rgba(255,255,255,0.1)',
+                                            color: smartLayoutEnabled ? '#000' : '#fff',
+                                            border: 'none',
+                                            padding: '8px 16px',
+                                            borderRadius: '20px',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            cursor: analyzingLayout ? 'wait' : 'pointer',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        {analyzingLayout ? '분석 중...' : smartLayoutEnabled ? 'ON' : 'OFF'}
+                                    </button>
                                 </div>
+
+                                {/* Conditional Display: WebtoonViewer or Standard Grid */}
+                                {smartLayoutEnabled && panelLayouts.length > 0 ? (
+                                    <WebtoonViewer
+                                        images={aiImages.map((img, idx) => editedImages[idx] || img)}
+                                        layouts={panelLayouts}
+                                        onImageClick={(idx) => setEditingImageIndex(idx)}
+                                    />
+                                ) : (
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        gap: '12px',
+                                        padding: '4px'
+                                    }}>
+                                        {aiImages.map((img, idx) => (
+                                            <div key={idx} style={{
+                                                borderRadius: '12px',
+                                                overflow: 'hidden',
+                                                position: 'relative'
+                                            }}>
+                                                <Image
+                                                    src={editedImages[idx] || img}
+                                                    alt={`Result ${idx}`}
+                                                    style={{ width: '100%' }}
+                                                    preview={{ mask: '크게 보기' }}
+                                                />
+                                                <div className="bubble-edit-overlay">
+                                                    <button
+                                                        className="bubble-edit-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingImageIndex(idx);
+                                                        }}
+                                                    >
+                                                        💬 말풍선 추가
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </GlassCard>
                         )}
                     </>
