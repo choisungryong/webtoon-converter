@@ -97,6 +97,25 @@ export default function Home() {
     const [isSaving, setIsSaving] = useState(false);
     const isSavingRef = useRef(false);
     const [isSaved, setIsSaved] = useState(false);
+    const [selectedResultIndices, setSelectedResultIndices] = useState<number[]>([]);
+
+    // Toggle result image selection
+    const toggleResultSelection = (idx: number) => {
+        setSelectedResultIndices(prev =>
+            prev.includes(idx)
+                ? prev.filter(i => i !== idx)
+                : [...prev, idx]
+        );
+    };
+
+    // Select all result images
+    const selectAllResults = () => {
+        if (selectedResultIndices.length === aiImages.length) {
+            setSelectedResultIndices([]);
+        } else {
+            setSelectedResultIndices(aiImages.map((_, i) => i));
+        }
+    };
 
     // Smart Layout State
     const [smartLayoutEnabled, setSmartLayoutEnabled] = useState(false);
@@ -648,6 +667,39 @@ export default function Home() {
 
                         {aiImages.length > 0 && (
                             <GlassCard>
+                                {/* Selection Header */}
+                                {aiImages.length > 1 && (
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        marginBottom: '12px',
+                                        padding: '0 4px'
+                                    }}>
+                                        <span style={{
+                                            color: 'var(--text-secondary)',
+                                            fontSize: '13px'
+                                        }}>
+                                            {selectedResultIndices.length > 0
+                                                ? `${selectedResultIndices.length}장 선택됨`
+                                                : '저장할 이미지를 선택하세요'}
+                                        </span>
+                                        <button
+                                            onClick={selectAllResults}
+                                            style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: 'var(--accent-color)',
+                                                fontSize: '13px',
+                                                fontWeight: 500,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {selectedResultIndices.length === aiImages.length ? '전체 해제' : '전체 선택'}
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Result Images Grid */}
                                 <div style={{
                                     display: 'grid',
@@ -655,31 +707,67 @@ export default function Home() {
                                     gap: '12px',
                                     marginBottom: '16px'
                                 }}>
-                                    {aiImages.map((img, idx) => (
-                                        <div key={idx} style={{
-                                            borderRadius: '12px',
-                                            overflow: 'hidden',
-                                            position: 'relative'
-                                        }}>
-                                            <Image
-                                                src={editedImages[idx] || img}
-                                                alt={`Result ${idx}`}
-                                                style={{ width: '100%' }}
-                                                preview={{ mask: '크게 보기' }}
-                                            />
-                                            <div className="bubble-edit-overlay">
-                                                <button
-                                                    className="bubble-edit-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingImageIndex(idx);
-                                                    }}
-                                                >
-                                                    💬 말풍선 추가
-                                                </button>
+                                    {aiImages.map((img, idx) => {
+                                        const isSelected = aiImages.length === 1 || selectedResultIndices.includes(idx);
+                                        return (
+                                            <div
+                                                key={idx}
+                                                onClick={() => aiImages.length > 1 && toggleResultSelection(idx)}
+                                                style={{
+                                                    borderRadius: '12px',
+                                                    overflow: 'hidden',
+                                                    position: 'relative',
+                                                    cursor: aiImages.length > 1 ? 'pointer' : 'default',
+                                                    border: isSelected
+                                                        ? '2px solid var(--accent-color)'
+                                                        : '2px solid transparent',
+                                                    opacity: aiImages.length > 1 && !isSelected ? 0.6 : 1,
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {/* Selection Checkbox */}
+                                                {aiImages.length > 1 && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '8px',
+                                                        left: '8px',
+                                                        width: '24px',
+                                                        height: '24px',
+                                                        borderRadius: '50%',
+                                                        background: isSelected ? 'var(--accent-color)' : 'rgba(0,0,0,0.5)',
+                                                        border: isSelected ? 'none' : '2px solid rgba(255,255,255,0.5)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        zIndex: 10,
+                                                        fontSize: '14px',
+                                                        fontWeight: 700,
+                                                        color: isSelected ? 'black' : 'white'
+                                                    }}>
+                                                        {isSelected && '✓'}
+                                                    </div>
+                                                )}
+
+                                                <Image
+                                                    src={editedImages[idx] || img}
+                                                    alt={`Result ${idx}`}
+                                                    style={{ width: '100%' }}
+                                                    preview={{ mask: '크게 보기' }}
+                                                />
+                                                <div className="bubble-edit-overlay">
+                                                    <button
+                                                        className="bubble-edit-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingImageIndex(idx);
+                                                        }}
+                                                    >
+                                                        💬 말풍선 추가
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Action Buttons */}
@@ -692,6 +780,17 @@ export default function Home() {
                                                 router.push('/gallery');
                                                 return;
                                             }
+
+                                            // Determine which images to save
+                                            const indicesToSave = aiImages.length === 1
+                                                ? [0]
+                                                : selectedResultIndices;
+
+                                            if (indicesToSave.length === 0) {
+                                                message.warning('저장할 이미지를 선택해주세요.');
+                                                return;
+                                            }
+
                                             isSavingRef.current = true;
                                             setIsSaving(true);
                                             try {
@@ -699,7 +798,7 @@ export default function Home() {
                                                     message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
                                                     return;
                                                 }
-                                                for (let i = 0; i < aiImages.length; i++) {
+                                                for (const i of indicesToSave) {
                                                     const imageToSave = editedImages[i] || aiImages[i];
                                                     const res = await fetch('/api/gallery', {
                                                         method: 'POST',
@@ -714,7 +813,7 @@ export default function Home() {
                                                         throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
                                                     }
                                                 }
-                                                message.success('갤러리에 저장되었습니다.');
+                                                message.success(`${indicesToSave.length}장이 갤러리에 저장되었습니다.`);
                                                 setIsSaved(true);
                                             } catch (e: any) {
                                                 console.error(e);
@@ -724,7 +823,7 @@ export default function Home() {
                                                 setIsSaving(false);
                                             }
                                         }}
-                                        disabled={isSaving}
+                                        disabled={isSaving || (aiImages.length > 1 && selectedResultIndices.length === 0)}
                                         style={{
                                             background: isSaved
                                                 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'

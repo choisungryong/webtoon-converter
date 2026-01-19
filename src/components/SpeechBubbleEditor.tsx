@@ -404,7 +404,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
 
     return (
         <div className="speech-bubble-editor" ref={containerRef}>
-            {/* Top Toolbar */}
+            {/* Top Toolbar - Simplified */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -413,40 +413,46 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                 background: 'var(--bg-card)',
                 borderRadius: '12px',
                 marginBottom: '12px',
-                flexWrap: 'wrap',
                 gap: '8px'
             }}>
-                <button
-                    onClick={handleAddBubble}
-                    disabled={loadingSuggestions}
-                    style={{
-                        padding: '10px 20px',
-                        background: 'var(--accent-color)',
-                        color: 'black',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 'bold',
-                        cursor: loadingSuggestions ? 'wait' : 'pointer',
-                        fontSize: '14px',
-                        opacity: loadingSuggestions ? 0.7 : 1
-                    }}
-                >
-                    {loadingSuggestions ? '⏳ 말풍선 추천중...' : '➕ 말풍선 추가'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                        onClick={handleAddBubble}
+                        disabled={loadingSuggestions}
+                        style={{
+                            padding: '10px 16px',
+                            background: 'var(--accent-color)',
+                            color: 'black',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            cursor: loadingSuggestions ? 'wait' : 'pointer',
+                            fontSize: '13px',
+                            opacity: loadingSuggestions ? 0.7 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}
+                    >
+                        {loadingSuggestions ? '✨ AI 분석중...' : '💬 말풍선 추가'}
+                    </button>
+                </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
                     {BUBBLE_STYLES.map(s => (
                         <button
                             key={s.id}
                             onClick={() => handleStyleChange(s.id)}
+                            title={s.label}
                             style={{
-                                padding: '8px 12px',
-                                background: currentStyle === s.id ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                                padding: '8px 10px',
+                                background: currentStyle === s.id ? 'var(--accent-color)' : 'transparent',
                                 color: currentStyle === s.id ? 'black' : 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
+                                border: currentStyle === s.id ? 'none' : '1px solid var(--border-color)',
+                                borderRadius: '8px',
                                 cursor: 'pointer',
-                                fontSize: '13px'
+                                fontSize: '16px',
+                                transition: 'all 0.15s ease'
                             }}
                         >
                             {s.icon}
@@ -454,49 +460,6 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                     ))}
                 </div>
             </div>
-
-            {/* AI Suggestions Bar */}
-            {aiSuggestions.length > 0 && (
-                <div style={{
-                    display: 'flex',
-                    gap: '8px',
-                    padding: '10px 12px',
-                    background: 'rgba(204, 255, 0, 0.1)',
-                    borderRadius: '10px',
-                    marginBottom: '12px',
-                    flexWrap: 'wrap',
-                    alignItems: 'center'
-                }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        🤖 AI 추천:
-                    </span>
-                    {aiSuggestions.map((suggestion, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => {
-                                if (selectedBubbleId) {
-                                    handleTextChange(suggestion);
-                                } else {
-                                    setSuggestionIndex(idx);
-                                    handleAddBubble();
-                                }
-                            }}
-                            style={{
-                                padding: '6px 12px',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '16px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            {suggestion}
-                        </button>
-                    ))}
-                </div>
-            )}
 
             {/* Canvas Area */}
             <div
@@ -730,7 +693,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                 }
             </div >
 
-            {/* Selected Bubble Editor */}
+            {/* Selected Bubble Editor with AI Suggestions */}
             {
                 selectedBubble && (
                     <div style={{
@@ -740,10 +703,8 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                         borderRadius: '12px',
                         border: '1px solid var(--border-color)'
                     }}>
-                        <div style={{ marginBottom: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                            ✏️ 선택된 말풍선 편집
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {/* Input Row */}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: aiSuggestions.length > 0 ? '12px' : '0' }}>
                             <input
                                 type="text"
                                 value={selectedBubble.text}
@@ -751,8 +712,8 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                                 placeholder="대사를 입력하세요"
                                 style={{
                                     flex: 1,
-                                    padding: '12px',
-                                    borderRadius: '8px',
+                                    padding: '12px 14px',
+                                    borderRadius: '10px',
                                     border: '1px solid var(--border-color)',
                                     background: 'var(--bg-secondary)',
                                     color: 'var(--text-primary)',
@@ -762,17 +723,120 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                             <button
                                 onClick={handleDeleteBubble}
                                 style={{
-                                    padding: '12px 16px',
-                                    background: 'rgba(239, 68, 68, 0.2)',
+                                    padding: '12px',
+                                    background: 'rgba(239, 68, 68, 0.15)',
                                     color: '#ef4444',
                                     border: 'none',
-                                    borderRadius: '8px',
+                                    borderRadius: '10px',
                                     cursor: 'pointer',
-                                    fontSize: '14px'
+                                    fontSize: '16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
+                                title="삭제"
                             >
                                 🗑️
                             </button>
+                        </div>
+
+                        {/* AI Suggestions - integrated into edit panel */}
+                        {aiSuggestions.length > 0 && (
+                            <div style={{
+                                display: 'flex',
+                                gap: '6px',
+                                flexWrap: 'wrap',
+                                alignItems: 'center'
+                            }}>
+                                <span style={{
+                                    fontSize: '11px',
+                                    color: 'var(--accent-color)',
+                                    fontWeight: 500,
+                                    marginRight: '4px'
+                                }}>
+                                    ✨ AI 추천
+                                </span>
+                                {aiSuggestions.map((suggestion, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleTextChange(suggestion)}
+                                        style={{
+                                            padding: '5px 10px',
+                                            background: selectedBubble.text === suggestion
+                                                ? 'var(--accent-color)'
+                                                : 'rgba(255,255,255,0.08)',
+                                            color: selectedBubble.text === suggestion
+                                                ? 'black'
+                                                : 'var(--text-primary)',
+                                            border: 'none',
+                                            borderRadius: '14px',
+                                            cursor: 'pointer',
+                                            fontSize: '12px',
+                                            fontWeight: 500,
+                                            transition: 'all 0.15s ease',
+                                            maxWidth: '120px',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                        title={suggestion}
+                                    >
+                                        {suggestion.length > 10 ? suggestion.slice(0, 10) + '...' : suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
+            }
+
+            {/* Quick Add with AI suggestion when no bubble selected */}
+            {
+                !selectedBubble && aiSuggestions.length > 0 && bubbles.length === 0 && (
+                    <div style={{
+                        marginTop: '12px',
+                        padding: '14px',
+                        background: 'rgba(204, 255, 0, 0.08)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(204, 255, 0, 0.2)'
+                    }}>
+                        <div style={{
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}>
+                            <span style={{ fontSize: '14px' }}>✨</span>
+                            AI가 이미지를 분석해 대사를 추천했어요!
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {aiSuggestions.slice(0, 3).map((suggestion, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        setSuggestionIndex(idx);
+                                        handleAddBubble();
+                                    }}
+                                    style={{
+                                        padding: '8px 14px',
+                                        background: 'var(--accent-color)',
+                                        color: 'black',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        cursor: 'pointer',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        transition: 'all 0.15s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}
+                                >
+                                    💬 {suggestion.length > 12 ? suggestion.slice(0, 12) + '...' : suggestion}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 )
