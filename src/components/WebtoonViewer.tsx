@@ -107,25 +107,30 @@ export default function WebtoonViewer({
                     width: 100%;
                     max-width: 600px;
                     margin: 0 auto;
-                    padding: 16px;
+                    padding: 24px;
                     background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
                     border-radius: 12px;
+                    box-shadow: 0 0 50px rgba(0,0,0,0.5);
                 }
 
                 .panels-container {
                     display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 0; /* Gutters handled per-panel */
+                    flex-direction: row; /* Changed from column to row */
+                    flex-wrap: wrap;     /* Allow wrapping */
+                    align-items: flex-start; /* Align top */
+                    justify-content: space-between; /* Distribute space */
+                    gap: 0; 
                 }
 
                 .webtoon-panel {
                     position: relative;
+                    margin-bottom: 20px; /* Default bottom spacing */
                 }
 
                 .webtoon-panel:hover {
-                    transform: scale(1.01);
-                    z-index: 5;
+                    transform: scale(1.02);
+                    z-index: 20 !important;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
                 }
 
                 .panel-inset-over-prev {

@@ -350,6 +350,8 @@ export default function Home() {
         setTotalImagesToConvert(imagesToConvert.length);
         setCurrentImageIndex(0);
 
+        const generatedImages: string[] = [];
+
         try {
             for (let i = 0; i < imagesToConvert.length; i++) {
                 setCurrentImageIndex(i + 1);
@@ -389,11 +391,32 @@ export default function Home() {
 
                 if (data.success && data.image) {
                     setAiImages(prev => [...prev, data.image]);
+                    generatedImages.push(data.image);
                     setProgress(Math.round(((i + 1) / imagesToConvert.length) * 100));
                 }
             }
-            if (aiImages.length > 0 || imagesToConvert.length > 0) {
-                message.success('변환 완료!');
+
+            if (generatedImages.length > 0) {
+                message.success('변환 완료! 레이아웃 최적화 중...');
+
+                // Auto-trigger layout analysis
+                setAnalyzingLayout(true);
+                try {
+                    const layoutRes = await fetch('/api/ai/analyze-layout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ images: generatedImages })
+                    });
+                    const layoutData = await layoutRes.json();
+                    if (layoutData.success && layoutData.layouts) {
+                        setPanelLayouts(layoutData.layouts);
+                        setSmartLayoutEnabled(true);
+                        message.success('레이아웃 최적화 완료! ✨');
+                    }
+                } catch (e) {
+                    console.error('Auto layout analysis failed:', e);
+                }
+                setAnalyzingLayout(false);
             }
         } catch (e: any) {
             message.error(`오류: ${e.message}`);
