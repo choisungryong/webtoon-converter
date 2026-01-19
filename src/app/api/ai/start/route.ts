@@ -171,13 +171,13 @@ DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`
                 contents: [{
                     parts: [
                         { inlineData: { mimeType: mimeType, data: base64Data } },
-                        { text: prompt }
+                        { text: `[GENERATE NEW IMAGE] ${prompt}` }
                     ]
                 }],
                 generationConfig: {
                     responseModalities: ["IMAGE", "TEXT"],
-                    temperature: 1.0,
-                    topP: 0.95,
+                    temperature: 1.2,
+                    topP: 0.99,
                     topK: 40
                 },
                 safetySettings: [
