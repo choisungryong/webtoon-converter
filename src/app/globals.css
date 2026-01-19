@@ -303,6 +303,11 @@ body {
     }
 }
 
+/* Webtoon thumbnail - show top of image instead of center */
+.gallery-thumbnail.object-top {
+    object-position: top;
+}
+
 /* Gallery Item with Selection */
 .gallery-item {
     position: relative;

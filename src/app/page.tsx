@@ -353,12 +353,35 @@ export default function Home() {
                 });
                 const data = await res.json();
 
+                // Handle specific error types
+                if (data.error === 'DAILY_LIMIT_EXCEEDED') {
+                    message.warning({
+                        content: data.message || `오늘의 무료 변환 한도(${data.limit || 30}장)를 초과했습니다. 내일 다시 이용해주세요!`,
+                        duration: 6
+                    });
+                    break;
+                }
+
+                if (data.error === 'QUOTA_EXCEEDED') {
+                    message.warning({
+                        content: data.message || '서비스 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
+                        duration: 6
+                    });
+                    break;
+                }
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 if (data.success && data.image) {
                     setAiImages(prev => [...prev, data.image]);
                     setProgress(Math.round(((i + 1) / imagesToConvert.length) * 100));
                 }
             }
-            message.success('변환 완료!');
+            if (aiImages.length > 0 || imagesToConvert.length > 0) {
+                message.success('변환 완료!');
+            }
         } catch (e: any) {
             message.error(`오류: ${e.message}`);
         } finally {

@@ -63,6 +63,35 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
+        // Daily Usage Limit Check (30 images/day per user)
+        const DAILY_LIMIT = 30;
+        if (env.DB && userId !== 'anonymous') {
+            try {
+                // Get start of today (UTC)
+                const now = Math.floor(Date.now() / 1000);
+                const todayStart = now - (now % 86400);
+
+                const usageResult = await env.DB.prepare(
+                    `SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND created_at >= ?`
+                ).bind(userId, todayStart).first() as { count: number } | null;
+
+                const usedCount = usageResult?.count || 0;
+                console.log('[API/Start] Daily Usage Check:', { userId, usedCount, limit: DAILY_LIMIT });
+
+                if (usedCount >= DAILY_LIMIT) {
+                    return NextResponse.json({
+                        error: 'DAILY_LIMIT_EXCEEDED',
+                        message: `오늘의 무료 변환 한도(${DAILY_LIMIT}장)를 초과했습니다. 내일 다시 이용해주세요!`,
+                        limit: DAILY_LIMIT,
+                        used: usedCount
+                    }, { status: 429 });
+                }
+            } catch (dbError) {
+                console.error('[API/Start] Usage check failed:', dbError);
+                // Continue even if usage check fails
+            }
+        }
+
         // Extract Base64 data from Data URI
         const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
         if (!base64Match) {
@@ -103,7 +132,20 @@ export async function POST(request: NextRequest) {
 
         if (!geminiRes.ok) {
             const errorText = await geminiRes.text();
-            console.error("Gemini API Error:", errorText);
+            console.error("Gemini API Error:", geminiRes.status, errorText);
+
+            // Check for quota/rate limit errors
+            if (geminiRes.status === 429 ||
+                errorText.toLowerCase().includes('quota') ||
+                errorText.toLowerCase().includes('limit') ||
+                errorText.toLowerCase().includes('rate')) {
+                return NextResponse.json({
+                    error: 'QUOTA_EXCEEDED',
+                    message: '서비스 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
+                    details: errorText
+                }, { status: 429 });
+            }
+
             return NextResponse.json({ error: `Gemini Error: ${errorText}` }, { status: 500 });
         }
 
@@ -147,6 +189,19 @@ export async function POST(request: NextRequest) {
             }
         }
         */
+
+        // Log successful conversion for usage tracking
+        if (env.DB && userId !== 'anonymous') {
+            try {
+                await env.DB.prepare(
+                    `INSERT INTO usage_logs (id, user_id, action) VALUES (?, ?, 'convert')`
+                ).bind(crypto.randomUUID(), userId).run();
+                console.log('[API/Start] Usage logged for user:', userId);
+            } catch (logError) {
+                console.error('[API/Start] Failed to log usage:', logError);
+                // Continue even if logging fails
+            }
+        }
 
         // Return generated image as Data URI
         const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;

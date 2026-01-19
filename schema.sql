@@ -35,3 +35,13 @@ CREATE TABLE IF NOT EXISTS qna_posts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_qna_created_at ON qna_posts(created_at DESC);
+
+-- Daily Usage Tracking (일일 사용량 추적)
+CREATE TABLE IF NOT EXISTS usage_logs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  action TEXT DEFAULT 'convert', -- 'convert', 'save' etc.
+  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_user_date ON usage_logs(user_id, created_at);

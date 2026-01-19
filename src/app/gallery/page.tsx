@@ -14,7 +14,52 @@ interface GalleryImage {
     r2_key: string;
     prompt?: string;
     created_at: number;
+    createdAt?: number; // API returns this
 }
+
+// Helper function to group images by date
+const groupImagesByDate = (images: GalleryImage[]): Map<string, GalleryImage[]> => {
+    const groups = new Map<string, GalleryImage[]>();
+
+    images.forEach(img => {
+        const timestamp = img.createdAt || img.created_at;
+        const date = new Date(timestamp * 1000);
+        const dateKey = date.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        if (!groups.has(dateKey)) {
+            groups.set(dateKey, []);
+        }
+        groups.get(dateKey)!.push(img);
+    });
+
+    return groups;
+};
+
+// Helper to get relative date label
+const getRelativeDateLabel = (dateStr: string): string => {
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    if (dateStr === todayStr) return '오늘';
+    if (dateStr === yesterdayStr) return '어제';
+    return dateStr;
+};
 
 export default function GalleryPage() {
     const [activeTab, setActiveTab] = useState<'image' | 'webtoon'>('image');
@@ -416,54 +461,70 @@ export default function GalleryPage() {
                         <Spin size="large" />
                     </div>
                 ) : images.length > 0 ? (
-                    <div className="gallery-grid">
-                        {images.map((img) => (
-                            <div
-                                key={img.id}
-                                onClick={() => {
-                                    if (isSelectionMode && activeTab === 'image') {
-                                        setSelectedImages(prev =>
-                                            prev.includes(img.id)
-                                                ? prev.filter(i => i !== img.id)
-                                                : [...prev, img.id]
-                                        );
-                                    } else {
-                                        setPreviewImage(img.url);
-                                        setViewMode('processed');
-                                    }
-                                }}
-                                onTouchStart={() => activeTab === 'image' && handleTouchStart(img.id)}
-                                onTouchEnd={handleTouchEnd}
-                                onTouchMove={handleTouchEnd}
-                                onContextMenu={(e) => e.preventDefault()}
-                                className={`gallery-item group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
-                            >
-                                <img
-                                    src={img.url}
-                                    alt="Generated"
-                                    className="gallery-thumbnail"
-                                />
+                    <div className="space-y-6">
+                        {Array.from(groupImagesByDate(images)).map(([dateKey, dateImages]) => (
+                            <div key={dateKey}>
+                                {/* Date Header */}
+                                <div className="flex items-center gap-3 mb-3">
+                                    <h3 className="text-sm font-medium text-gray-400">
+                                        {getRelativeDateLabel(dateKey)}
+                                    </h3>
+                                    <div className="flex-1 h-px bg-white/10"></div>
+                                    <span className="text-xs text-gray-500">{dateImages.length}장</span>
+                                </div>
 
-                                {activeTab === 'image' && (
-                                    <div
-                                        className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer z-10 ${selectedImages.includes(img.id)
-                                            ? 'bg-[#CCFF00] border-[#CCFF00] scale-100 opacity-100'
-                                            : isSelectionMode
-                                                ? 'border-white/60 bg-black/40 scale-100 opacity-100'
-                                                : 'border-white/60 bg-black/40 scale-95 opacity-0 group-hover:opacity-100 hover:bg-black/60 hover:border-white'
-                                            }`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedImages(prev =>
-                                                prev.includes(img.id)
-                                                    ? prev.filter(i => i !== img.id)
-                                                    : [...prev, img.id]
-                                            );
-                                        }}
-                                    >
-                                        {selectedImages.includes(img.id) && <CheckCircleFilled className="text-black text-sm" />}
-                                    </div>
-                                )}
+                                {/* Images Grid */}
+                                <div className="gallery-grid">
+                                    {dateImages.map((img) => (
+                                        <div
+                                            key={img.id}
+                                            onClick={() => {
+                                                if (isSelectionMode && activeTab === 'image') {
+                                                    setSelectedImages(prev =>
+                                                        prev.includes(img.id)
+                                                            ? prev.filter(i => i !== img.id)
+                                                            : [...prev, img.id]
+                                                    );
+                                                } else {
+                                                    setPreviewImage(img.url);
+                                                    setViewMode('processed');
+                                                }
+                                            }}
+                                            onTouchStart={() => activeTab === 'image' && handleTouchStart(img.id)}
+                                            onTouchEnd={handleTouchEnd}
+                                            onTouchMove={handleTouchEnd}
+                                            onContextMenu={(e) => e.preventDefault()}
+                                            className={`gallery-item group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
+                                        >
+                                            <img
+                                                src={img.url}
+                                                alt="Generated"
+                                                className={`gallery-thumbnail ${activeTab === 'webtoon' ? 'object-top' : ''}`}
+                                            />
+
+                                            {activeTab === 'image' && (
+                                                <div
+                                                    className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer z-10 ${selectedImages.includes(img.id)
+                                                        ? 'bg-[#CCFF00] border-[#CCFF00] scale-100 opacity-100'
+                                                        : isSelectionMode
+                                                            ? 'border-white/60 bg-black/40 scale-100 opacity-100'
+                                                            : 'border-white/60 bg-black/40 scale-95 opacity-0 group-hover:opacity-100 hover:bg-black/60 hover:border-white'
+                                                        }`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedImages(prev =>
+                                                            prev.includes(img.id)
+                                                                ? prev.filter(i => i !== img.id)
+                                                                : [...prev, img.id]
+                                                        );
+                                                    }}
+                                                >
+                                                    {selectedImages.includes(img.id) && <CheckCircleFilled className="text-black text-sm" />}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                     </div>
