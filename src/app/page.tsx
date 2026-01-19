@@ -10,6 +10,7 @@ import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
 import SpeechBubbleEditor from '../components/SpeechBubbleEditor';
+import WebtoonDrawingAnimation from '../components/WebtoonDrawingAnimation';
 import { StyleOption, DEFAULT_STYLE } from '../data/styles';
 
 export default function Home() {
@@ -84,6 +85,8 @@ export default function Home() {
     const [selectedStyle, setSelectedStyle] = useState<StyleOption>(DEFAULT_STYLE);
     const [converting, setConverting] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [totalImagesToConvert, setTotalImagesToConvert] = useState(0);
     const [aiImages, setAiImages] = useState<string[]>([]);
 
     // Speech Bubble Editor State
@@ -337,9 +340,12 @@ export default function Home() {
         setProgress(0);
         setAiImages([]);
         setIsSaved(false);
+        setTotalImagesToConvert(imagesToConvert.length);
+        setCurrentImageIndex(0);
 
         try {
             for (let i = 0; i < imagesToConvert.length; i++) {
+                setCurrentImageIndex(i + 1);
                 if (i > 0) await new Promise(r => setTimeout(r, 10000));
                 const compressedDataUrl = await compressImage(imagesToConvert[i]);
                 const res = await fetch('/api/ai/start', {
@@ -576,16 +582,28 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
-                                    <button
-                                        className="accent-btn"
-                                        onClick={handleConvert}
-                                        disabled={converting}
-                                        style={{ width: '100%', maxWidth: '320px' }}
-                                    >
-                                        {converting ? `변환 중... ${progress}%` : `✨ ${photoPreviews.length}장 웹툰으로 변환하기`}
-                                    </button>
-                                </div>
+
+                                {/* Conversion Animation or Button */}
+                                {converting ? (
+                                    <GlassCard>
+                                        <WebtoonDrawingAnimation
+                                            progress={progress}
+                                            currentImage={currentImageIndex}
+                                            totalImages={totalImagesToConvert}
+                                        />
+                                    </GlassCard>
+                                ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
+                                        <button
+                                            className="accent-btn"
+                                            onClick={handleConvert}
+                                            disabled={converting}
+                                            style={{ width: '100%', maxWidth: '320px' }}
+                                        >
+                                            ✨ {photoPreviews.length}장 웹툰으로 변환하기
+                                        </button>
+                                    </div>
+                                )}
                             </>
                         )}
 
@@ -787,16 +805,28 @@ export default function Home() {
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
-                                    <button
-                                        className="accent-btn"
-                                        onClick={handleConvert}
-                                        disabled={converting}
-                                        style={{ width: '100%', maxWidth: '320px' }}
-                                    >
-                                        {converting ? `변환 중... ${progress}%` : '✨ 웹툰으로 변환하기'}
-                                    </button>
-                                </div>
+
+                                {/* Conversion Animation or Button */}
+                                {converting ? (
+                                    <GlassCard>
+                                        <WebtoonDrawingAnimation
+                                            progress={progress}
+                                            currentImage={currentImageIndex}
+                                            totalImages={totalImagesToConvert}
+                                        />
+                                    </GlassCard>
+                                ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
+                                        <button
+                                            className="accent-btn"
+                                            onClick={handleConvert}
+                                            disabled={converting}
+                                            style={{ width: '100%', maxWidth: '320px' }}
+                                        >
+                                            ✨ 웹툰으로 변환하기
+                                        </button>
+                                    </div>
+                                )}
                             </>
                         )}
 
