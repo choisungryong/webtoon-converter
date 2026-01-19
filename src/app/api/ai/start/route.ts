@@ -16,20 +16,75 @@ export async function POST(request: NextRequest) {
         console.log('[API/Start] POST Request received');
 
         // Style prompts mapping (내부 프롬프트 - 사용자에게 노출 안됨)
-        // Style prompts mapping (Full Scene Transformation - NO TEXT/SPEECH BUBBLES)
+        // IMPROVED: Explicit instructions for ALL people and COMPLETE background transformation
         const STYLE_PROMPTS: Record<string, string> = {
-            'watercolor': 'REDRAW this photo as a HAND-PAINTED Studio Ghibli anime illustration. This is NOT a photo filter - you must CREATE a new hand-drawn artwork. Draw all people as 2D anime characters with large expressive eyes and simplified features. Paint the entire background with visible brushstrokes and watercolor textures. Every element must look DRAWN and PAINTED, not photographed. Use soft pastel colors typical of Ghibli films. The result should be indistinguishable from a frame of a Ghibli animated movie. Do NOT preserve any photorealistic details. Do NOT add text or speech bubbles.',
+            'watercolor': `Transform this ENTIRE photo into a Studio Ghibli anime illustration.
 
-            '3d-cartoon': 'RECREATE this photo as a Disney Pixar 3D ANIMATED movie scene. This is NOT a photo filter - you must CREATE a new CGI artwork. Make all people into stylized 3D cartoon characters with exaggerated features, big round eyes, and smooth plastic-like skin. Convert all objects into simplified 3D cartoon models. The entire scene must look like a rendered frame from Toy Story or Coco. Use vibrant saturated colors and soft CGI lighting. Do NOT preserve any photorealistic details. Do NOT add text or speech bubbles.',
+CRITICAL REQUIREMENTS:
+1. TRANSFORM EVERY SINGLE PERSON in the image into anime characters. If there are 2 people, draw 2 anime characters. If there are 5 people, draw 5 anime characters. Do NOT skip anyone.
+2. TRANSFORM THE ENTIRE BACKGROUND - every wall, floor, sky, tree, furniture, and object must be redrawn in Ghibli watercolor style.
+3. Maintain the EXACT positions and poses of all people and objects.
 
-            'dark-fantasy': 'REDRAW this photo as a HAND-DRAWN dark fantasy Korean manhwa illustration. This is NOT a photo filter - you must CREATE a new drawn artwork. Draw all people as manhwa characters with sharp angular features and dramatic expressions. Apply bold black ink outlines to everything. Use high contrast dramatic lighting with deep shadows. The entire scene must look like a panel from Solo Leveling or similar manhwa. Every element must be DRAWN with visible linework. Do NOT preserve any photorealistic details. Do NOT add text or speech bubbles.',
+STYLE: Hand-painted watercolor, soft pastel colors, visible brushstrokes, dreamy Miyazaki aesthetic, warm lighting, lush organic textures. Large expressive anime eyes on all characters.
 
-            'elegant-fantasy': 'REDRAW this photo as a HAND-DRAWN Korean romance fantasy webtoon illustration. This is NOT a photo filter - you must CREATE a new illustrated artwork. Draw all people as beautiful manhwa characters with detailed sparkling eyes and flowing hair. Apply delicate linework and soft shading to everything. Add subtle sparkle and glow effects. The entire scene must look like a panel from a premium romance webtoon. Every element must be DRAWN and ILLUSTRATED. Do NOT preserve any photorealistic details. Do NOT add text or speech bubbles.',
+OUTPUT: A complete Ghibli-style illustration where NOTHING looks photorealistic. Every pixel must be transformed.
 
-            'classic-webtoon': 'REDRAW this photo as a HAND-DRAWN Korean webtoon comic panel. This is NOT a photo filter - you must CREATE a new comic illustration. Draw all people as webtoon characters with expressive cartoon faces. Apply bold black outlines and flat cell-shaded colors to EVERYTHING - people, clothes, objects, and background. Simplify all details into clean comic art style. The result must look exactly like a panel from a Korean webtoon comic. Every element must have visible DRAWN outlines. Do NOT preserve any photorealistic details. Do NOT add text or speech bubbles.'
+DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
+
+            '3d-cartoon': `Transform this ENTIRE photo into a Disney Pixar 3D animated movie scene.
+
+CRITICAL REQUIREMENTS:
+1. CONVERT EVERY SINGLE PERSON into stylized 3D cartoon characters. Count the people - if there are multiple, ALL of them must become 3D characters.
+2. CONVERT THE ENTIRE ENVIRONMENT - floors, walls, furniture, sky, vehicles, everything becomes smooth CGI objects.
+3. Maintain exact positions, poses, and spatial relationships.
+
+STYLE: Pixar CGI render quality, exaggerated proportions, big round eyes, smooth plastic-like skin, vibrant saturated colors, soft diffuse lighting, clean 3D models.
+
+OUTPUT: A complete frame from an animated movie. The ENTIRE scene must look computer-rendered.
+
+DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
+
+            'dark-fantasy': `Transform this ENTIRE photo into a dark fantasy Korean manhwa illustration.
+
+CRITICAL REQUIREMENTS:
+1. DRAW EVERY SINGLE PERSON as manhwa characters with sharp features. If multiple people exist, ALL of them must be drawn.
+2. REDRAW THE ENTIRE BACKGROUND with dramatic shadowing and manhwa-style environments.
+3. Maintain exact positions but add dramatic flair to poses.
+
+STYLE: Solo Leveling aesthetic, bold black ink outlines on EVERYTHING, high contrast lighting, deep shadows, blue/purple energy effects, sharp angular linework, intense expressions.
+
+OUTPUT: A complete manhwa panel. EVERY element (people, clothes, background, objects) must have visible drawn outlines.
+
+DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
+
+            'elegant-fantasy': `Transform this ENTIRE photo into an elegant Korean romance fantasy webtoon illustration.
+
+CRITICAL REQUIREMENTS:
+1. DRAW EVERY SINGLE PERSON as beautiful manhwa characters. If there are couples or groups, draw ALL of them.
+2. TRANSFORM THE ENTIRE BACKGROUND into a dreamy illustrated scene.
+3. Maintain exact positions and add romantic atmosphere.
+
+STYLE: Premium romance webtoon aesthetic, delicate linework, detailed sparkling eyes, flowing hair with highlights, soft gradient shading, subtle sparkle effects, pastel and jewel-tone colors.
+
+OUTPUT: A complete webtoon panel suitable for a romance series. EVERYTHING must be illustrated.
+
+DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
+
+            'classic-webtoon': `Transform this ENTIRE photo into a Korean webtoon comic panel.
+
+CRITICAL REQUIREMENTS:
+1. DRAW EVERY SINGLE PERSON as webtoon characters with expressive faces. Count them - ALL must be converted.
+2. DRAW THE ENTIRE BACKGROUND with bold outlines and flat colors - every object, wall, and surface.
+3. Maintain exact positions and expressions.
+
+STYLE: Classic Korean webtoon, bold black outlines on EVERYTHING, flat cell-shaded colors, simplified details, clean comic art, expressive cartoon faces, minimal gradients.
+
+OUTPUT: A complete webtoon panel. EVERY element must have clear black outlines and flat coloring.
+
+DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`
         };
 
-        const DEFAULT_PROMPT = 'REDRAW this photo as a HAND-DRAWN Korean webtoon comic illustration. CREATE a new comic artwork with bold outlines and flat colors. Draw all people as cartoon characters. Every element must be DRAWN, not photographed. Do NOT add text or speech bubbles.';
+        const DEFAULT_PROMPT = `Transform this ENTIRE photo into a Korean webtoon comic illustration. DRAW EVERY PERSON as cartoon characters (if there are 2 people, draw 2 characters). REDRAW THE ENTIRE BACKGROUND with bold outlines. EVERY element must be illustrated. DO NOT add text or speech bubbles.`;
 
         // Read JSON Body
         const body = await request.json() as { image: string, styleId?: string, prompt?: string, userId?: string };
