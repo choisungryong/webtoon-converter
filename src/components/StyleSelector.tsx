@@ -13,7 +13,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
     const [hoveredStyle, setHoveredStyle] = useState<string | null>(null);
 
     // Bento Grid layout - first item is featured (larger)
-    const featuredStyle = STYLE_OPTIONS[2]; // dark-fantasy as featured
+    const featuredStyle = STYLE_OPTIONS[0]; // watercolor as featured (인기)
     const otherStyles = STYLE_OPTIONS.filter(s => s.id !== featuredStyle.id);
 
     const handleSelect = (style: StyleOption) => {

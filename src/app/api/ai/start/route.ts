@@ -31,18 +31,22 @@ OUTPUT: A complete Ghibli-style illustration where NOTHING looks photorealistic.
 
 DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
 
-            '3d-cartoon': `Transform this ENTIRE photo into a Disney Pixar 3D animated movie scene.
+            '3d-cartoon': `You MUST completely RECREATE this photo as a Disney Pixar 3D CGI animated movie scene. This is NOT a filter - you must GENERATE a new 3D rendered artwork from scratch.
 
-CRITICAL REQUIREMENTS:
-1. CONVERT EVERY SINGLE PERSON into stylized 3D cartoon characters. Count the people - if there are multiple, ALL of them must become 3D characters.
-2. CONVERT THE ENTIRE ENVIRONMENT - floors, walls, furniture, sky, vehicles, everything becomes smooth CGI objects.
-3. Maintain exact positions, poses, and spatial relationships.
+CRITICAL - DO NOT return the original photo. You must CREATE NEW CGI artwork:
+1. RECREATE EVERY PERSON as a stylized 3D Pixar character with oversized head, big round glossy eyes (like Toy Story or Coco characters), smooth plastic-like skin, and exaggerated cartoon proportions. If there are 2 people, create 2 distinct 3D characters.
+2. RECREATE THE ENTIRE SCENE as 3D CGI - every surface, object, and background element must look like a rendered 3D model with smooth textures, not a photograph.
+3. Use Pixar-style lighting: soft ambient occlusion, subsurface scattering on skin, rim lighting, and colorful bounced light.
 
-STYLE: Pixar CGI render quality, exaggerated proportions, big round eyes, smooth plastic-like skin, vibrant saturated colors, soft diffuse lighting, clean 3D models.
+STYLE GUIDE:
+- Characters: Big head-to-body ratio, huge expressive eyes with catchlights, simplified smooth features, plastic/toy-like skin texture
+- Colors: Highly saturated, vibrant, candy-like color palette
+- Lighting: Soft diffuse studio lighting with gentle shadows
+- Textures: Smooth, clean, no pores or realistic skin details
 
-OUTPUT: A complete frame from an animated movie. The ENTIRE scene must look computer-rendered.
+THIS IS MANDATORY: The output MUST look like a frame from Toy Story, Coco, or Monsters Inc. It must NOT look like a filtered photo. Every pixel must be computer-generated 3D artwork.
 
-DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
+DO NOT: Return the original photo, add text, add speech bubbles, or preserve ANY photorealistic details.`,
 
             'dark-fantasy': `Transform this ENTIRE photo into a dark fantasy Korean manhwa illustration.
 
