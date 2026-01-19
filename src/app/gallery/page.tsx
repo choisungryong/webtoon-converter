@@ -633,53 +633,64 @@ export default function GalleryPage() {
                                 />
                             </div>
 
-                            <div className="p-4 border-t border-white/10 flex justify-between bg-[#1a1a1a]">
+                            <div className="p-4 border-t border-white/10 bg-[#1a1a1a]">
+                                {/* Primary: Story Share Button - Large and Prominent */}
                                 <button
-                                    onClick={() => {
-                                        const imgId = images.find(i => i.url === previewImage)?.id;
-                                        if (imgId) {
-                                            handleDelete(imgId);
-                                            setPreviewImage(null);
-                                        }
-                                    }}
-                                    className="px-4 py-2 text-red-500 hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition-colors"
-                                >
-                                    <DeleteOutlined /> 삭제
-                                </button>
-                                <button
-                                    onClick={() => handleDownload(
+                                    onClick={() => handleShare(
                                         viewMode === 'original'
                                             ? images.find(i => i.url === previewImage)?.original_url || previewImage
-                                            : previewImage,
-                                        `image-${Date.now()}.png`
+                                            : previewImage
                                     )}
-                                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-2 transition-colors"
+                                    className="w-full mb-3 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        color: 'white',
+                                        boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)'
+                                    }}
                                 >
-                                    <DownloadOutlined /> 저장하기
+                                    <span style={{ fontSize: '22px' }}>📤</span>
+                                    스토리에 공유하기
                                 </button>
-                                <div className="flex gap-2">
+
+                                {/* Secondary Actions Row */}
+                                <div className="flex justify-between items-center gap-2">
                                     <button
-                                        onClick={() => handleShare(
-                                            viewMode === 'original'
-                                                ? images.find(i => i.url === previewImage)?.original_url || previewImage
-                                                : previewImage
-                                        )}
-                                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg flex items-center gap-2 transition-colors"
-                                        title="공유하기 / 인스타그램"
+                                        onClick={() => {
+                                            const imgId = images.find(i => i.url === previewImage)?.id;
+                                            if (imgId) {
+                                                handleDelete(imgId);
+                                                setPreviewImage(null);
+                                            }
+                                        }}
+                                        className="px-3 py-2.5 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-1.5 transition-colors text-sm"
                                     >
-                                        <ShareAltOutlined />
+                                        <DeleteOutlined /> 삭제
                                     </button>
-                                    <button
-                                        onClick={() => handleKakaoShare(
-                                            viewMode === 'original'
-                                                ? images.find(i => i.url === previewImage)?.original_url || previewImage
-                                                : previewImage
-                                        )}
-                                        className="px-4 py-2 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-2 transition-colors font-bold"
-                                        title="카카오톡 공유"
-                                    >
-                                        <MessageOutlined />
-                                    </button>
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleDownload(
+                                                viewMode === 'original'
+                                                    ? images.find(i => i.url === previewImage)?.original_url || previewImage
+                                                    : previewImage,
+                                                `toonsnap-${Date.now()}.png`
+                                            )}
+                                            className="px-3 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-1.5 transition-colors text-sm"
+                                        >
+                                            <DownloadOutlined /> 저장
+                                        </button>
+                                        <button
+                                            onClick={() => handleKakaoShare(
+                                                viewMode === 'original'
+                                                    ? images.find(i => i.url === previewImage)?.original_url || previewImage
+                                                    : previewImage
+                                            )}
+                                            className="px-3 py-2.5 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-1.5 transition-colors text-sm font-bold"
+                                            title="카카오톡 공유"
+                                        >
+                                            <MessageOutlined /> 카카오
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

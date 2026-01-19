@@ -823,7 +823,7 @@ export default function Home() {
                                                 setIsSaving(false);
                                             }
                                         }}
-                                        disabled={isSaving || (aiImages.length > 1 && selectedResultIndices.length === 0)}
+                                        disabled={isSaving || (!isSaved && aiImages.length > 1 && selectedResultIndices.length === 0)}
                                         style={{
                                             background: isSaved
                                                 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
