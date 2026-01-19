@@ -616,59 +616,136 @@ export default function Home() {
                                         paddingLeft: '4px',
                                         margin: 0
                                     }}>변환 결과</p>
+                                </div>
+
+                                {/* Share & Save Buttons - Share First, Larger */}
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '10px',
+                                    marginBottom: '16px',
+                                    flexDirection: 'column'
+                                }}>
+                                    {/* Primary: Share Button (Large) */}
                                     <button
                                         onClick={async () => {
-                                            if (isSavingRef.current || isSaved) return;
-                                            isSavingRef.current = true;
-                                            setIsSaving(true);
-                                            try {
-                                                if (!userId) {
-                                                    message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
-                                                    return;
-                                                }
-                                                // ... (existing save logic loop)
-                                                for (let i = 0; i < aiImages.length; i++) {
-                                                    const imageToSave = editedImages[i] || aiImages[i];
-                                                    const res = await fetch('/api/gallery', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({
-                                                            image: imageToSave,
-                                                            userId: userId
-                                                        })
+                                            const imageToShare = editedImages[0] || aiImages[0];
+                                            if (navigator.share) {
+                                                try {
+                                                    const response = await fetch(imageToShare);
+                                                    const blob = await response.blob();
+                                                    const file = new File([blob], 'toonsnap.png', { type: 'image/png' });
+                                                    await navigator.share({
+                                                        title: 'ToonSnap 웹툰',
+                                                        text: '내 사진을 웹툰으로 변환했어요! ✨',
+                                                        files: [file]
                                                     });
-
-                                                    if (!res.ok) {
-                                                        const errData = await res.json().catch(() => ({}));
-                                                        throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
-                                                    }
+                                                } catch (err) {
+                                                    console.log('Share cancelled or failed:', err);
                                                 }
-                                                message.success('갤러리에 저장되었습니다.');
-                                                setIsSaved(true);
-                                            } catch (e: any) {
-                                                console.error(e);
-                                                message.error(e.message || '저장 실패');
-                                                isSavingRef.current = false; // Reset lock on error
-                                            } finally {
-                                                setIsSaving(false);
+                                            } else {
+                                                message.info('SNS 앱에서 공유해보세요!');
                                             }
                                         }}
-                                        disabled={isSaving || isSaved}
-                                        className={`transition-transform ${!isSaved && !isSaving ? 'hover:scale-105 active:scale-95' : ''}`}
+                                        className="share-primary-btn"
                                         style={{
-                                            background: isSaving || isSaved ? '#333' : 'var(--accent-color)',
-                                            color: isSaved ? '#fff' : '#000',
-                                            border: isSaved ? '1px solid #555' : 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: '8px',
-                                            fontSize: '13px',
-                                            fontWeight: 600,
-                                            cursor: (isSaving || isSaved) ? 'default' : 'pointer',
-                                            opacity: isSaving ? 0.7 : 1
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '16px 24px',
+                                            borderRadius: '14px',
+                                            fontSize: '16px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '10px',
+                                            boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
+                                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                                         }}
                                     >
-                                        {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장 완료' : '📁 갤러리 저장'}
+                                        <span style={{ fontSize: '20px' }}>📤</span>
+                                        스토리에 공유하기
                                     </button>
+
+                                    {/* Secondary: Gallery Save (Smaller) */}
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button
+                                            onClick={async () => {
+                                                if (isSavingRef.current || isSaved) return;
+                                                isSavingRef.current = true;
+                                                setIsSaving(true);
+                                                try {
+                                                    if (!userId) {
+                                                        message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
+                                                        return;
+                                                    }
+                                                    for (let i = 0; i < aiImages.length; i++) {
+                                                        const imageToSave = editedImages[i] || aiImages[i];
+                                                        const res = await fetch('/api/gallery', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                image: imageToSave,
+                                                                userId: userId
+                                                            })
+                                                        });
+                                                        if (!res.ok) {
+                                                            const errData = await res.json().catch(() => ({}));
+                                                            throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
+                                                        }
+                                                    }
+                                                    message.success('갤러리에 저장되었습니다.');
+                                                    setIsSaved(true);
+                                                } catch (e: any) {
+                                                    console.error(e);
+                                                    message.error(e.message || '저장 실패');
+                                                    isSavingRef.current = false;
+                                                } finally {
+                                                    setIsSaving(false);
+                                                }
+                                            }}
+                                            disabled={isSaving || isSaved}
+                                            style={{
+                                                flex: 1,
+                                                background: isSaved ? '#2a5a2a' : 'rgba(255,255,255,0.1)',
+                                                color: isSaved ? '#7fff7f' : '#fff',
+                                                border: '1px solid rgba(255,255,255,0.15)',
+                                                padding: '10px 16px',
+                                                borderRadius: '10px',
+                                                fontSize: '13px',
+                                                fontWeight: 500,
+                                                cursor: (isSaving || isSaved) ? 'default' : 'pointer',
+                                                opacity: isSaving ? 0.7 : 1,
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장됨' : '📁 갤러리 저장'}
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                const imageToDownload = editedImages[0] || aiImages[0];
+                                                const link = document.createElement('a');
+                                                link.href = imageToDownload;
+                                                link.download = 'toonsnap_webtoon.png';
+                                                link.click();
+                                            }}
+                                            style={{
+                                                background: 'rgba(255,255,255,0.1)',
+                                                color: '#fff',
+                                                border: '1px solid rgba(255,255,255,0.15)',
+                                                padding: '10px 16px',
+                                                borderRadius: '10px',
+                                                fontSize: '13px',
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            💾 다운로드
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style={{
                                     display: 'grid',
