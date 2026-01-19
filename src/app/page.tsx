@@ -496,8 +496,8 @@ export default function Home() {
                 {/* Photo Mode */}
                 {mode === 'photo' && (
                     <>
-                        <GlassCard padding="lg">
-                            {/* Upload Area - always show if under 5 photos */}
+                        <GlassCard padding={photoPreviews.length > 0 ? 'md' : 'lg'}>
+                            {/* Upload Area - compact when photos selected */}
                             {photoPreviews.length < 5 && (
                                 <label
                                     className="upload-area block cursor-pointer"
@@ -507,7 +507,8 @@ export default function Home() {
                                     style={{
                                         borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
                                         background: isDragging ? 'var(--accent-glow)' : 'transparent',
-                                        marginBottom: photoPreviews.length > 0 ? '16px' : '0'
+                                        marginBottom: photoPreviews.length > 0 ? '12px' : '0',
+                                        padding: photoPreviews.length > 0 ? '12px' : '32px'
                                     }}
                                 >
                                     <input
@@ -518,15 +519,23 @@ export default function Home() {
                                         style={{ display: 'none' }}
                                         onChange={handlePhotoSelect}
                                     />
-                                    <div className="upload-icon">
-                                        <span style={{ fontSize: '32px' }}>📷</span>
-                                    </div>
-                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-                                        {photoPreviews.length === 0 ? '사진을 선택하세요!' : '사진 추가하기'}
-                                    </p>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
-                                        드래그 & 드롭 · 클릭 (최대 5장)
-                                    </p>
+                                    {photoPreviews.length === 0 ? (
+                                        <>
+                                            <div className="upload-icon">
+                                                <span style={{ fontSize: '32px' }}>📷</span>
+                                            </div>
+                                            <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                                                사진을 선택하세요!
+                                            </p>
+                                            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
+                                                드래그 & 드롭 · 클릭 (최대 5장)
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p style={{ color: 'var(--accent-color)', fontSize: '13px', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span>➕</span> 사진 추가하기 ({5 - photoPreviews.length}장 더 가능)
+                                        </p>
+                                    )}
                                 </label>
                             )}
 
@@ -639,242 +648,114 @@ export default function Home() {
 
                         {aiImages.length > 0 && (
                             <GlassCard>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <p style={{
-                                        color: 'var(--accent-color)',
-                                        fontWeight: 500,
-                                        paddingLeft: '4px',
-                                        margin: 0
-                                    }}>변환 결과</p>
+                                {/* Result Images Grid */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: '12px',
+                                    marginBottom: '16px'
+                                }}>
+                                    {aiImages.map((img, idx) => (
+                                        <div key={idx} style={{
+                                            borderRadius: '12px',
+                                            overflow: 'hidden',
+                                            position: 'relative'
+                                        }}>
+                                            <Image
+                                                src={editedImages[idx] || img}
+                                                alt={`Result ${idx}`}
+                                                style={{ width: '100%' }}
+                                                preview={{ mask: '크게 보기' }}
+                                            />
+                                            <div className="bubble-edit-overlay">
+                                                <button
+                                                    className="bubble-edit-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingImageIndex(idx);
+                                                    }}
+                                                >
+                                                    💬 말풍선 추가
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                {/* Share & Save Buttons - Share First, Larger */}
-                                <div style={{
-                                    display: 'flex',
-                                    gap: '10px',
-                                    marginBottom: '16px',
-                                    flexDirection: 'column'
-                                }}>
-                                    {/* Primary: Share Button (Large) */}
+                                {/* Action Buttons */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {/* Primary: Save to Gallery & Go */}
                                     <button
                                         onClick={async () => {
-                                            const imageToShare = editedImages[0] || aiImages[0];
-                                            if (navigator.share) {
-                                                try {
-                                                    const response = await fetch(imageToShare);
-                                                    const blob = await response.blob();
-                                                    const file = new File([blob], 'toonsnap.png', { type: 'image/png' });
-                                                    await navigator.share({
-                                                        title: 'ToonSnap 웹툰',
-                                                        text: '내 사진을 웹툰으로 변환했어요! ✨',
-                                                        files: [file]
-                                                    });
-                                                } catch (err) {
-                                                    console.log('Share cancelled or failed:', err);
+                                            if (isSavingRef.current) return;
+                                            if (isSaved) {
+                                                router.push('/gallery');
+                                                return;
+                                            }
+                                            isSavingRef.current = true;
+                                            setIsSaving(true);
+                                            try {
+                                                if (!userId) {
+                                                    message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
+                                                    return;
                                                 }
-                                            } else {
-                                                message.info('SNS 앱에서 공유해보세요!');
+                                                for (let i = 0; i < aiImages.length; i++) {
+                                                    const imageToSave = editedImages[i] || aiImages[i];
+                                                    const res = await fetch('/api/gallery', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            image: imageToSave,
+                                                            userId: userId
+                                                        })
+                                                    });
+                                                    if (!res.ok) {
+                                                        const errData = await res.json().catch(() => ({}));
+                                                        throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
+                                                    }
+                                                }
+                                                message.success('갤러리에 저장되었습니다.');
+                                                setIsSaved(true);
+                                            } catch (e: any) {
+                                                console.error(e);
+                                                message.error(e.message || '저장 실패');
+                                                isSavingRef.current = false;
+                                            } finally {
+                                                setIsSaving(false);
                                             }
                                         }}
-                                        className="share-primary-btn"
+                                        disabled={isSaving}
                                         style={{
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                            color: 'white',
+                                            background: isSaved
+                                                ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                : 'var(--accent-color)',
+                                            color: isSaved ? 'white' : '#000',
                                             border: 'none',
                                             padding: '16px 24px',
                                             borderRadius: '14px',
                                             fontSize: '16px',
                                             fontWeight: 700,
-                                            cursor: 'pointer',
+                                            cursor: isSaving ? 'wait' : 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             gap: '10px',
-                                            boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
-                                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                            boxShadow: isSaved
+                                                ? '0 4px 20px rgba(102, 126, 234, 0.4)'
+                                                : '0 4px 20px rgba(204, 255, 0, 0.3)',
+                                            transition: 'all 0.2s ease',
+                                            opacity: isSaving ? 0.7 : 1
                                         }}
                                     >
-                                        <span style={{ fontSize: '20px' }}>📤</span>
-                                        스토리에 공유하기
-                                    </button>
-
-                                    {/* Secondary: Gallery Save (Smaller) */}
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button
-                                            onClick={async () => {
-                                                if (isSavingRef.current || isSaved) return;
-                                                isSavingRef.current = true;
-                                                setIsSaving(true);
-                                                try {
-                                                    if (!userId) {
-                                                        message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
-                                                        return;
-                                                    }
-                                                    for (let i = 0; i < aiImages.length; i++) {
-                                                        const imageToSave = editedImages[i] || aiImages[i];
-                                                        const res = await fetch('/api/gallery', {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({
-                                                                image: imageToSave,
-                                                                userId: userId
-                                                            })
-                                                        });
-                                                        if (!res.ok) {
-                                                            const errData = await res.json().catch(() => ({}));
-                                                            throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
-                                                        }
-                                                    }
-                                                    message.success('갤러리에 저장되었습니다.');
-                                                    setIsSaved(true);
-                                                } catch (e: any) {
-                                                    console.error(e);
-                                                    message.error(e.message || '저장 실패');
-                                                    isSavingRef.current = false;
-                                                } finally {
-                                                    setIsSaving(false);
-                                                }
-                                            }}
-                                            disabled={isSaving || isSaved}
-                                            style={{
-                                                flex: 1,
-                                                background: isSaved ? '#2a5a2a' : 'rgba(255,255,255,0.1)',
-                                                color: isSaved ? '#7fff7f' : '#fff',
-                                                border: '1px solid rgba(255,255,255,0.15)',
-                                                padding: '10px 16px',
-                                                borderRadius: '10px',
-                                                fontSize: '13px',
-                                                fontWeight: 500,
-                                                cursor: (isSaving || isSaved) ? 'default' : 'pointer',
-                                                opacity: isSaving ? 0.7 : 1,
-                                                transition: 'all 0.2s ease'
-                                            }}
-                                        >
-                                            {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장됨' : '📁 갤러리 저장'}
-                                        </button>
-
-                                        <button
-                                            onClick={() => {
-                                                const imageToDownload = editedImages[0] || aiImages[0];
-                                                const link = document.createElement('a');
-                                                link.href = imageToDownload;
-                                                link.download = 'toonsnap_webtoon.png';
-                                                link.click();
-                                            }}
-                                            style={{
-                                                background: 'rgba(255,255,255,0.1)',
-                                                color: '#fff',
-                                                border: '1px solid rgba(255,255,255,0.15)',
-                                                padding: '10px 16px',
-                                                borderRadius: '10px',
-                                                fontSize: '13px',
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease'
-                                            }}
-                                        >
-                                            💾 다운로드
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Smart Layout Toggle */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    marginBottom: '16px',
-                                    padding: '12px 16px',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    borderRadius: '12px'
-                                }}>
-                                    <div>
-                                        <span style={{ color: '#fff', fontWeight: 500 }}>🎨 스마트 레이아웃</span>
-                                        <p style={{ color: '#888', fontSize: '11px', margin: '4px 0 0 0' }}>
-                                            AI가 패널 배치를 자동 최적화
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            if (!smartLayoutEnabled && aiImages.length > 0) {
-                                                setAnalyzingLayout(true);
-                                                try {
-                                                    const res = await fetch('/api/ai/analyze-layout', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ images: aiImages })
-                                                    });
-                                                    const data = await res.json();
-                                                    if (data.success && data.layouts) {
-                                                        setPanelLayouts(data.layouts);
-                                                    }
-                                                } catch (e) {
-                                                    console.error('Layout analysis failed:', e);
-                                                }
-                                                setAnalyzingLayout(false);
-                                            }
-                                            setSmartLayoutEnabled(!smartLayoutEnabled);
-                                        }}
-                                        disabled={analyzingLayout}
-                                        style={{
-                                            background: smartLayoutEnabled
-                                                ? 'var(--accent-color)'
-                                                : 'rgba(255,255,255,0.1)',
-                                            color: smartLayoutEnabled ? '#000' : '#fff',
-                                            border: 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: '20px',
-                                            fontSize: '12px',
-                                            fontWeight: 600,
-                                            cursor: analyzingLayout ? 'wait' : 'pointer',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        {analyzingLayout ? '분석 중...' : smartLayoutEnabled ? 'ON' : 'OFF'}
+                                        {isSaving ? (
+                                            <><span>⏳</span> 저장 중...</>
+                                        ) : isSaved ? (
+                                            <><span style={{ fontSize: '20px' }}>🖼️</span> 갤러리에서 보기</>
+                                        ) : (
+                                            <><span style={{ fontSize: '20px' }}>💾</span> 갤러리에 저장하기</>
+                                        )}
                                     </button>
                                 </div>
-
-                                {/* Conditional Display: WebtoonViewer or Standard Grid */}
-                                {smartLayoutEnabled && panelLayouts.length > 0 ? (
-                                    <WebtoonViewer
-                                        images={aiImages.map((img, idx) => editedImages[idx] || img)}
-                                        layouts={panelLayouts}
-                                        onImageClick={(idx) => setEditingImageIndex(idx)}
-                                    />
-                                ) : (
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(2, 1fr)',
-                                        gap: '12px',
-                                        padding: '4px'
-                                    }}>
-                                        {aiImages.map((img, idx) => (
-                                            <div key={idx} style={{
-                                                borderRadius: '12px',
-                                                overflow: 'hidden',
-                                                position: 'relative'
-                                            }}>
-                                                <Image
-                                                    src={editedImages[idx] || img}
-                                                    alt={`Result ${idx}`}
-                                                    style={{ width: '100%' }}
-                                                    preview={{ mask: '크게 보기' }}
-                                                />
-                                                <div className="bubble-edit-overlay">
-                                                    <button
-                                                        className="bubble-edit-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingImageIndex(idx);
-                                                        }}
-                                                    >
-                                                        💬 말풍선 추가
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </GlassCard>
                         )}
                     </>
@@ -928,7 +809,7 @@ export default function Home() {
                                         fontWeight: 500,
                                         marginBottom: '12px'
                                     }}>
-                                        장면 선택 ({selectedFrameIndices.length})
+                                        장면 선택 ({selectedFrameIndices.length}/5)
                                     </p>
                                     <div style={{
                                         display: 'grid',

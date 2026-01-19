@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import Link from 'next/link';
+import Script from 'next/script';
 import "./globals.css";
 
 // runtime config removed to use default nodejs_compat
@@ -34,16 +35,18 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="ko">
-            <head>
-                <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"></script>
-                <script
-                    async
+        <html lang="ko" suppressHydrationWarning>
+            <head />
+            <body className="bg-[#0a0a0a] min-h-screen flex flex-col" suppressHydrationWarning>
+                <Script
+                    src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
+                    strategy="afterInteractive"
+                />
+                <Script
                     src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6317560792339884"
+                    strategy="afterInteractive"
                     crossOrigin="anonymous"
-                ></script>
-            </head>
-            <body className="bg-[#0a0a0a] min-h-screen flex flex-col">
+                />
                 <AntdRegistry>
                     <main className="flex-1">
                         {children}
@@ -88,3 +91,4 @@ export default function RootLayout({
         </html>
     );
 }
+
