@@ -31,22 +31,23 @@ OUTPUT: A complete Ghibli-style illustration where NOTHING looks photorealistic.
 
 DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
 
-            '3d-cartoon': `You MUST completely RECREATE this photo as a Disney Pixar 3D CGI animated movie scene. This is NOT a filter - you must GENERATE a new 3D rendered artwork from scratch.
+            'cinematic-noir': `Transform this ENTIRE photo into a Korean thriller webtoon illustration with cinematic noir atmosphere.
 
-CRITICAL - DO NOT return the original photo. You must CREATE NEW CGI artwork:
-1. RECREATE EVERY PERSON as a stylized 3D Pixar character with oversized head, big round glossy eyes (like Toy Story or Coco characters), smooth plastic-like skin, and exaggerated cartoon proportions. If there are 2 people, create 2 distinct 3D characters.
-2. RECREATE THE ENTIRE SCENE as 3D CGI - every surface, object, and background element must look like a rendered 3D model with smooth textures, not a photograph.
-3. Use Pixar-style lighting: soft ambient occlusion, subsurface scattering on skin, rim lighting, and colorful bounced light.
+CRITICAL REQUIREMENTS:
+1. DRAW EVERY SINGLE PERSON as stylized manhwa characters with sharp, intense features. If multiple people exist, ALL must be drawn.
+2. TRANSFORM THE ENTIRE BACKGROUND into a moody, atmospheric urban scene with dramatic lighting.
+3. Maintain exact positions and add tension/mystery to the scene.
 
 STYLE GUIDE:
-- Characters: Big head-to-body ratio, huge expressive eyes with catchlights, simplified smooth features, plastic/toy-like skin texture
-- Colors: Highly saturated, vibrant, candy-like color palette
-- Lighting: Soft diffuse studio lighting with gentle shadows
-- Textures: Smooth, clean, no pores or realistic skin details
+- Lighting: Dramatic chiaroscuro with deep shadows and stark highlights, like a film noir scene
+- Colors: Muted palette with desaturated blues, grays, and occasional warm accent (orange/red)
+- Atmosphere: Rain, fog, or haze effects to add mystery
+- Lines: Bold black outlines with crosshatching for shadows
+- Mood: Tense, mysterious, like a scene from 괴담출근 or 픽미업
 
-THIS IS MANDATORY: The output MUST look like a frame from Toy Story, Coco, or Monsters Inc. It must NOT look like a filtered photo. Every pixel must be computer-generated 3D artwork.
+OUTPUT: A complete manhwa panel that looks like a thriller webtoon. The scene should feel cinematic and ominous.
 
-DO NOT: Return the original photo, add text, add speech bubbles, or preserve ANY photorealistic details.`,
+DO NOT: Add text, speech bubbles, or leave any photorealistic elements.`,
 
             'dark-fantasy': `Transform this ENTIRE photo into a dark fantasy Korean manhwa illustration.
 

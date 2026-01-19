@@ -16,11 +16,11 @@ export const STYLE_OPTIONS: StyleOption[] = [
         prompt: 'Studio Ghibli style, soft watercolor textures, Hayao Miyazaki aesthetic, lush green landscape, dreamy atmosphere, warm lighting, hand-painted look, anime illustration'
     },
     {
-        id: '3d-cartoon',
-        name: '3D 입체 만화',
-        description: '매끄러운 3D 렌더링 스타일',
-        thumbnail: '/styles/3d-cartoon.png',
-        prompt: 'Disney 3D animation style, big expressive eyes, cinematic lighting, Pixar-like soft shading, vibrant colors, smooth skin texture, cartoon character render'
+        id: 'cinematic-noir',
+        name: '시네마틱 누아르',
+        description: '묵직한 현대 판타지 분위기',
+        thumbnail: '/styles/cinematic-noir.png',
+        prompt: 'Korean thriller webtoon style, cinematic noir aesthetic, dark moody atmosphere, dramatic shadows and highlights'
     },
     {
         id: 'dark-fantasy',
