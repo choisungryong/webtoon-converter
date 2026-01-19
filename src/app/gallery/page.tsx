@@ -6,6 +6,8 @@ import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleF
 
 import Link from 'next/link';
 import GlassCard from '../../components/GlassCard';
+import WebtoonViewer from '../../components/WebtoonViewer';
+import type { PanelLayout } from '../../types/layout';
 
 interface GalleryImage {
     id: string;
@@ -74,6 +76,11 @@ export default function GalleryPage() {
     const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Smart Layout State
+    const [smartLayoutEnabled, setSmartLayoutEnabled] = useState(false);
+    const [panelLayouts, setPanelLayouts] = useState<PanelLayout[]>([]);
+    const [analyzingLayout, setAnalyzingLayout] = useState(false);
 
     // Mobile long-press handlers
     const handleTouchStart = (imgId: string) => {
@@ -701,53 +708,126 @@ export default function GalleryPage() {
                 <Modal
                     open={webtoonViewOpen}
                     footer={null}
-                    onCancel={() => setWebtoonViewOpen(false)}
+                    onCancel={() => {
+                        setWebtoonViewOpen(false);
+                        setPanelLayouts([]);
+                        setSmartLayoutEnabled(false);
+                    }}
                     centered
-                    width="600px"
+                    width="650px"
                     styles={{
                         content: {
-                            background: '#fff',
+                            background: smartLayoutEnabled ? '#0a0a0a' : '#fff',
                             padding: '0',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             overflow: 'visible',
                             maxHeight: '90vh',
                             display: 'flex',
                             flexDirection: 'column'
                         }
                     }}
-                    closeIcon={<span className="text-black text-xl z-50 fixed right-4 top-4 bg-white rounded-full p-2 shadow-lg cursor-pointer">×</span>}
+                    closeIcon={<span className={`text-xl z-50 fixed right-4 top-4 rounded-full p-2 shadow-lg cursor-pointer ${smartLayoutEnabled ? 'text-white bg-black/50' : 'text-black bg-white'}`}>×</span>}
                 >
-                    <div className="flex-1 overflow-y-auto bg-gray-100 p-0 relative webtoon-scroll-container">
-                        {images
-                            .filter(img => selectedImages.includes(img.id))
-                            .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id))
-                            .map((img) => (
-                                <img
-                                    key={img.id}
-                                    src={img.url}
-                                    alt="Webtoon frame"
-                                    className="w-full h-auto block"
-                                />
-                            ))}
+                    {/* Smart Layout Toggle Header */}
+                    <div className={`p-3 border-b flex justify-between items-center ${smartLayoutEnabled ? 'bg-[#1a1a1a] border-white/10' : 'bg-white border-gray-200'}`}>
+                        <span className={`text-sm font-medium ${smartLayoutEnabled ? 'text-white' : 'text-gray-700'}`}>
+                            {selectedImages.length}컷 연결됨
+                        </span>
+                        <button
+                            onClick={async () => {
+                                if (!smartLayoutEnabled) {
+                                    // Analyze layout
+                                    setAnalyzingLayout(true);
+                                    try {
+                                        const selectedImgs = images
+                                            .filter(img => selectedImages.includes(img.id))
+                                            .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id))
+                                            .map(img => img.url);
+
+                                        const res = await fetch('/api/ai/analyze-layout', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ images: selectedImgs })
+                                        });
+
+                                        const data = await res.json();
+                                        if (data.success && data.layouts) {
+                                            setPanelLayouts(data.layouts);
+                                            setSmartLayoutEnabled(true);
+                                        } else {
+                                            message.error('레이아웃 분석에 실패했습니다.');
+                                        }
+                                    } catch (err) {
+                                        console.error(err);
+                                        message.error('레이아웃 분석 중 오류가 발생했습니다.');
+                                    } finally {
+                                        setAnalyzingLayout(false);
+                                    }
+                                } else {
+                                    setSmartLayoutEnabled(false);
+                                    setPanelLayouts([]);
+                                }
+                            }}
+                            disabled={analyzingLayout}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${smartLayoutEnabled
+                                    ? 'bg-[#CCFF00] text-black'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            {analyzingLayout ? (
+                                <><Spin size="small" /> 분석중...</>
+                            ) : (
+                                <>✨ 스마트 레이아웃 {smartLayoutEnabled ? 'ON' : 'OFF'}</>
+                            )}
+                        </button>
                     </div>
-                    <div className="p-4 border-t bg-white flex justify-between items-center z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.1)]">
-                        <span className="text-gray-500 font-medium">{selectedImages.length}컷 연결됨</span>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setWebtoonViewOpen(false)}
-                                className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
-                            >
-                                닫기
-                            </button>
-                            <button
-                                onClick={handleWebtoonSave}
-                                disabled={savingWebtoon}
-                                className="px-6 py-2.5 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
-                            >
-                                {savingWebtoon ? <Spin size="small" /> : <DownloadOutlined />}
-                                마이웹툰에 저장
-                            </button>
-                        </div>
+
+                    {/* Content Area */}
+                    <div className={`flex-1 overflow-y-auto p-0 relative webtoon-scroll-container ${smartLayoutEnabled ? 'bg-[#0a0a0a]' : 'bg-gray-100'}`}>
+                        {smartLayoutEnabled && panelLayouts.length > 0 ? (
+                            <WebtoonViewer
+                                images={images
+                                    .filter(img => selectedImages.includes(img.id))
+                                    .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id))
+                                    .map(img => img.url)
+                                }
+                                layouts={panelLayouts}
+                            />
+                        ) : (
+                            images
+                                .filter(img => selectedImages.includes(img.id))
+                                .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id))
+                                .map((img) => (
+                                    <img
+                                        key={img.id}
+                                        src={img.url}
+                                        alt="Webtoon frame"
+                                        className="w-full h-auto block"
+                                    />
+                                ))
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className={`p-4 border-t flex justify-end items-center gap-3 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] ${smartLayoutEnabled ? 'bg-[#1a1a1a] border-white/10' : 'bg-white border-gray-200'}`}>
+                        <button
+                            onClick={() => {
+                                setWebtoonViewOpen(false);
+                                setPanelLayouts([]);
+                                setSmartLayoutEnabled(false);
+                            }}
+                            className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${smartLayoutEnabled ? 'text-gray-400 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                            닫기
+                        </button>
+                        <button
+                            onClick={handleWebtoonSave}
+                            disabled={savingWebtoon}
+                            className="px-6 py-2.5 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
+                        >
+                            {savingWebtoon ? <Spin size="small" /> : <DownloadOutlined />}
+                            마이웹툰에 저장
+                        </button>
                     </div>
                 </Modal>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircleFilled, ThunderboltFilled, SmileFilled, PictureFilled } from '@ant-design/icons';
+import { CheckCircleFilled, ThunderboltFilled, SmileFilled, PictureFilled, StarFilled, ShareAltOutlined } from '@ant-design/icons';
 
 export default function AboutPage() {
     return (
@@ -31,16 +31,16 @@ export default function AboutPage() {
                     </p>
                 </div>
 
-                {/* Features */}
+                {/* Features - 6 cards for even grid */}
                 <div className="grid md:grid-cols-2 gap-6 mb-8">
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                         <div className="w-12 h-12 bg-[#CCFF00]/20 rounded-xl flex items-center justify-center mb-4">
                             <ThunderboltFilled className="text-[#CCFF00] text-2xl" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">빠른 AI 변환</h3>
+                        <h3 className="text-lg font-bold text-white mb-2">⚡ 빠른 AI 변환</h3>
                         <p className="text-gray-400 text-sm leading-relaxed">
-                            최신 AI 기술을 활용하여 단 몇 초 만에 사진을 웹툰 스타일로 변환합니다.
-                            복잡한 설정 없이 사진을 업로드하면 바로 결과를 확인할 수 있습니다.
+                            최신 AI 기술로 단 몇 초 만에 사진을 웹툰 스타일로 변환합니다.
+                            복잡한 설정 없이 사진을 업로드하면 바로 결과 확인!
                         </p>
                     </div>
 
@@ -48,10 +48,43 @@ export default function AboutPage() {
                         <div className="w-12 h-12 bg-[#CCFF00]/20 rounded-xl flex items-center justify-center mb-4">
                             <PictureFilled className="text-[#CCFF00] text-2xl" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">다양한 스타일</h3>
+                        <h3 className="text-lg font-bold text-white mb-2">🎨 다양한 스타일</h3>
                         <p className="text-gray-400 text-sm leading-relaxed">
-                            로맨스, 액션, 일상 등 다양한 웹툰 장르의 스타일을 선택할 수 있습니다.
-                            각각의 스타일은 해당 장르의 특성을 살려 개성 있는 결과물을 만들어냅니다.
+                            로맨스, 액션, 일상 등 다양한 웹툰 장르 스타일을 선택할 수 있습니다.
+                            각 장르의 특성을 살린 개성 있는 결과물!
+                        </p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/10 border border-purple-500/30 rounded-2xl p-6">
+                        <div className="w-12 h-12 bg-purple-500/30 rounded-xl flex items-center justify-center mb-4">
+                            <StarFilled className="text-purple-400 text-2xl" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2">✨ 스마트 레이아웃</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            AI가 이미지 구도와 중요도를 분석해 <strong className="text-purple-300">패널 레이아웃을 자동 최적화</strong>.
+                            반반 분할, 전체 컷, 오버레이 등 프로 수준의 연출!
+                        </p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/10 border border-yellow-500/30 rounded-2xl p-6">
+                        <div className="w-12 h-12 bg-yellow-500/30 rounded-xl flex items-center justify-center mb-4">
+                            <span className="text-2xl">💬</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2">💬 AI 말풍선 추천</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            이미지에 맞는 <strong className="text-yellow-300">대사를 AI가 자동 추천</strong>.
+                            클릭 한 번으로 말풍선 추가, 일반/속마음/외침 스타일 지원!
+                        </p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 border border-blue-500/30 rounded-2xl p-6">
+                        <div className="w-12 h-12 bg-blue-500/30 rounded-xl flex items-center justify-center mb-4">
+                            <ShareAltOutlined className="text-blue-400 text-2xl" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2">📤 저장 & 공유</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            변환한 이미지는 갤러리에 자동 저장. <strong className="text-blue-300">인스타 스토리·카카오톡 공유</strong>
+                            한 번의 클릭으로 친구들과 바로 공유하세요!
                         </p>
                     </div>
 
@@ -59,21 +92,10 @@ export default function AboutPage() {
                         <div className="w-12 h-12 bg-[#CCFF00]/20 rounded-xl flex items-center justify-center mb-4">
                             <SmileFilled className="text-[#CCFF00] text-2xl" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">쉬운 사용법</h3>
+                        <h3 className="text-lg font-bold text-white mb-2">😊 누구나 쉽게</h3>
                         <p className="text-gray-400 text-sm leading-relaxed">
-                            회원가입 없이 바로 사용할 수 있습니다.
-                            사진을 드래그 앤 드롭하고, 스타일을 고르고, 변환 버튼만 누르면 끝!
-                        </p>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                        <div className="w-12 h-12 bg-[#CCFF00]/20 rounded-xl flex items-center justify-center mb-4">
-                            <CheckCircleFilled className="text-[#CCFF00] text-2xl" />
-                        </div>
-                        <h3 className="text-lg font-bold text-white mb-2">갤러리 저장</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            변환한 이미지들은 개인 갤러리에 자동 저장됩니다.
-                            여러 이미지를 이어붙여 나만의 웹툰을 만들고 SNS에 공유할 수도 있습니다.
+                            회원가입 없이 바로 사용 가능.
+                            사진 드래그 → 스타일 선택 → 변환! 3단계로 끝!
                         </p>
                     </div>
                 </div>
