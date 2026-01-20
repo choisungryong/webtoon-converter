@@ -38,41 +38,43 @@ export async function POST(request: NextRequest) {
 
 Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a stunning 800x1280 pixel vertical webtoon page.
 
-CRITICAL REQUIREMENTS:
+⚠️ CRITICAL - CHARACTER IDENTITY PRESERVATION (MOST IMPORTANT):
+- PRESERVE EXACT GENDER: If female, MUST remain female. If male, MUST remain male.
+- PRESERVE EXACT APPEARANCE: Same face shape, hairstyle, hair color, eye color
+- PRESERVE CLOTHING: Same outfit colors and style
+- PRESERVE NUMBER OF PEOPLE: If 2 people shown, draw exactly 2 people
+- DO NOT change any character's identity, gender, or distinguishing features
 
-1. PANEL LAYOUT (Very Important):
-   - Divide the scene into 3-5 dramatic comic panels
-   - Use dynamic panel shapes (diagonal cuts, overlapping panels, bleeds)
-   - Create visual flow that guides the reader's eye naturally
-   - Include one large "hero" panel for the most dramatic moment
+REQUIREMENTS:
+
+1. PANEL LAYOUT:
+   - Create 2-4 panels showing different angles of the SAME scene
+   - Use dynamic panel shapes (diagonal cuts, overlapping)
+   - One large "hero" panel featuring the main moment
 
 2. CINEMATIC STYLE:
-   - Apply dramatic camera angles (low angle, high angle, close-ups, wide shots)
-   - Use depth of field effects (blur backgrounds for focus)
-   - Add dramatic lighting with strong contrast
-   - Include speed lines, impact effects, or emotion particles where appropriate
+   - Dramatic camera angles (close-up, medium shot, wide shot)
+   - Depth of field effects
+   - Strong lighting contrast
+   - Speed lines or emotion particles where appropriate
 
-3. CHARACTER ENHANCEMENT:
-   - Redraw characters in premium manhwa/webtoon art style
-   - Add detailed facial expressions showing emotion
-   - Include dynamic poses and body language
-   - Ensure consistent character design across panels
+3. CHARACTER ENHANCEMENT (while preserving identity):
+   - Enhance to premium manhwa art style
+   - Add detailed expressions
+   - KEEP same gender, face, hair, outfit
+   - Consistent design across ALL panels
 
-4. ATMOSPHERE & MOOD:
-   - Apply professional color grading (warm/cool tones based on mood)
-   - Add atmospheric effects (lens flares, light rays, shadows)
-   - Create depth with layered backgrounds
-   - Use gradient overlays for cinematic feel
+4. ATMOSPHERE:
+   - Professional color grading
+   - Atmospheric lighting effects
+   - Layered backgrounds with depth
 
-5. PROFESSIONAL POLISH:
-   - Clean, crisp line art with varying line weights
-   - Smooth gradient shading (Korean webtoon style)
-   - High contrast between panels for visual impact
-   - Premium print-quality rendering
+OUTPUT: Single 800x1280px vertical webtoon page.
 
-OUTPUT: A single 800x1280px vertical image that looks like a page from Solo Leveling, Tower of God, or True Beauty - top-tier professional Korean webtoon quality.
-
-DO NOT: Add any text, speech bubbles, sound effects text, watermarks, or signatures.`;
+STRICT RULES:
+- NO text, speech bubbles, watermarks
+- NO changing character gender or appearance
+- SAME characters must appear consistently across panels`;
 
         // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
         // Note: gemini-3-pro-image is not yet available in v1beta API

@@ -880,21 +880,21 @@ export default function GalleryPage() {
                     open={!!webtoonPreviewImage}
                     footer={null}
                     onCancel={() => setWebtoonPreviewImage(null)}
-                    width="100vw"
+                    width={600}
+                    centered
                     style={{
-                        maxWidth: '100vw',
-                        top: 0,
-                        padding: 0,
-                        margin: 0
+                        maxWidth: '95vw',
+                        padding: 0
                     }}
                     styles={{
                         content: {
                             background: '#0a0a0a',
                             padding: '0',
-                            borderRadius: '0',
-                            height: '100vh',
+                            borderRadius: '12px',
+                            maxHeight: '90vh',
                             display: 'flex',
-                            flexDirection: 'column'
+                            flexDirection: 'column',
+                            overflow: 'hidden'
                         },
                         body: {
                             padding: 0,
@@ -905,7 +905,7 @@ export default function GalleryPage() {
                         }
                     }}
                     closeIcon={
-                        <span className="fixed right-4 top-4 z-50 text-white text-2xl bg-black/60 w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-sm cursor-pointer hover:bg-black/80 transition-colors">
+                        <span className="absolute right-3 top-3 z-50 text-white text-xl bg-black/60 w-8 h-8 flex items-center justify-center rounded-full cursor-pointer hover:bg-black/80">
                             ×
                         </span>
                     }
