@@ -1,11 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Lottie, { LottieRefCurrentProps } from 'lottie-react';
-
-// Import your animation JSON here
-// You can either import directly or fetch from public folder
-import sketchAnimation from '../../public/animations/sketch.json';
 
 interface SketchLottieAnimationProps {
     progress: number;
@@ -19,6 +15,15 @@ const SketchLottieAnimation = ({
     totalImages
 }: SketchLottieAnimationProps) => {
     const lottieRef = useRef<LottieRefCurrentProps>(null);
+    const [animationData, setAnimationData] = useState<object | null>(null);
+
+    useEffect(() => {
+        // Fetch animation from public folder
+        fetch('/animations/sketch.json')
+            .then(res => res.json())
+            .then(data => setAnimationData(data))
+            .catch(err => console.error('Failed to load animation:', err));
+    }, []);
 
     return (
         <div style={{
@@ -36,16 +41,27 @@ const SketchLottieAnimation = ({
                 alignItems: 'center',
                 justifyContent: 'center'
             }}>
-                <Lottie
-                    lottieRef={lottieRef}
-                    animationData={sketchAnimation}
-                    loop={true}
-                    autoplay={true}
-                    style={{
-                        width: '100%',
-                        height: '100%'
-                    }}
-                />
+                {animationData ? (
+                    <Lottie
+                        lottieRef={lottieRef}
+                        animationData={animationData}
+                        loop={true}
+                        autoplay={true}
+                        style={{
+                            width: '100%',
+                            height: '100%'
+                        }}
+                    />
+                ) : (
+                    <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid var(--accent-color)',
+                        borderTopColor: 'transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                    }} />
+                )}
             </div>
 
             {/* Progress Info */}
@@ -90,6 +106,13 @@ const SketchLottieAnimation = ({
                     {progress}%
                 </p>
             </div>
+
+            <style jsx>{`
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 };
