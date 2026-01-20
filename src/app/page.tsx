@@ -35,7 +35,7 @@ export default function Home() {
             <div className="text-center mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-sm text-gray-400">
                     💡 <strong className="text-white">사용법:</strong> 영상을 업로드하면 AI가 주요 장면을 자동으로 찾아줍니다.<br />
-                    원하는 장면을 선택하고 스타일을 골라 웹툰으로 변환해보세요! (최대 5장)
+                    원하는 장면을 선택하고 스타일을 골라 웹툰으로 변환해보세요! (최대 10장)
                 </p>
             </div>
         ),
@@ -301,7 +301,7 @@ export default function Home() {
             const autoSelectIndices = frames.length > 2
                 ? [0, Math.floor(frames.length / 2), frames.length - 1]
                 : frames.map((_, i) => i);
-            setSelectedFrameIndices(autoSelectIndices.slice(0, 5)); // cap at 5 just in case
+            setSelectedFrameIndices(autoSelectIndices.slice(0, 10)); // cap at 10 just in case
 
             message.success({ content: `분석 완료! ${frames.length}개의 주요 장면을 찾았습니다.`, key: 'analyze' });
         } catch (e) {
@@ -335,9 +335,9 @@ export default function Home() {
             if (prev.includes(idx)) {
                 return prev.filter(i => i !== idx);
             } else {
-                // 2. Selection Limit: Max 5 Frames
-                if (prev.length >= 5) {
-                    message.warning('최대 5장까지만 선택할 수 있습니다.');
+                // 2. Selection Limit: Max 10 Frames
+                if (prev.length >= 10) {
+                    message.warning('최대 10장까지만 선택할 수 있습니다.');
                     return prev;
                 }
                 return [...prev, idx];
@@ -458,6 +458,73 @@ export default function Home() {
         setAiImages([]);
         setIsSaved(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    // Premium Video Convert - Generate 10-panel Webtoon Episode from selected frames
+    const handlePremiumVideoConvert = async () => {
+        if (selectedFrameIndices.length === 0) {
+            message.warning('변환할 장면을 선택해 주세요!');
+            return;
+        }
+
+        if (selectedFrameIndices.length < 3) {
+            message.warning('최소 3장 이상의 장면을 선택해 주세요!');
+            return;
+        }
+
+        const imagesToConvert = selectedFrameIndices.map(idx => extractedFrames[idx]);
+        setConverting(true);
+        setProgress(0);
+        setTotalImagesToConvert(1); // Single episode output
+        setCurrentImageIndex(1);
+
+        try {
+            message.loading({ content: `${imagesToConvert.length}장의 장면으로 에피소드 생성 중...`, key: 'episode' });
+
+            // Compress all images
+            const compressedImages: string[] = [];
+            for (let i = 0; i < imagesToConvert.length; i++) {
+                setProgress(Math.round((i / imagesToConvert.length) * 30)); // 0-30% for compression
+                const compressed = await compressImage(imagesToConvert[i]);
+                compressedImages.push(compressed);
+            }
+
+            setProgress(40); // 40% - sending to API
+
+            // Send all images together to episode API
+            const res = await fetch('/api/premium/episode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    images: compressedImages,
+                    userId: userId
+                })
+            });
+
+            setProgress(80); // 80% - processing response
+
+            const data = await res.json();
+
+            if (data.error === 'QUOTA_EXCEEDED') {
+                message.warning({ content: data.message || 'API 한도에 도달했습니다.', key: 'episode' });
+                return;
+            }
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            setProgress(100);
+            message.success({
+                content: `${data.panelCount || 10}패널 에피소드 생성 완료! 프리미엄 탭에서 확인하세요.`,
+                key: 'episode'
+            });
+            router.push('/gallery');
+        } catch (e: any) {
+            message.error({ content: `오류: ${e.message}`, key: 'episode' });
+        } finally {
+            setConverting(false);
+        }
     };
 
     const handleModeChange = (m: AppMode) => {
@@ -890,7 +957,7 @@ export default function Home() {
                                         fontWeight: 500,
                                         marginBottom: '12px'
                                     }}>
-                                        장면 선택 ({selectedFrameIndices.length}/5)
+                                        장면 선택 ({selectedFrameIndices.length}/10)
                                     </p>
                                     <div style={{
                                         display: 'grid',
@@ -951,14 +1018,26 @@ export default function Home() {
                                         />
                                     </GlassCard>
                                 ) : (
-                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
+                                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px', width: '100%' }}>
+                                        <button
+                                            className="accent-btn"
+                                            onClick={handlePremiumVideoConvert}
+                                            disabled={converting}
+                                            style={{
+                                                flex: 1,
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                color: 'white'
+                                            }}
+                                        >
+                                            ✨ 웹툰으로 변환
+                                        </button>
                                         <button
                                             className="accent-btn"
                                             onClick={handleConvert}
                                             disabled={converting}
-                                            style={{ width: '100%', maxWidth: '320px' }}
+                                            style={{ flex: 1 }}
                                         >
-                                            ✨ 웹툰으로 변환하기
+                                            🖼️ 웹컷으로 변환
                                         </button>
                                     </div>
                                 )}

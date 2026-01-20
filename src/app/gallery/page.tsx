@@ -585,23 +585,22 @@ export default function GalleryPage() {
                             {premiumImages.map((img) => (
                                 <div
                                     key={img.id}
-                                    className="gallery-item group relative"
+                                    className="webtoon-preview-card group"
                                     onClick={() => {
-                                        // 프리미엄 이미지는 별도 처리
                                         setWebtoonPreviewImage({
                                             ...img,
                                             created_at: img.createdAt
                                         } as any);
-                                        setIsPremiumPreview(true);  // 프리미엄 이미지 표시
+                                        setIsPremiumPreview(true);
                                     }}
                                 >
                                     <img
                                         src={img.url}
                                         alt="Premium Webtoon"
-                                        className="gallery-thumbnail object-top"
                                     />
+                                    <div className="webtoon-preview-blur" />
                                     {/* Premium Badge */}
-                                    <div className="absolute top-2 left-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold text-[10px]">
+                                    <div className="premium-badge bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold text-[10px]">
                                         ✨ PRO
                                     </div>
                                     {/* Delete Button */}
@@ -610,7 +609,7 @@ export default function GalleryPage() {
                                             e.stopPropagation();
                                             handlePremiumDelete(img.id);
                                         }}
-                                        className="absolute top-2 right-2 w-6 h-6 bg-red-500/80 hover:bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                        className="delete-btn w-6 h-6 bg-red-500/80 hover:bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                                     >
                                         <DeleteOutlined />
                                     </button>
@@ -663,9 +662,8 @@ export default function GalleryPage() {
                                                             : [...prev, img.id]
                                                     );
                                                 } else if (activeTab === 'webtoon') {
-                                                    // 마이웹툰 전용 풀스크린 뷰어
                                                     setWebtoonPreviewImage(img);
-                                                    setIsPremiumPreview(false);  // 일반 웹툰
+                                                    setIsPremiumPreview(false);
                                                 } else {
                                                     setPreviewImage(img.url);
                                                     setViewMode('processed');
@@ -675,13 +673,14 @@ export default function GalleryPage() {
                                             onTouchEnd={handleTouchEnd}
                                             onTouchMove={handleTouchEnd}
                                             onContextMenu={(e) => e.preventDefault()}
-                                            className={`gallery-item group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
+                                            className={`${activeTab === 'webtoon' ? 'webtoon-preview-card' : 'gallery-item'} group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
                                         >
                                             <img
                                                 src={img.url}
                                                 alt="Generated"
-                                                className={`gallery-thumbnail ${activeTab === 'webtoon' ? 'object-top' : ''}`}
+                                                className={activeTab === 'webtoon' ? '' : 'gallery-thumbnail'}
                                             />
+                                            {activeTab === 'webtoon' && <div className="webtoon-preview-blur" />}
 
                                             {activeTab === 'image' && (
                                                 <div
