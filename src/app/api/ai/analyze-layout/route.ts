@@ -55,7 +55,7 @@ Respond ONLY with valid JSON array, no markdown:
 
         // Prepare image parts for Gemini
         const imageParts = images.map(img => {
-            const match = img.match(/^data:image\/(\\w+);base64,(.+)$/);
+            const match = img.match(/^data:image\/(\w+);base64,(.+)$/);
             if (match) {
                 return {
                     inlineData: {

@@ -10,7 +10,7 @@ import Header, { AppMode, ThemeMode } from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import StyleSelector from '../components/StyleSelector';
 import SpeechBubbleEditor from '../components/SpeechBubbleEditor';
-import WebtoonDrawingAnimation from '../components/WebtoonDrawingAnimation';
+import SketchLottieAnimation from '../components/SketchLottieAnimation';
 import WebtoonViewer from '../components/WebtoonViewer';
 import { StyleOption, DEFAULT_STYLE } from '../data/styles';
 import type { PanelLayout } from '../types/layout';
@@ -416,26 +416,7 @@ export default function Home() {
             }
 
             if (generatedImages.length > 0) {
-                message.success('변환 완료! 레이아웃 최적화 중...');
-
-                // Auto-trigger layout analysis
-                setAnalyzingLayout(true);
-                try {
-                    const layoutRes = await fetch('/api/ai/analyze-layout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ images: generatedImages })
-                    });
-                    const layoutData = await layoutRes.json();
-                    if (layoutData.success && layoutData.layouts) {
-                        setPanelLayouts(layoutData.layouts);
-                        setSmartLayoutEnabled(true);
-                        message.success('레이아웃 최적화 완료! ✨');
-                    }
-                } catch (e) {
-                    console.error('Auto layout analysis failed:', e);
-                }
-                setAnalyzingLayout(false);
+                message.success('변환 완료!');
             }
         } catch (e: any) {
             message.error(`오류: ${e.message}`);
@@ -644,7 +625,7 @@ export default function Home() {
                                 {/* Conversion Animation or Button */}
                                 {converting ? (
                                     <GlassCard>
-                                        <WebtoonDrawingAnimation
+                                        <SketchLottieAnimation
                                             progress={progress}
                                             currentImage={currentImageIndex}
                                             totalImages={totalImagesToConvert}
@@ -963,7 +944,7 @@ export default function Home() {
                                 {/* Conversion Animation or Button */}
                                 {converting ? (
                                     <GlassCard>
-                                        <WebtoonDrawingAnimation
+                                        <SketchLottieAnimation
                                             progress={progress}
                                             currentImage={currentImageIndex}
                                             totalImages={totalImagesToConvert}
