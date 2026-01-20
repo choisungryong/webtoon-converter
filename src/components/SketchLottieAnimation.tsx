@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Lottie, { LottieRefCurrentProps } from 'lottie-react';
+import { useEffect, useState } from 'react';
 
 interface SketchLottieAnimationProps {
     progress: number;
@@ -14,15 +13,13 @@ const SketchLottieAnimation = ({
     currentImage,
     totalImages
 }: SketchLottieAnimationProps) => {
-    const lottieRef = useRef<LottieRefCurrentProps>(null);
-    const [animationData, setAnimationData] = useState<object | null>(null);
+    const [dots, setDots] = useState('');
 
     useEffect(() => {
-        // Fetch animation from public folder
-        fetch('/animations/sketch.json')
-            .then(res => res.json())
-            .then(data => setAnimationData(data))
-            .catch(err => console.error('Failed to load animation:', err));
+        const interval = setInterval(() => {
+            setDots(prev => prev.length >= 3 ? '' : prev + '.');
+        }, 400);
+        return () => clearInterval(interval);
     }, []);
 
     return (
@@ -30,64 +27,50 @@ const SketchLottieAnimation = ({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '16px',
-            padding: '24px'
+            gap: '8px',
+            padding: '10px 16px'
         }}>
-            {/* Lottie Animation */}
+            {/* Marquee Text */}
             <div style={{
-                width: '200px',
-                height: '150px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                width: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap'
             }}>
-                {animationData ? (
-                    <Lottie
-                        lottieRef={lottieRef}
-                        animationData={animationData}
-                        loop={true}
-                        autoplay={true}
-                        style={{
-                            width: '100%',
-                            height: '100%'
-                        }}
-                    />
-                ) : (
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '3px solid var(--accent-color)',
-                        borderTopColor: 'transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                    }} />
-                )}
+                <div style={{
+                    display: 'inline-block',
+                    animation: 'marquee 8s linear infinite',
+                    color: 'var(--accent-color)',
+                    fontSize: '14px',
+                    fontWeight: 600
+                }}>
+                    ✏️ 스케치중{dots} &nbsp;&nbsp;&nbsp; 🎨 웹툰 스타일 적용중{dots} &nbsp;&nbsp;&nbsp; ✨ AI가 열심히 그리는 중{dots} &nbsp;&nbsp;&nbsp;
+                    ✏️ 스케치중{dots} &nbsp;&nbsp;&nbsp; 🎨 웹툰 스타일 적용중{dots} &nbsp;&nbsp;&nbsp; ✨ AI가 열심히 그리는 중{dots} &nbsp;&nbsp;&nbsp;
+                </div>
             </div>
 
             {/* Progress Info */}
             <div style={{
-                textAlign: 'center',
-                color: 'var(--text-primary)'
+                width: '100%',
+                textAlign: 'center'
             }}>
                 <p style={{
-                    fontSize: '16px',
+                    fontSize: '13px',
                     fontWeight: 600,
                     marginBottom: '8px',
-                    color: 'var(--accent-color)'
+                    color: 'var(--text-primary)'
                 }}>
                     {totalImages > 1
-                        ? `${currentImage} / ${totalImages} 변환 중...`
-                        : '변환 중...'}
+                        ? `${currentImage} / ${totalImages} 변환 중`
+                        : '변환 중'}
                 </p>
 
                 {/* Progress Bar */}
                 <div style={{
-                    width: '200px',
+                    width: '100%',
                     height: '6px',
                     background: 'rgba(255,255,255,0.1)',
                     borderRadius: '3px',
-                    overflow: 'hidden',
-                    margin: '0 auto'
+                    overflow: 'hidden'
                 }}>
                     <div style={{
                         width: `${progress}%`,
@@ -99,18 +82,18 @@ const SketchLottieAnimation = ({
                 </div>
 
                 <p style={{
-                    fontSize: '12px',
+                    fontSize: '11px',
                     color: 'var(--text-muted)',
-                    marginTop: '8px'
+                    marginTop: '6px'
                 }}>
                     {progress}%
                 </p>
             </div>
 
             <style jsx>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
                 }
             `}</style>
         </div>

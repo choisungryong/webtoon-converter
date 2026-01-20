@@ -192,14 +192,18 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
 
                 .selected-overlay {
                     position: absolute;
-                    inset: 0;
-                    background: rgba(0, 0, 0, 0.5);
-                    backdrop-filter: blur(2px);
+                    right: 8px;
+                    bottom: 8px;
+                    width: 28px;
+                    height: 28px;
+                    background: var(--accent-color);
+                    border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: var(--accent-color);
-                    font-size: 28px;
+                    color: black;
+                    font-size: 16px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
                 }
 
                 .card-info {
