@@ -460,72 +460,149 @@ export default function Home() {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    // Premium Video Convert - Generate 10-panel Webtoon Episode from selected frames
+    // Webtoon Episode Convert - Convert each frame individually, then stitch vertically
     const handlePremiumVideoConvert = async () => {
         if (selectedFrameIndices.length === 0) {
             message.warning('변환할 장면을 선택해 주세요!');
             return;
         }
 
-        if (selectedFrameIndices.length < 3) {
-            message.warning('최소 3장 이상의 장면을 선택해 주세요!');
+        if (selectedFrameIndices.length < 2) {
+            message.warning('최소 2장 이상의 장면을 선택해 주세요!');
             return;
         }
 
         const imagesToConvert = selectedFrameIndices.map(idx => extractedFrames[idx]);
         setConverting(true);
         setProgress(0);
-        setTotalImagesToConvert(1); // Single episode output
-        setCurrentImageIndex(1);
+        setTotalImagesToConvert(imagesToConvert.length);
+        setCurrentImageIndex(0);
+
+        const convertedImages: string[] = [];
 
         try {
-            message.loading({ content: `${imagesToConvert.length}장의 장면으로 에피소드 생성 중...`, key: 'episode' });
+            message.loading({ content: `${imagesToConvert.length}장 변환 시작...`, key: 'episode' });
 
-            // Compress all images
-            const compressedImages: string[] = [];
+            // Step 1: Convert each frame individually using existing AI API
             for (let i = 0; i < imagesToConvert.length; i++) {
-                setProgress(Math.round((i / imagesToConvert.length) * 30)); // 0-30% for compression
-                const compressed = await compressImage(imagesToConvert[i]);
-                compressedImages.push(compressed);
+                setCurrentImageIndex(i + 1);
+                message.loading({ content: `${i + 1}/${imagesToConvert.length} 변환 중...`, key: 'episode' });
+
+                if (i > 0) await new Promise(r => setTimeout(r, 10000)); // API rate limit
+
+                const compressedDataUrl = await compressImage(imagesToConvert[i]);
+
+                const res = await fetch('/api/ai/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: compressedDataUrl,
+                        styleId: selectedStyle.id,
+                        userId: userId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.error === 'DAILY_LIMIT_EXCEEDED' || data.error === 'QUOTA_EXCEEDED') {
+                    message.warning({ content: data.message || 'API 한도 초과', key: 'episode' });
+                    break;
+                }
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data.success && data.image) {
+                    convertedImages.push(data.image);
+                }
+
+                setProgress(Math.round(((i + 1) / imagesToConvert.length) * 70)); // 0-70% for conversion
             }
 
-            setProgress(40); // 40% - sending to API
+            if (convertedImages.length < 2) {
+                throw new Error('변환된 이미지가 부족합니다.');
+            }
 
-            // Send all images together to episode API
-            const res = await fetch('/api/premium/episode', {
+            // Step 2: Stitch images vertically
+            message.loading({ content: '이미지 합치는 중...', key: 'episode' });
+            setProgress(75);
+
+            const stitchedImage = await stitchImagesVertically(convertedImages);
+
+            // Step 3: Save to My Webtoon
+            message.loading({ content: '마이웹툰에 저장 중...', key: 'episode' });
+            setProgress(90);
+
+            const saveRes = await fetch('/api/webtoon/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    images: compressedImages,
+                    image: stitchedImage,
                     userId: userId
                 })
             });
 
-            setProgress(80); // 80% - processing response
-
-            const data = await res.json();
-
-            if (data.error === 'QUOTA_EXCEEDED') {
-                message.warning({ content: data.message || 'API 한도에 도달했습니다.', key: 'episode' });
-                return;
-            }
-
-            if (data.error) {
-                throw new Error(data.error);
+            if (!saveRes.ok) {
+                const errData = await saveRes.json().catch(() => ({}));
+                throw new Error(errData.message || '저장 실패');
             }
 
             setProgress(100);
-            message.success({
-                content: `${data.panelCount || 10}패널 에피소드 생성 완료! 프리미엄 탭에서 확인하세요.`,
-                key: 'episode'
-            });
+            message.success({ content: `${convertedImages.length}장 에피소드 생성 완료! 마이웹툰에서 확인하세요.`, key: 'episode' });
             router.push('/gallery');
+
         } catch (e: any) {
             message.error({ content: `오류: ${e.message}`, key: 'episode' });
         } finally {
             setConverting(false);
         }
     };
+
+    // Helper: Stitch images vertically (800px width, variable height)
+    const stitchImagesVertically = async (imageUrls: string[]): Promise<string> => {
+        const TARGET_WIDTH = 800;
+
+        // Load all images
+        const loadedImages = await Promise.all(
+            imageUrls.map(url => new Promise<HTMLImageElement>((resolve, reject) => {
+                const img = new window.Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = url;
+            }))
+        );
+
+        // Calculate total height (scale each to 800px width)
+        let totalHeight = 0;
+        const scaledDimensions: { width: number; height: number }[] = [];
+
+        for (const img of loadedImages) {
+            const scale = TARGET_WIDTH / img.width;
+            const scaledHeight = Math.round(img.height * scale);
+            scaledDimensions.push({ width: TARGET_WIDTH, height: scaledHeight });
+            totalHeight += scaledHeight;
+        }
+
+        // Create canvas and draw images
+        const canvas = document.createElement('canvas');
+        canvas.width = TARGET_WIDTH;
+        canvas.height = totalHeight;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) throw new Error('Canvas context not available');
+
+        let currentY = 0;
+        for (let i = 0; i < loadedImages.length; i++) {
+            const { height } = scaledDimensions[i];
+            ctx.drawImage(loadedImages[i], 0, currentY, TARGET_WIDTH, height);
+            currentY += height;
+        }
+
+        return canvas.toDataURL('image/jpeg', 0.9);
+    };
+
 
     const handleModeChange = (m: AppMode) => {
         if (m === 'gallery') {
