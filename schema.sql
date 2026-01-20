@@ -45,3 +45,15 @@ CREATE TABLE IF NOT EXISTS usage_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_usage_user_date ON usage_logs(user_id, created_at);
+
+-- Premium Webtoons (프리미엄 변환 웹툰)
+CREATE TABLE IF NOT EXISTS premium_webtoons (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  source_webtoon_id TEXT,  -- 원본 마이웹툰 ID
+  r2_key TEXT NOT NULL,
+  prompt TEXT,
+  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_premium_user ON premium_webtoons(user_id, created_at DESC);
