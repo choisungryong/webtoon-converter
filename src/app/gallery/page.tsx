@@ -931,27 +931,19 @@ export default function GalleryPage() {
                                 </div>
                             </div>
 
-                            {/* Footer Actions */}
-                            <div className="p-4 bg-[#1a1a1a] border-t border-white/10 flex flex-col gap-3">
-                                {/* Premium Conversion Button */}
+                            {/* Footer Actions - Compact Single Row */}
+                            <div className="p-3 bg-[#1a1a1a] border-t border-white/10 flex items-center justify-between gap-2">
+                                {/* Premium Button */}
                                 <button
                                     onClick={handlePremiumConvert}
                                     disabled={convertingPremium}
-                                    className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
                                 >
-                                    {convertingPremium ? (
-                                        <>
-                                            <Spin size="small" /> 변환 중...
-                                        </>
-                                    ) : (
-                                        <>
-                                            ✨ 프리미엄 변환
-                                        </>
-                                    )}
+                                    {convertingPremium ? <Spin size="small" /> : '✨'} 프리미엄
                                 </button>
 
-                                {/* Other Actions Row */}
-                                <div className="flex justify-between items-center">
+                                {/* Other Actions */}
+                                <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => {
                                             if (webtoonPreviewImage) {
@@ -959,27 +951,27 @@ export default function GalleryPage() {
                                                 setWebtoonPreviewImage(null);
                                             }
                                         }}
-                                        className="px-4 py-2.5 text-red-400 hover:bg-red-500/10 rounded-xl flex items-center gap-2 transition-colors"
+                                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        title="삭제"
                                     >
-                                        <DeleteOutlined /> 삭제
+                                        <DeleteOutlined />
                                     </button>
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => handleDownload(
-                                                webtoonPreviewImage.url,
-                                                `toonsnap-webtoon-${Date.now()}.jpg`
-                                            )}
-                                            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center gap-2 transition-colors"
-                                        >
-                                            <DownloadOutlined /> 저장
-                                        </button>
-                                        <button
-                                            onClick={() => handleShare(webtoonPreviewImage.url)}
-                                            className="px-4 py-2.5 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold flex items-center gap-2 transition-colors"
-                                        >
-                                            <ShareAltOutlined /> 공유
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => handleDownload(
+                                            webtoonPreviewImage.url,
+                                            `toonsnap-webtoon-${Date.now()}.jpg`
+                                        )}
+                                        className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                                        title="저장"
+                                    >
+                                        <DownloadOutlined />
+                                    </button>
+                                    <button
+                                        onClick={() => handleShare(webtoonPreviewImage.url)}
+                                        className="px-3 py-2 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-lg font-bold text-xs flex items-center gap-1 transition-colors"
+                                    >
+                                        <ShareAltOutlined /> 공유
+                                    </button>
                                 </div>
                             </div>
                         </div>

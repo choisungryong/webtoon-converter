@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
             r2_key: row.r2_key,
             source_webtoon_id: row.source_webtoon_id,
             createdAt: row.createdAt,
-            url: `https://pub-5a40adc9e21a4024b93d7f0c6ca2a049.r2.dev/${row.r2_key}`
+            url: `/api/premium/${row.id}/image`  // Use API endpoint instead of direct R2 URL
         }));
 
         return NextResponse.json({ images });
