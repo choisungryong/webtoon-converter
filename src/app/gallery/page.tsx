@@ -72,6 +72,7 @@ export default function GalleryPage() {
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [webtoonPreviewImage, setWebtoonPreviewImage] = useState<GalleryImage | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -492,6 +493,9 @@ export default function GalleryPage() {
                                                             ? prev.filter(i => i !== img.id)
                                                             : [...prev, img.id]
                                                     );
+                                                } else if (activeTab === 'webtoon') {
+                                                    // 마이웹툰 전용 풀스크린 뷰어
+                                                    setWebtoonPreviewImage(img);
                                                 } else {
                                                     setPreviewImage(img.url);
                                                     setViewMode('processed');
@@ -698,6 +702,103 @@ export default function GalleryPage() {
                                             <MessageOutlined /> 카카오
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </Modal>
+
+                {/* 마이웹툰 전용 풀스크린 스크롤 뷰어 */}
+                <Modal
+                    open={!!webtoonPreviewImage}
+                    footer={null}
+                    onCancel={() => setWebtoonPreviewImage(null)}
+                    width="100vw"
+                    style={{
+                        maxWidth: '100vw',
+                        top: 0,
+                        padding: 0,
+                        margin: 0
+                    }}
+                    styles={{
+                        content: {
+                            background: '#0a0a0a',
+                            padding: '0',
+                            borderRadius: '0',
+                            height: '100vh',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        },
+                        body: {
+                            padding: 0,
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        }
+                    }}
+                    closeIcon={
+                        <span className="fixed right-4 top-4 z-50 text-white text-2xl bg-black/60 w-10 h-10 flex items-center justify-center rounded-full backdrop-blur-sm cursor-pointer hover:bg-black/80 transition-colors">
+                            ×
+                        </span>
+                    }
+                >
+                    {webtoonPreviewImage && (
+                        <div className="flex flex-col h-full">
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border-b border-white/10">
+                                <div className="text-white font-medium">
+                                    📖 마이웹툰 뷰어
+                                </div>
+                                <span className="text-gray-400 text-sm">
+                                    {new Date((webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at) * 1000).toLocaleDateString('ko-KR', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </span>
+                            </div>
+
+                            {/* Scrollable Image Container */}
+                            <div className="flex-1 overflow-y-auto webtoon-fullscreen-scroll">
+                                <div className="webtoon-fullscreen-container">
+                                    <img
+                                        src={webtoonPreviewImage.url}
+                                        alt="Webtoon"
+                                        className="webtoon-fullscreen-image"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="p-4 bg-[#1a1a1a] border-t border-white/10 flex justify-between items-center">
+                                <button
+                                    onClick={() => {
+                                        if (webtoonPreviewImage) {
+                                            handleDelete(webtoonPreviewImage.id);
+                                            setWebtoonPreviewImage(null);
+                                        }
+                                    }}
+                                    className="px-4 py-2.5 text-red-400 hover:bg-red-500/10 rounded-xl flex items-center gap-2 transition-colors"
+                                >
+                                    <DeleteOutlined /> 삭제
+                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => handleDownload(
+                                            webtoonPreviewImage.url,
+                                            `toonsnap-webtoon-${Date.now()}.jpg`
+                                        )}
+                                        className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl flex items-center gap-2 transition-colors"
+                                    >
+                                        <DownloadOutlined /> 저장
+                                    </button>
+                                    <button
+                                        onClick={() => handleShare(webtoonPreviewImage.url)}
+                                        className="px-4 py-2.5 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold flex items-center gap-2 transition-colors"
+                                    >
+                                        <ShareAltOutlined /> 공유
+                                    </button>
                                 </div>
                             </div>
                         </div>
