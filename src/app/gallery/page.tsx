@@ -78,6 +78,7 @@ export default function GalleryPage() {
     const [deleting, setDeleting] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [webtoonPreviewImage, setWebtoonPreviewImage] = useState<GalleryImage | null>(null);
+    const [isPremiumPreview, setIsPremiumPreview] = useState(false);  // 프리미엄 이미지 여부
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -586,11 +587,12 @@ export default function GalleryPage() {
                                     key={img.id}
                                     className="gallery-item group relative"
                                     onClick={() => {
-                                        // 프리미엄 이미지도 웹툰 뷰어로 열기
+                                        // 프리미엄 이미지는 별도 처리
                                         setWebtoonPreviewImage({
                                             ...img,
                                             created_at: img.createdAt
                                         } as any);
+                                        setIsPremiumPreview(true);  // 프리미엄 이미지 표시
                                     }}
                                 >
                                     <img
@@ -663,6 +665,7 @@ export default function GalleryPage() {
                                                 } else if (activeTab === 'webtoon') {
                                                     // 마이웹툰 전용 풀스크린 뷰어
                                                     setWebtoonPreviewImage(img);
+                                                    setIsPremiumPreview(false);  // 일반 웹툰
                                                 } else {
                                                     setPreviewImage(img.url);
                                                     setViewMode('processed');
@@ -938,42 +941,74 @@ export default function GalleryPage() {
                                 </div>
                             </div>
 
-                            {/* Footer Actions - Ultra Compact */}
-                            <div className="px-3 py-2 bg-[#1a1a1a]/95 border-t border-white/10 flex items-center justify-between">
-                                {/* Premium Button */}
+                            {/* Converting Status Bar */}
+                            {convertingPremium && (
+                                <div className="px-4 py-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10">
+                                    <div className="flex items-center justify-center gap-2 text-white">
+                                        <Spin size="small" />
+                                        <span className="text-sm font-medium">프리미엄 변환 중...</span>
+                                    </div>
+                                    <div className="mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
+                                        <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" style={{ width: '60%' }}></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Footer - My Snap Style */}
+                            <div className="p-4 bg-[#1a1a1a] border-t border-white/10">
+                                {/* Main Action Button - Story Share (smaller) */}
                                 <button
-                                    onClick={handlePremiumConvert}
-                                    disabled={convertingPremium}
-                                    className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-md font-bold text-[11px] flex items-center gap-1 disabled:opacity-50"
+                                    onClick={() => handleShare(webtoonPreviewImage.url)}
+                                    className="w-full mb-3 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        color: 'white',
+                                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+                                    }}
                                 >
-                                    {convertingPremium ? <Spin size="small" /> : '✨'} PRO
+                                    <span>📤</span> 스토리에 공유하기
                                 </button>
 
-                                {/* Actions */}
-                                <div className="flex items-center gap-1">
+                                {/* Secondary Actions Row */}
+                                <div className="flex justify-between items-center gap-2">
                                     <button
                                         onClick={() => {
                                             if (webtoonPreviewImage) {
-                                                handleDelete(webtoonPreviewImage.id);
+                                                isPremiumPreview
+                                                    ? handlePremiumDelete(webtoonPreviewImage.id)
+                                                    : handleDelete(webtoonPreviewImage.id);
                                                 setWebtoonPreviewImage(null);
                                             }
                                         }}
-                                        className="w-8 h-8 text-red-400 hover:bg-red-500/10 rounded-md flex items-center justify-center"
+                                        className="px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-1.5 text-sm"
                                     >
-                                        <DeleteOutlined className="text-sm" />
+                                        <DeleteOutlined /> 삭제
                                     </button>
-                                    <button
-                                        onClick={() => handleDownload(webtoonPreviewImage.url, `webtoon-${Date.now()}.jpg`)}
-                                        className="w-8 h-8 bg-white/10 text-white rounded-md flex items-center justify-center"
-                                    >
-                                        <DownloadOutlined className="text-sm" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleShare(webtoonPreviewImage.url)}
-                                        className="px-2.5 py-1.5 bg-[#CCFF00] text-black rounded-md font-bold text-[11px]"
-                                    >
-                                        공유
-                                    </button>
+
+                                    <div className="flex gap-2">
+                                        {/* Premium Button - Only for non-premium */}
+                                        {!isPremiumPreview && (
+                                            <button
+                                                onClick={handlePremiumConvert}
+                                                disabled={convertingPremium}
+                                                className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 disabled:opacity-50"
+                                            >
+                                                ✨ PRO
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => handleDownload(webtoonPreviewImage.url, `webtoon-${Date.now()}.jpg`)}
+                                            className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-1.5 text-sm"
+                                        >
+                                            <DownloadOutlined /> 저장
+                                        </button>
+                                        <button
+                                            onClick={() => handleKakaoShare(webtoonPreviewImage.url)}
+                                            className="px-3 py-2 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-1.5 text-sm font-bold"
+                                        >
+                                            <MessageOutlined /> 카카오
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
