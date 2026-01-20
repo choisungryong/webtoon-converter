@@ -901,7 +901,8 @@ export default function GalleryPage() {
                             flex: 1,
                             display: 'flex',
                             flexDirection: 'column',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            overflowY: 'auto'  // Enable vertical scroll
                         }
                     }}
                     closeIcon={
