@@ -83,6 +83,7 @@ export default function GalleryPage() {
     const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const webtoonScrollRef = useRef<HTMLDivElement | null>(null);
 
     // Smart Layout State
     const [smartLayoutEnabled, setSmartLayoutEnabled] = useState(false);
@@ -104,6 +105,16 @@ export default function GalleryPage() {
             longPressTimerRef.current = null;
         }
     };
+
+    // Scroll to top when webtoon preview opens
+    useEffect(() => {
+        if (webtoonPreviewImage && webtoonScrollRef.current) {
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                webtoonScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+            }, 50);
+        }
+    }, [webtoonPreviewImage]);
 
     const [userId, setUserId] = useState<string>('');
 
@@ -930,7 +941,9 @@ export default function GalleryPage() {
                             </div>
 
                             {/* Scrollable Image Container */}
-                            <div className="flex-1 overflow-y-auto webtoon-fullscreen-scroll">
+                            <div
+                                ref={webtoonScrollRef}
+                                className="flex-1 overflow-y-auto webtoon-fullscreen-scroll">
                                 <div className="webtoon-fullscreen-container">
                                     <img
                                         src={webtoonPreviewImage.url}
