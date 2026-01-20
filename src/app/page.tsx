@@ -238,7 +238,7 @@ export default function Home() {
         if (!videoRef.current || !canvasRef.current) return;
         const video = videoRef.current;
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const duration = video.duration;
 
         // 3. Smart Extraction: Analyze more frames (20) and filter duplicates
@@ -460,7 +460,7 @@ export default function Home() {
                 }
                 canvas.width = width;
                 canvas.height = height;
-                canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+                canvas.getContext('2d', { willReadFrequently: true })?.drawImage(img, 0, 0, width, height);
                 resolve(canvas.toDataURL('image/jpeg', 0.95));
             };
             img.onerror = () => reject(new Error('이미지 로드 실패'));

@@ -273,7 +273,7 @@ export default function GalleryPage() {
             const canvas = document.createElement('canvas');
             canvas.width = maxWidth;
             canvas.height = totalHeight;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
             if (!ctx) throw new Error('Canvas context not available');
 
@@ -770,8 +770,8 @@ export default function GalleryPage() {
                             }}
                             disabled={analyzingLayout}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${smartLayoutEnabled
-                                    ? 'bg-[#CCFF00] text-black'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-[#CCFF00] text-black'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             {analyzingLayout ? (
