@@ -33,22 +33,46 @@ export async function POST(request: NextRequest) {
         const mimeType = `image/${base64Match[1]}`;
         const base64Data = base64Match[2];
 
-        // Premium conversion prompt
-        const premiumPrompt = `[GENERATE NEW IMAGE] Transform this webtoon image into a premium, cinematic Korean webtoon episode.
+        // Premium conversion prompt - Professional Korean Webtoon Episode Style
+        const premiumPrompt = `[GENERATE NEW IMAGE - PREMIUM WEBTOON EPISODE]
 
-REQUIREMENTS:
-1. OUTPUT SIZE: Create a high-quality 800x1280 pixel vertical image
-2. STYLE: Premium Korean webtoon episode aesthetic with:
-   - Enhanced dramatic lighting and shadows
-   - Refined character art with detailed expressions
-   - Rich color grading with cinematic atmosphere
-   - Professional panel composition
-3. PRESERVE: Keep all characters, poses, and story elements from the original
-4. ENHANCE: Add depth, polish, and professional webtoon quality
+Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a stunning 800x1280 pixel vertical webtoon page.
 
-OUTPUT: A single, premium quality webtoon episode image (800x1280px) that looks like it's from a top-tier professional Korean webtoon series.
+CRITICAL REQUIREMENTS:
 
-DO NOT: Add text, speech bubbles, watermarks, or change the story content.`;
+1. PANEL LAYOUT (Very Important):
+   - Divide the scene into 3-5 dramatic comic panels
+   - Use dynamic panel shapes (diagonal cuts, overlapping panels, bleeds)
+   - Create visual flow that guides the reader's eye naturally
+   - Include one large "hero" panel for the most dramatic moment
+
+2. CINEMATIC STYLE:
+   - Apply dramatic camera angles (low angle, high angle, close-ups, wide shots)
+   - Use depth of field effects (blur backgrounds for focus)
+   - Add dramatic lighting with strong contrast
+   - Include speed lines, impact effects, or emotion particles where appropriate
+
+3. CHARACTER ENHANCEMENT:
+   - Redraw characters in premium manhwa/webtoon art style
+   - Add detailed facial expressions showing emotion
+   - Include dynamic poses and body language
+   - Ensure consistent character design across panels
+
+4. ATMOSPHERE & MOOD:
+   - Apply professional color grading (warm/cool tones based on mood)
+   - Add atmospheric effects (lens flares, light rays, shadows)
+   - Create depth with layered backgrounds
+   - Use gradient overlays for cinematic feel
+
+5. PROFESSIONAL POLISH:
+   - Clean, crisp line art with varying line weights
+   - Smooth gradient shading (Korean webtoon style)
+   - High contrast between panels for visual impact
+   - Premium print-quality rendering
+
+OUTPUT: A single 800x1280px vertical image that looks like a page from Solo Leveling, Tower of God, or True Beauty - top-tier professional Korean webtoon quality.
+
+DO NOT: Add any text, speech bubbles, sound effects text, watermarks, or signatures.`;
 
         // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
         // Note: gemini-3-pro-image is not yet available in v1beta API
