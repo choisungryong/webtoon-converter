@@ -815,6 +815,7 @@ export default function Home() {
                                                 }
                                                 message.success(`${indicesToSave.length}장이 갤러리에 저장되었습니다.`);
                                                 setIsSaved(true);
+                                                isSavingRef.current = false;
                                             } catch (e: any) {
                                                 console.error(e);
                                                 message.error(e.message || '저장 실패');
