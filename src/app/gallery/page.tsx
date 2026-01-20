@@ -275,11 +275,24 @@ export default function GalleryPage() {
 
         try {
             const currentUserId = localStorage.getItem('toonsnap_user_id');
+
+            // Convert image URL to Base64 Data URI
+            const imageUrl = webtoonPreviewImage.url;
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+
             const res = await fetch('/api/premium/convert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    image: webtoonPreviewImage.url,
+                    image: base64,  // Now sending Base64 Data URI
                     sourceWebtoonId: webtoonPreviewImage.id,
                     userId: currentUserId
                 })
