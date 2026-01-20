@@ -47,51 +47,53 @@ export async function POST(request: NextRequest) {
 
         const panelCount = Math.max(imageParts.length, 10); // At least 10 panels or number of images
 
-        // Multi-image Episode Generation Prompt
-        const episodePrompt = `[GENERATE WEBTOON EPISODE - MULTI-PANEL PAGE]
+        // Multi-image Episode Generation Prompt - STRONG ART STYLE CONVERSION
+        const episodePrompt = `[CRITICAL: DRAW AS ILLUSTRATED WEBTOON - NOT PHOTOS]
 
-You are given ${imageParts.length} reference images from a video. Transform these into a SINGLE LONG VERTICAL WEBTOON EPISODE PAGE with ${panelCount} PANELS.
+You are an expert Korean webtoon artist. I am giving you ${imageParts.length} REFERENCE PHOTOS. 
+You MUST REDRAW these as HAND-DRAWN ILLUSTRATIONS in Korean webtoon/manhwa art style.
 
-⚠️ CRITICAL - CHARACTER IDENTITY PRESERVATION (MOST IMPORTANT):
-- PRESERVE EXACT GENDER for all characters across all panels
-- PRESERVE EXACT APPEARANCE: Same face, hairstyle, hair color, eye color
-- PRESERVE CLOTHING: Same outfits throughout the episode
-- MAINTAIN CONSISTENCY: Same characters must look identical in every panel
-- DO NOT change any character's gender or distinguishing features
+⚠️ MOST IMPORTANT - DO NOT USE THE ORIGINAL PHOTOS:
+- DO NOT paste or composite the original photos
+- DO NOT apply filters to the photos
+- You MUST DRAW/ILLUSTRATE everything from scratch
+- The output must look like a HAND-DRAWN COMIC, not photographs
 
-REQUIREMENTS:
+🎨 ART STYLE REQUIREMENTS (MANDATORY):
+- Korean webtoon/manhwa illustration style (like Solo Leveling, True Beauty, Lookism)
+- Clean lineart with smooth cel-shading
+- Anime-style eyes and facial features
+- Stylized proportions (larger eyes, defined jawlines)
+- Vibrant colors with gradient shading
+- The result should look like a DRAWING, not a photo
 
-1. PANEL LAYOUT (${panelCount} PANELS):
-   - Create exactly ${panelCount} panels arranged vertically
-   - Use dynamic panel shapes (diagonal cuts, overlapping, varied sizes)
-   - Mix panel types: 2-3 LARGE hero panels, rest medium/small
-   - Flow naturally from top to bottom like reading a webtoon
+👤 CHARACTER CONVERSION:
+- Study each person in the reference photos
+- REDRAW them as illustrated manhwa characters
+- Keep their gender, hair color, outfit colors the same
+- But convert to illustrated/drawn appearance
+- Make them look like anime/webtoon characters
 
-2. STORYTELLING:
-   - Each panel should show a different moment or angle from the reference images
-   - Create visual narrative flow between panels
-   - Use establishing shots, close-ups, reaction shots, action shots
-   - Add dramatic camera angles for key moments
+📐 LAYOUT (${panelCount} PANELS):
+- Create a SINGLE TALL VERTICAL IMAGE (800 x 2400 pixels)
+- Arrange ${panelCount} panels vertically for webtoon scroll format
+- Use dynamic panel shapes (diagonal cuts, overlapping)
+- Mix: 2-3 large dramatic panels + smaller reaction panels
 
-3. CINEMATIC STYLE:
-   - Depth of field effects
-   - Strong lighting contrast with dramatic shadows
-   - Speed lines or emotion particles where appropriate
-   - Atmospheric effects (light rays, particles, bokeh)
+📖 STORYTELLING:
+- Each panel shows a different moment from the reference scenes
+- Use varied camera angles: close-ups, medium shots, wide shots
+- Add speed lines, emotion effects, screen tones where appropriate
+- Create visual flow like reading a professional webtoon
 
-4. ART STYLE:
-   - Premium Korean manhwa/webtoon art style
-   - Detailed character expressions
-   - Layered backgrounds with depth
-   - Professional color grading
-
-OUTPUT DIMENSIONS: 800 x 2400 pixels (tall vertical format for ${panelCount} panels)
+OUTPUT: Single 800x2400 pixel illustrated webtoon episode page.
 
 STRICT RULES:
-- NO text, speech bubbles, watermarks, or UI elements
-- NO changing character gender or appearance between panels
-- SAME characters must appear consistently across ALL panels
-- Create a cohesive visual story from the reference images`;
+- ILLUSTRATED DRAWING STYLE ONLY - NO PHOTOGRAPHS
+- NO text, speech bubbles, or watermarks
+- Consistent character appearance across all panels
+- Must look like professional Korean webtoon art`;
+
 
         // Build request parts: all images + prompt
         const parts: any[] = [
