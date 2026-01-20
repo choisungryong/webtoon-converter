@@ -84,6 +84,10 @@ export default function GalleryPage() {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const webtoonScrollRef = useRef<HTMLDivElement | null>(null);
+    const premiumScrollRef = useRef<HTMLDivElement | null>(null);
+
+    // Separate state for premium preview (to not share scroll with webtoon)
+    const [premiumPreviewImage, setPremiumPreviewImage] = useState<GalleryImage | null>(null);
 
     // Smart Layout State
     const [smartLayoutEnabled, setSmartLayoutEnabled] = useState(false);
@@ -598,11 +602,10 @@ export default function GalleryPage() {
                                     key={img.id}
                                     className="webtoon-preview-card group"
                                     onClick={() => {
-                                        setWebtoonPreviewImage({
+                                        setPremiumPreviewImage({
                                             ...img,
                                             created_at: img.createdAt
                                         } as any);
-                                        setIsPremiumPreview(true);
                                     }}
                                 >
                                     <img
@@ -1016,6 +1019,124 @@ export default function GalleryPage() {
                                         </button>
                                         <button
                                             onClick={() => handleKakaoShare(webtoonPreviewImage.url)}
+                                            className="px-3 py-2 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-1.5 text-sm font-bold"
+                                        >
+                                            <MessageOutlined /> 카카오
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </Modal>
+
+                {/* 프리미엄 전용 뷰어 (마이웹툰과 분리) */}
+                <Modal
+                    open={!!premiumPreviewImage}
+                    footer={null}
+                    onCancel={() => setPremiumPreviewImage(null)}
+                    width={600}
+                    centered
+                    style={{
+                        maxWidth: '95vw',
+                        padding: 0
+                    }}
+                    styles={{
+                        content: {
+                            background: '#0a0a0a',
+                            padding: '0',
+                            borderRadius: '12px',
+                            maxHeight: '90vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        },
+                        body: {
+                            padding: 0,
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            overflowY: 'auto'
+                        }
+                    }}
+                    closeIcon={
+                        <span className="absolute right-3 top-3 z-50 text-white text-xl bg-black/60 w-8 h-8 flex items-center justify-center rounded-full cursor-pointer hover:bg-black/80">
+                            ×
+                        </span>
+                    }
+                    afterOpenChange={(open) => {
+                        if (open && premiumScrollRef.current) {
+                            premiumScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
+                        }
+                    }}
+                >
+                    {premiumPreviewImage && (
+                        <div className="flex flex-col h-full">
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10">
+                                <div className="text-white font-medium flex items-center gap-2">
+                                    ✨ <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-bold">프리미엄 뷰어</span>
+                                </div>
+                                <span className="text-gray-400 text-sm">
+                                    {new Date((premiumPreviewImage.createdAt || premiumPreviewImage.created_at) * 1000).toLocaleDateString('ko-KR', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </span>
+                            </div>
+
+                            {/* Scrollable Image Container */}
+                            <div
+                                ref={premiumScrollRef}
+                                className="flex-1 overflow-y-auto webtoon-fullscreen-scroll"
+                            >
+                                <div className="webtoon-fullscreen-container">
+                                    <img
+                                        src={premiumPreviewImage.url}
+                                        alt="Premium Webtoon"
+                                        className="webtoon-fullscreen-image"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 bg-[#1a1a1a] border-t border-white/10">
+                                <button
+                                    onClick={() => handleShare(premiumPreviewImage.url)}
+                                    className="w-full mb-3 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        color: 'white',
+                                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+                                    }}
+                                >
+                                    <span>📤</span> 스토리에 공유하기
+                                </button>
+
+                                <div className="flex justify-between items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            if (premiumPreviewImage) {
+                                                handlePremiumDelete(premiumPreviewImage.id);
+                                                setPremiumPreviewImage(null);
+                                            }
+                                        }}
+                                        className="px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-1.5 text-sm"
+                                    >
+                                        <DeleteOutlined /> 삭제
+                                    </button>
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleDownload(premiumPreviewImage.url, `premium-${Date.now()}.jpg`)}
+                                            className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-1.5 text-sm"
+                                        >
+                                            <DownloadOutlined /> 저장
+                                        </button>
+                                        <button
+                                            onClick={() => handleKakaoShare(premiumPreviewImage.url)}
                                             className="px-3 py-2 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-1.5 text-sm font-bold"
                                         >
                                             <MessageOutlined /> 카카오
