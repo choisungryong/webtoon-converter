@@ -937,15 +937,15 @@ export default function GalleryPage() {
                                 <button
                                     onClick={handlePremiumConvert}
                                     disabled={convertingPremium}
-                                    className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {convertingPremium ? (
                                         <>
-                                            <Spin size="small" /> 프리미엄 변환 중...
+                                            <Spin size="small" /> 변환 중...
                                         </>
                                     ) : (
                                         <>
-                                            ✨ 프리미엄 변환 (800×1280)
+                                            ✨ 프리미엄 변환
                                         </>
                                     )}
                                 </button>

@@ -50,8 +50,9 @@ OUTPUT: A single, premium quality webtoon episode image (800x1280px) that looks 
 
 DO NOT: Add text, speech bubbles, watermarks, or change the story content.`;
 
-        // Call Gemini 3 Pro Image (Nano Banana Pro) - Premium model with 4K support
-        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image:generateContent?key=${apiKey}`;
+        // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
+        // Note: gemini-3-pro-image is not yet available in v1beta API
+        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
 
         console.log('[Premium/Convert] Calling Gemini API...');
 
