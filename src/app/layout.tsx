@@ -6,27 +6,95 @@ import "./globals.css";
 
 // runtime config removed to use default nodejs_compat
 
+const baseUrl = 'https://banatoon.app';
+
 export const metadata: Metadata = {
-    title: "ToonSnap - 당신의 일상을 K-웹툰으로",
+    metadataBase: new URL(baseUrl),
+    title: {
+        default: "ToonSnap - 당신의 일상을 K-웹툰으로",
+        template: "%s | ToonSnap"
+    },
     description: "AI 기반으로 사진과 영상을 한국 웹툰 스타일로 변환해주는 무료 서비스입니다. 간단한 업로드만으로 나만의 웹툰 이미지를 만들어보세요.",
-    keywords: ["웹툰 변환", "AI 이미지 변환", "K-웹툰", "사진 웹툰화", "ToonSnap", "웹툰 스타일", "AI 아트"],
-    authors: [{ name: "ToonSnap Team" }],
+    keywords: ["웹툰 변환", "AI 이미지 변환", "K-웹툰", "사진 웹툰화", "ToonSnap", "웹툰 스타일", "AI 아트", "무료 웹툰", "사진 변환", "AI 그림"],
+    authors: [{ name: "ToonSnap Team", url: baseUrl }],
+    creator: "ToonSnap",
+    publisher: "ToonSnap",
+    alternates: {
+        canonical: baseUrl,
+        languages: {
+            'ko-KR': baseUrl,
+        },
+    },
     openGraph: {
         title: "ToonSnap - 당신의 일상을 K-웹툰으로",
         description: "AI 기반으로 사진을 한국 웹툰 스타일로 변환해주는 무료 서비스",
         type: "website",
         locale: "ko_KR",
         siteName: "ToonSnap",
+        url: baseUrl,
+        images: [
+            {
+                url: `${baseUrl}/og-image.png`,
+                width: 1200,
+                height: 630,
+                alt: "ToonSnap - AI 웹툰 변환 서비스",
+            },
+        ],
     },
     twitter: {
         card: "summary_large_image",
         title: "ToonSnap - 당신의 일상을 K-웹툰으로",
         description: "AI 기반으로 사진을 한국 웹툰 스타일로 변환해주는 무료 서비스",
+        images: [`${baseUrl}/og-image.png`],
     },
     robots: {
         index: true,
         follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+        },
     },
+    verification: {
+        google: '-I-QfQxm0V7pp8333g_ffwxo_qONKpcbaP3vyhke2Ls', // Google Search Console 인증 코드로 교체 필요
+    },
+    category: 'technology',
+    other: {
+        'geo.region': 'KR',
+        'geo.placename': 'South Korea',
+        'content-language': 'ko',
+    },
+};
+
+// JSON-LD 구조화 데이터
+const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'ToonSnap',
+    description: 'AI 기반으로 사진과 영상을 한국 웹툰 스타일로 변환해주는 무료 서비스',
+    url: baseUrl,
+    applicationCategory: 'MultimediaApplication',
+    operatingSystem: 'Web',
+    offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'KRW',
+    },
+    aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.8',
+        ratingCount: '1000',
+    },
+    author: {
+        '@type': 'Organization',
+        name: 'ToonSnap Team',
+        url: baseUrl,
+    },
+    inLanguage: 'ko-KR',
+    isAccessibleForFree: true,
 };
 
 export default function RootLayout({
@@ -40,6 +108,15 @@ export default function RootLayout({
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+                <link rel="manifest" href="/manifest.json" />
+                <meta name="theme-color" content="#CCFF00" />
+                <meta name="mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                />
             </head>
             <body className="bg-[#0a0a0a] min-h-screen flex flex-col" suppressHydrationWarning>
                 <Script

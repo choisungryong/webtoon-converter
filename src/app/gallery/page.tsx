@@ -219,7 +219,7 @@ function GalleryContent() {
         // Convert relative URL to absolute URL (Required for Kakao)
         // Ensure we use the PRODUCTION domain for both Image and Link, 
         // because Kakao cannot access Localhost images/links.
-        const productionOrigin = 'https://webtoon-converter.pages.dev';
+        const productionOrigin = 'https://banatoon.app';
 
         // Force Production URL always to match Kakao Developers settings
         const targetOrigin = productionOrigin;
