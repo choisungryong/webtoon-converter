@@ -36,7 +36,11 @@ export default function RootLayout({
 }) {
     return (
         <html lang="ko" suppressHydrationWarning>
-            <head />
+            <head>
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            </head>
             <body className="bg-[#0a0a0a] min-h-screen flex flex-col" suppressHydrationWarning>
                 <Script
                     src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
@@ -93,7 +97,6 @@ export default function RootLayout({
                                 특정 브랜드나 작가와는 무관합니다.
                             </p>
 
-                            {/* Copyright */}
                             <p className="text-gray-600 text-xs text-center">
                                 © 2026 ToonSnap. All rights reserved.
                             </p>

@@ -297,11 +297,44 @@ export default function Home() {
             }
 
             setExtractedFrames(frames);
-            // Select up to 3 best candidates (start, middle, end)
-            const autoSelectIndices = frames.length > 2
-                ? [0, Math.floor(frames.length / 2), frames.length - 1]
-                : frames.map((_, i) => i);
-            setSelectedFrameIndices(autoSelectIndices.slice(0, 10)); // cap at 10 just in case
+
+            // Auto-select: start, 2+ scene-changed middle frames, end (at least 4 frames)
+            let autoSelectIndices: number[] = [];
+
+            if (frames.length >= 4) {
+                // Start
+                autoSelectIndices.push(0);
+
+                // Select 2+ middle frames (evenly distributed, excluding first and last)
+                const middleIndices = [];
+                for (let i = 1; i < frames.length - 1; i++) {
+                    middleIndices.push(i);
+                }
+
+                // Pick at least 2 middle frames, evenly spaced
+                const middleCount = Math.max(2, Math.min(middleIndices.length, 4)); // 2-4 middle frames
+                const step = middleIndices.length / middleCount;
+                for (let i = 0; i < middleCount; i++) {
+                    const idx = middleIndices[Math.floor(i * step)];
+                    if (!autoSelectIndices.includes(idx)) {
+                        autoSelectIndices.push(idx);
+                    }
+                }
+
+                // End
+                autoSelectIndices.push(frames.length - 1);
+
+                // Sort by index order
+                autoSelectIndices.sort((a, b) => a - b);
+            } else if (frames.length === 3) {
+                // If only 3 frames, select all
+                autoSelectIndices = [0, 1, 2];
+            } else {
+                // If less than 3 frames, select all
+                autoSelectIndices = frames.map((_, i) => i);
+            }
+
+            setSelectedFrameIndices(autoSelectIndices.slice(0, 10)); // cap at 10
 
             message.success({ content: `분석 완료! ${frames.length}개의 주요 장면을 찾았습니다.`, key: 'analyze' });
         } catch (e) {
@@ -625,7 +658,7 @@ export default function Home() {
             <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-            <div style={{ width: '100%', maxWidth: '420px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', maxWidth: '640px', overflow: 'hidden' }}>
                 {/* Header */}
                 <Header
                     mode={mode}
@@ -640,6 +673,13 @@ export default function Home() {
                 {/* Photo Mode */}
                 {mode === 'photo' && (
                     <>
+                        {/* Step 1: 사진 업로드 가이드 */}
+                        {photoPreviews.length === 0 && (
+                            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold">1</span>
+                                <span className="text-blue-400 text-sm">먼저 변환할 사진을 선택해주세요</span>
+                            </div>
+                        )}
                         <GlassCard padding={photoPreviews.length > 0 ? 'md' : 'lg'}>
                             {/* Upload Area - compact when photos selected */}
                             {photoPreviews.length < 5 && (
@@ -762,6 +802,13 @@ export default function Home() {
 
                         {photoPreviews.length > 0 && (
                             <>
+                                {/* Step 2: 스타일 선택 가이드 */}
+                                {aiImages.length === 0 && (
+                                    <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-xs font-bold">2</span>
+                                        <span className="text-purple-400 text-sm">원하는 웹툰 스타일을 선택하세요</span>
+                                    </div>
+                                )}
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
@@ -791,197 +838,204 @@ export default function Home() {
                         )}
 
                         {aiImages.length > 0 && (
-                            <GlassCard>
-                                {/* Selection Header */}
-                                {aiImages.length > 1 && (
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        marginBottom: '12px',
-                                        padding: '0 4px'
-                                    }}>
-                                        <span style={{
-                                            color: 'var(--text-secondary)',
-                                            fontSize: '13px'
+                            <>
+                                {/* Step 3: 결과 확인 가이드 */}
+                                <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold">3</span>
+                                    <span className="text-green-400 text-sm">변환 완료! 💬 말풍선을 추가하고 갤러리에 저장하세요</span>
+                                </div>
+                                <GlassCard>
+                                    {/* Selection Header */}
+                                    {aiImages.length > 1 && (
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            marginBottom: '12px',
+                                            padding: '0 4px'
                                         }}>
-                                            {selectedResultIndices.length > 0
-                                                ? `${selectedResultIndices.length}장 선택됨`
-                                                : '저장할 이미지를 선택하세요'}
-                                        </span>
-                                        <button
-                                            onClick={selectAllResults}
-                                            style={{
-                                                background: 'transparent',
-                                                border: 'none',
-                                                color: 'var(--accent-color)',
-                                                fontSize: '13px',
-                                                fontWeight: 500,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            {selectedResultIndices.length === aiImages.length ? '전체 해제' : '전체 선택'}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Result Images Grid */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(2, 1fr)',
-                                    gap: '12px',
-                                    marginBottom: '16px'
-                                }}>
-                                    {aiImages.map((img, idx) => {
-                                        const isSelected = aiImages.length === 1 || selectedResultIndices.includes(idx);
-                                        return (
-                                            <div
-                                                key={idx}
-                                                onClick={() => aiImages.length > 1 && toggleResultSelection(idx)}
+                                            <span style={{
+                                                color: 'var(--text-secondary)',
+                                                fontSize: '13px'
+                                            }}>
+                                                {selectedResultIndices.length > 0
+                                                    ? `${selectedResultIndices.length}장 선택됨`
+                                                    : '저장할 이미지를 선택하세요'}
+                                            </span>
+                                            <button
+                                                onClick={selectAllResults}
                                                 style={{
-                                                    borderRadius: '12px',
-                                                    overflow: 'hidden',
-                                                    position: 'relative',
-                                                    cursor: aiImages.length > 1 ? 'pointer' : 'default',
-                                                    border: isSelected
-                                                        ? '2px solid var(--accent-color)'
-                                                        : '2px solid transparent',
-                                                    opacity: aiImages.length > 1 && !isSelected ? 0.6 : 1,
-                                                    transition: 'all 0.15s ease'
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'var(--accent-color)',
+                                                    fontSize: '13px',
+                                                    fontWeight: 500,
+                                                    cursor: 'pointer'
                                                 }}
                                             >
-                                                {/* Selection Checkbox */}
-                                                {aiImages.length > 1 && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: '8px',
-                                                        left: '8px',
-                                                        width: '24px',
-                                                        height: '24px',
-                                                        borderRadius: '50%',
-                                                        background: isSelected ? 'var(--accent-color)' : 'rgba(0,0,0,0.5)',
-                                                        border: isSelected ? 'none' : '2px solid rgba(255,255,255,0.5)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        zIndex: 10,
-                                                        fontSize: '14px',
-                                                        fontWeight: 700,
-                                                        color: isSelected ? 'black' : 'white'
-                                                    }}>
-                                                        {isSelected && '✓'}
+                                                {selectedResultIndices.length === aiImages.length ? '전체 해제' : '전체 선택'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Result Images Grid */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        gap: '12px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {aiImages.map((img, idx) => {
+                                            const isSelected = aiImages.length === 1 || selectedResultIndices.includes(idx);
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => aiImages.length > 1 && toggleResultSelection(idx)}
+                                                    style={{
+                                                        borderRadius: '12px',
+                                                        overflow: 'hidden',
+                                                        position: 'relative',
+                                                        cursor: aiImages.length > 1 ? 'pointer' : 'default',
+                                                        border: isSelected
+                                                            ? '2px solid var(--accent-color)'
+                                                            : '2px solid transparent',
+                                                        opacity: aiImages.length > 1 && !isSelected ? 0.6 : 1,
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    {/* Selection Checkbox */}
+                                                    {aiImages.length > 1 && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            top: '8px',
+                                                            left: '8px',
+                                                            width: '24px',
+                                                            height: '24px',
+                                                            borderRadius: '50%',
+                                                            background: isSelected ? 'var(--accent-color)' : 'rgba(0,0,0,0.5)',
+                                                            border: isSelected ? 'none' : '2px solid rgba(255,255,255,0.5)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            zIndex: 10,
+                                                            fontSize: '14px',
+                                                            fontWeight: 700,
+                                                            color: isSelected ? 'black' : 'white'
+                                                        }}>
+                                                            {isSelected && '✓'}
+                                                        </div>
+                                                    )}
+
+                                                    <Image
+                                                        src={editedImages[idx] || img}
+                                                        alt={`Result ${idx}`}
+                                                        style={{ width: '100%' }}
+                                                        preview={{ mask: '크게 보기' }}
+                                                    />
+                                                    <div className="bubble-edit-overlay">
+                                                        <button
+                                                            className="bubble-edit-btn"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingImageIndex(idx);
+                                                            }}
+                                                        >
+                                                            💬 말풍선 추가
+                                                        </button>
                                                     </div>
-                                                )}
-
-                                                <Image
-                                                    src={editedImages[idx] || img}
-                                                    alt={`Result ${idx}`}
-                                                    style={{ width: '100%' }}
-                                                    preview={{ mask: '크게 보기' }}
-                                                />
-                                                <div className="bubble-edit-overlay">
-                                                    <button
-                                                        className="bubble-edit-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setEditingImageIndex(idx);
-                                                        }}
-                                                    >
-                                                        💬 말풍선 추가
-                                                    </button>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            );
+                                        })}
+                                    </div>
 
-                                {/* Action Buttons */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    {/* Primary: Save to Gallery & Go */}
-                                    <button
-                                        onClick={async () => {
-                                            if (isSavingRef.current) return;
-                                            if (isSaved) {
-                                                router.push('/gallery');
-                                                return;
-                                            }
-
-                                            // Determine which images to save
-                                            const indicesToSave = aiImages.length === 1
-                                                ? [0]
-                                                : selectedResultIndices;
-
-                                            if (indicesToSave.length === 0) {
-                                                message.warning('저장할 이미지를 선택해주세요.');
-                                                return;
-                                            }
-
-                                            isSavingRef.current = true;
-                                            setIsSaving(true);
-                                            try {
-                                                if (!userId) {
-                                                    message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
+                                    {/* Action Buttons */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {/* Primary: Save to Gallery & Go */}
+                                        <button
+                                            onClick={async () => {
+                                                if (isSavingRef.current) return;
+                                                if (isSaved) {
+                                                    router.push('/gallery');
                                                     return;
                                                 }
-                                                for (const i of indicesToSave) {
-                                                    const imageToSave = editedImages[i] || aiImages[i];
-                                                    const res = await fetch('/api/gallery', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({
-                                                            image: imageToSave,
-                                                            userId: userId
-                                                        })
-                                                    });
-                                                    if (!res.ok) {
-                                                        const errData = await res.json().catch(() => ({}));
-                                                        throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
-                                                    }
+
+                                                // Determine which images to save
+                                                const indicesToSave = aiImages.length === 1
+                                                    ? [0]
+                                                    : selectedResultIndices;
+
+                                                if (indicesToSave.length === 0) {
+                                                    message.warning('저장할 이미지를 선택해주세요.');
+                                                    return;
                                                 }
-                                                message.success(`${indicesToSave.length}장이 갤러리에 저장되었습니다.`);
-                                                setIsSaved(true);
-                                                isSavingRef.current = false;
-                                            } catch (e: any) {
-                                                console.error(e);
-                                                message.error(e.message || '저장 실패');
-                                                isSavingRef.current = false;
-                                            } finally {
-                                                setIsSaving(false);
-                                            }
-                                        }}
-                                        disabled={isSaving || (!isSaved && aiImages.length > 1 && selectedResultIndices.length === 0)}
-                                        style={{
-                                            background: isSaved
-                                                ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                                : 'var(--accent-color)',
-                                            color: isSaved ? 'white' : '#000',
-                                            border: 'none',
-                                            padding: '16px 24px',
-                                            borderRadius: '14px',
-                                            fontSize: '16px',
-                                            fontWeight: 700,
-                                            cursor: isSaving ? 'wait' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '10px',
-                                            boxShadow: isSaved
-                                                ? '0 4px 20px rgba(102, 126, 234, 0.4)'
-                                                : '0 4px 20px rgba(204, 255, 0, 0.3)',
-                                            transition: 'all 0.2s ease',
-                                            opacity: isSaving ? 0.7 : 1
-                                        }}
-                                    >
-                                        {isSaving ? (
-                                            <><span>⏳</span> 저장 중...</>
-                                        ) : isSaved ? (
-                                            <><span style={{ fontSize: '20px' }}>🖼️</span> 갤러리에서 보기</>
-                                        ) : (
-                                            <><span style={{ fontSize: '20px' }}>💾</span> 갤러리에 저장하기</>
-                                        )}
-                                    </button>
-                                </div>
-                            </GlassCard>
+
+                                                isSavingRef.current = true;
+                                                setIsSaving(true);
+                                                try {
+                                                    if (!userId) {
+                                                        message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
+                                                        return;
+                                                    }
+                                                    for (const i of indicesToSave) {
+                                                        const imageToSave = editedImages[i] || aiImages[i];
+                                                        const res = await fetch('/api/gallery', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                image: imageToSave,
+                                                                userId: userId
+                                                            })
+                                                        });
+                                                        if (!res.ok) {
+                                                            const errData = await res.json().catch(() => ({}));
+                                                            throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
+                                                        }
+                                                    }
+                                                    message.success(`${indicesToSave.length}장이 갤러리에 저장되었습니다.`);
+                                                    setIsSaved(true);
+                                                    isSavingRef.current = false;
+                                                } catch (e: any) {
+                                                    console.error(e);
+                                                    message.error(e.message || '저장 실패');
+                                                    isSavingRef.current = false;
+                                                } finally {
+                                                    setIsSaving(false);
+                                                }
+                                            }}
+                                            disabled={isSaving || (!isSaved && aiImages.length > 1 && selectedResultIndices.length === 0)}
+                                            style={{
+                                                background: isSaved
+                                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                    : 'var(--accent-color)',
+                                                color: isSaved ? 'white' : '#000',
+                                                border: 'none',
+                                                padding: '16px 24px',
+                                                borderRadius: '14px',
+                                                fontSize: '16px',
+                                                fontWeight: 700,
+                                                cursor: isSaving ? 'wait' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '10px',
+                                                boxShadow: isSaved
+                                                    ? '0 4px 20px rgba(102, 126, 234, 0.4)'
+                                                    : '0 4px 20px rgba(204, 255, 0, 0.3)',
+                                                transition: 'all 0.2s ease',
+                                                opacity: isSaving ? 0.7 : 1
+                                            }}
+                                        >
+                                            {isSaving ? (
+                                                <><span>⏳</span> 저장 중...</>
+                                            ) : isSaved ? (
+                                                <><span style={{ fontSize: '20px' }}>🖼️</span> 갤러리에서 보기</>
+                                            ) : (
+                                                <><span style={{ fontSize: '20px' }}>💾</span> 갤러리에 저장하기</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </GlassCard>
+                            </>
                         )}
                     </>
                 )}
@@ -989,6 +1043,13 @@ export default function Home() {
                 {/* Video Mode */}
                 {mode === 'video' && (
                     <>
+                        {/* Step 1: 영상 업로드 가이드 */}
+                        {!videoFile && (
+                            <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold">1</span>
+                                <span className="text-blue-400 text-sm">먼저 변환할 영상을 선택해주세요</span>
+                            </div>
+                        )}
                         <GlassCard padding="lg">
                             {!videoFile ? (
                                 <label
@@ -1028,6 +1089,13 @@ export default function Home() {
 
                         {extractedFrames.length > 0 && (
                             <>
+                                {/* Step 2: 장면 선택 가이드 */}
+                                {aiImages.length === 0 && (
+                                    <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold">2</span>
+                                        <span className="text-orange-400 text-sm">변환할 장면을 클릭해서 선택하세요 (최대 10장)</span>
+                                    </div>
+                                )}
                                 <GlassCard>
                                     <p style={{
                                         color: 'var(--accent-color)',
@@ -1081,6 +1149,13 @@ export default function Home() {
                                         ))}
                                     </div>
                                 </GlassCard>
+                                {/* Step 3: 스타일 선택 가이드 */}
+                                {aiImages.length === 0 && (
+                                    <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-xs font-bold">3</span>
+                                        <span className="text-purple-400 text-sm">원하는 웹툰 스타일을 선택하고 변환 버튼을 누르세요</span>
+                                    </div>
+                                )}
                                 <GlassCard>
                                     <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
                                 </GlassCard>
@@ -1122,89 +1197,96 @@ export default function Home() {
                         )}
 
                         {aiImages.length > 0 && (
-                            <GlassCard>
+                            <>
+                                {/* Step 4: 결과 확인 가이드 */}
+                                <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold">4</span>
+                                    <span className="text-green-400 text-sm">변환 완료! 💬 말풍선을 추가하고 갤러리에 저장하세요</span>
+                                </div>
+                                <GlassCard>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <p style={{
-                                        color: 'var(--accent-color)',
-                                        fontWeight: 500,
-                                        paddingLeft: '4px',
-                                        margin: 0
-                                    }}>변환 결과</p>
-                                    <button
-                                        onClick={async () => {
-                                            if (isSaving || isSaved) return;
-                                            setIsSaving(true);
-                                            try {
-                                                for (let i = 0; i < aiImages.length; i++) {
-                                                    const imageToSave = editedImages[i] || aiImages[i];
-                                                    await fetch('/api/gallery', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({
-                                                            image: imageToSave,
-                                                            userId: userId
-                                                        })
-                                                    });
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                        <p style={{
+                                            color: 'var(--accent-color)',
+                                            fontWeight: 500,
+                                            paddingLeft: '4px',
+                                            margin: 0
+                                        }}>변환 결과</p>
+                                        <button
+                                            onClick={async () => {
+                                                if (isSaving || isSaved) return;
+                                                setIsSaving(true);
+                                                try {
+                                                    for (let i = 0; i < aiImages.length; i++) {
+                                                        const imageToSave = editedImages[i] || aiImages[i];
+                                                        await fetch('/api/gallery', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                image: imageToSave,
+                                                                userId: userId
+                                                            })
+                                                        });
+                                                    }
+                                                    message.success('갤러리에 저장되었습니다.');
+                                                    setIsSaved(true);
+                                                } catch (e) {
+                                                    message.error('저장 실패');
+                                                } finally {
+                                                    setIsSaving(false);
                                                 }
-                                                message.success('갤러리에 저장되었습니다.');
-                                                setIsSaved(true);
-                                            } catch (e) {
-                                                message.error('저장 실패');
-                                            } finally {
-                                                setIsSaving(false);
-                                            }
-                                        }}
-                                        disabled={isSaving || isSaved}
-                                        className={`transition-transform ${!isSaved && !isSaving ? 'hover:scale-105 active:scale-95' : ''}`}
-                                        style={{
-                                            background: isSaving || isSaved ? '#333' : 'var(--accent-color)',
-                                            color: isSaved ? '#fff' : '#000',
-                                            border: isSaved ? '1px solid #555' : 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: '8px',
-                                            fontSize: '13px',
-                                            fontWeight: 600,
-                                            cursor: (isSaving || isSaved) ? 'default' : 'pointer',
-                                            opacity: isSaving ? 0.7 : 1
-                                        }}
-                                    >
-                                        {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장 완료' : '📁 갤러리 저장'}
-                                    </button>
-                                </div>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(2, 1fr)',
-                                    gap: '12px',
-                                    padding: '4px'
-                                }}>
-                                    {aiImages.map((img, idx) => (
-                                        <div key={idx} style={{
-                                            borderRadius: '12px',
-                                            overflow: 'hidden',
-                                            position: 'relative'
-                                        }}>
-                                            <Image
-                                                src={editedImages[idx] || img}
-                                                alt={`Result ${idx}`}
-                                                style={{ width: '100%' }}
-                                                preview={{ mask: '크게 보기' }}
-                                            />
-                                            <div className="bubble-edit-overlay">
-                                                <button
-                                                    className="bubble-edit-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingImageIndex(idx);
-                                                    }}
-                                                >
-                                                    {editedImages[idx] ? '✏️ 말풍선 수정' : '💬 말풍선 추가'}
-                                                </button>
+                                            }}
+                                            disabled={isSaving || isSaved}
+                                            className={`transition-transform ${!isSaved && !isSaving ? 'hover:scale-105 active:scale-95' : ''}`}
+                                            style={{
+                                                background: isSaving || isSaved ? '#333' : 'var(--accent-color)',
+                                                color: isSaved ? '#fff' : '#000',
+                                                border: isSaved ? '1px solid #555' : 'none',
+                                                padding: '8px 16px',
+                                                borderRadius: '8px',
+                                                fontSize: '13px',
+                                                fontWeight: 600,
+                                                cursor: (isSaving || isSaved) ? 'default' : 'pointer',
+                                                opacity: isSaving ? 0.7 : 1
+                                            }}
+                                        >
+                                            {isSaving ? '⏳ 저장 중...' : isSaved ? '✅ 저장 완료' : '📁 갤러리 저장'}
+                                        </button>
+                                    </div>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        gap: '12px',
+                                        padding: '4px'
+                                    }}>
+                                        {aiImages.map((img, idx) => (
+                                            <div key={idx} style={{
+                                                borderRadius: '12px',
+                                                overflow: 'hidden',
+                                                position: 'relative'
+                                            }}>
+                                                <Image
+                                                    src={editedImages[idx] || img}
+                                                    alt={`Result ${idx}`}
+                                                    style={{ width: '100%' }}
+                                                    preview={{ mask: '크게 보기' }}
+                                                />
+                                                <div className="bubble-edit-overlay">
+                                                    <button
+                                                        className="bubble-edit-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingImageIndex(idx);
+                                                        }}
+                                                    >
+                                                        {editedImages[idx] ? '✏️ 말풍선 수정' : '💬 말풍선 추가'}
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </GlassCard>
+                                        ))}
+                                    </div>
+                                </GlassCard>
+                            </>
                         )}
                     </>
                 )}

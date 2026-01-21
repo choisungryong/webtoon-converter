@@ -506,7 +506,7 @@ export default function GalleryPage() {
 
     return (
         <main className="min-h-screen bg-[#0a0a0a] p-4 md:p-8">
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="max-w-2xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex justify-between items-center animate-fade-in flex-wrap gap-4">
                     <div className="flex items-center gap-4">
