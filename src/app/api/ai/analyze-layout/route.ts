@@ -100,10 +100,13 @@ Respond ONLY with valid JSON array, no markdown:
         }
 
         if (imageParts.length === 0) {
+            // 이미지 처리 실패 시 기본 레이아웃 반환
+            console.log('[Layout API] Image processing failed, using default layouts');
             return NextResponse.json({
-                success: false,
-                error: 'Failed to process images'
-            }, { status: 400 });
+                success: true,
+                layouts: getDefaultLayouts(images.length),
+                fallback: true
+            });
         }
 
         // Call Gemini API for analysis

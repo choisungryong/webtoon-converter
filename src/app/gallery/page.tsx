@@ -718,8 +718,8 @@ function GalleryContent() {
                                             onTouchMove={handleTouchEnd}
                                             onContextMenu={(e) => e.preventDefault()}
                                             className={`${activeTab === 'webtoon' ? 'webtoon-preview-card' : 'gallery-item'} group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''} ${highlightLatest && images[0]?.id === img.id
-                                                    ? 'ring-2 ring-[#CCFF00] animate-pulse shadow-lg shadow-[#CCFF00]/30'
-                                                    : ''
+                                                ? 'ring-2 ring-[#CCFF00] animate-pulse shadow-lg shadow-[#CCFF00]/30'
+                                                : ''
                                                 }`}
                                         >
                                             <img
@@ -1228,11 +1228,14 @@ function GalleryContent() {
                                         });
 
                                         const data = await res.json();
+                                        console.log('[SmartLayout] API Response:', data);
+
                                         if (data.success && data.layouts) {
                                             setPanelLayouts(data.layouts);
                                             setSmartLayoutEnabled(true);
                                         } else {
-                                            message.error('레이아웃 분석에 실패했습니다.');
+                                            console.error('[SmartLayout] Failed:', data);
+                                            message.error(data.error || '레이아웃 분석에 실패했습니다.');
                                         }
                                     } catch (err) {
                                         console.error(err);
