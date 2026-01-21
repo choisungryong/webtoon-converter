@@ -199,8 +199,12 @@ export default function Home() {
 
             video.onerror = (e) => {
                 console.error('Video load error:', e);
-                message.error('영상을 불러올 수 없습니다. 다른 형식의 영상을 시도해주세요.');
+                message.error({
+                    content: '영상을 불러올 수 없습니다. 클라우드 파일이 아닌 휴대폰에 저장된 영상을 선택해주세요.',
+                    duration: 5
+                });
                 setAnalyzing(false);
+                setVideoFile(null);
             };
 
             loadVideo();
@@ -267,14 +271,22 @@ export default function Home() {
 
         // 영상 유효성 검사
         if (!duration || duration === Infinity || isNaN(duration)) {
-            message.error('영상 로드 실패: 영상 길이를 확인할 수 없습니다. 다른 형식의 영상을 시도해주세요.');
+            message.error({
+                content: '영상을 분석할 수 없습니다. 클라우드 파일이 아닌 휴대폰에 저장된 영상을 선택해주세요.',
+                duration: 5
+            });
             setAnalyzing(false);
+            setVideoFile(null);
             return;
         }
 
         if (!video.videoWidth || !video.videoHeight) {
-            message.error('영상 로드 실패: 영상 크기를 확인할 수 없습니다. 다른 형식의 영상을 시도해주세요.');
+            message.error({
+                content: '영상 정보를 읽을 수 없습니다. 클라우드 파일이 아닌 휴대폰에 저장된 영상을 선택해주세요.',
+                duration: 5
+            });
             setAnalyzing(false);
+            setVideoFile(null);
             return;
         }
 
@@ -641,12 +653,24 @@ export default function Home() {
             }
 
             setProgress(100);
-            message.success({ content: `${convertedImages.length}장 에피소드 생성 완료!`, key: 'episode' });
+            message.success({ content: `${convertedImages.length}장 에피소드 생성 완료!`, key: 'episode', duration: 3 });
+
+            // 모바일에서 라우터 이동 전 약간의 딜레이 추가
+            await new Promise(r => setTimeout(r, 500));
+
             // 갤러리 마이웹툰 탭으로 이동하며 결과 팝업 표시
             router.push('/gallery?tab=webtoon&showResult=true');
 
         } catch (e: any) {
-            message.error({ content: `오류: ${e.message}`, key: 'episode' });
+            console.error('Video convert error:', e);
+            message.error({
+                content: `변환 오류: ${e.message || '알 수 없는 오류가 발생했습니다'}`,
+                key: 'episode',
+                duration: 5
+            });
+
+            // 에러 발생해도 상태 유지 (초기화하지 않음)
+            // 사용자가 다시 시도할 수 있도록 함
         } finally {
             setConverting(false);
         }
@@ -656,44 +680,53 @@ export default function Home() {
     const stitchImagesVertically = async (imageUrls: string[]): Promise<string> => {
         const TARGET_WIDTH = 800;
 
-        // Load all images
-        const loadedImages = await Promise.all(
-            imageUrls.map(url => new Promise<HTMLImageElement>((resolve, reject) => {
-                const img = new window.Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => resolve(img);
-                img.onerror = reject;
-                img.src = url;
-            }))
-        );
+        try {
+            // Load all images
+            const loadedImages = await Promise.all(
+                imageUrls.map(url => new Promise<HTMLImageElement>((resolve, reject) => {
+                    const img = new window.Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error('이미지 로드 실패'));
+                    img.src = url;
+                }))
+            );
 
-        // Calculate total height (scale each to 800px width)
-        let totalHeight = 0;
-        const scaledDimensions: { width: number; height: number }[] = [];
+            // Calculate total height (scale each to 800px width)
+            let totalHeight = 0;
+            const scaledDimensions: { width: number; height: number }[] = [];
 
-        for (const img of loadedImages) {
-            const scale = TARGET_WIDTH / img.width;
-            const scaledHeight = Math.round(img.height * scale);
-            scaledDimensions.push({ width: TARGET_WIDTH, height: scaledHeight });
-            totalHeight += scaledHeight;
+            for (const img of loadedImages) {
+                const scale = TARGET_WIDTH / img.width;
+                const scaledHeight = Math.round(img.height * scale);
+                scaledDimensions.push({ width: TARGET_WIDTH, height: scaledHeight });
+                totalHeight += scaledHeight;
+            }
+
+            // 모바일 메모리 제한 체크 (대략 10000px 높이 제한)
+            if (totalHeight > 10000) {
+                throw new Error('이미지가 너무 깁니다. 선택한 장면 수를 줄여주세요.');
+            }
+
+            // Create canvas and draw images
+            const canvas = document.createElement('canvas');
+            canvas.width = TARGET_WIDTH;
+            canvas.height = totalHeight;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) throw new Error('Canvas를 생성할 수 없습니다.');
+
+            let currentY = 0;
+            for (let i = 0; i < loadedImages.length; i++) {
+                const { height } = scaledDimensions[i];
+                ctx.drawImage(loadedImages[i], 0, currentY, TARGET_WIDTH, height);
+                currentY += height;
+            }
+
+            return canvas.toDataURL('image/jpeg', 0.85); // 모바일을 위해 품질 살짝 낮춤
+        } catch (e: any) {
+            throw new Error(`이미지 합치기 실패: ${e.message}`);
         }
-
-        // Create canvas and draw images
-        const canvas = document.createElement('canvas');
-        canvas.width = TARGET_WIDTH;
-        canvas.height = totalHeight;
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) throw new Error('Canvas context not available');
-
-        let currentY = 0;
-        for (let i = 0; i < loadedImages.length; i++) {
-            const { height } = scaledDimensions[i];
-            ctx.drawImage(loadedImages[i], 0, currentY, TARGET_WIDTH, height);
-            currentY += height;
-        }
-
-        return canvas.toDataURL('image/jpeg', 0.9);
     };
 
 
@@ -997,6 +1030,18 @@ export default function Home() {
 
                                     <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '12px' }}>
                                         MP4, MOV, WebM (최대 50MB)
+                                    </p>
+                                    <p style={{
+                                        color: '#f59e0b',
+                                        fontSize: '12px',
+                                        marginTop: '8px',
+                                        padding: '8px 12px',
+                                        background: 'rgba(245, 158, 11, 0.1)',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(245, 158, 11, 0.3)'
+                                    }}>
+                                        ⚠️ 구글 드라이브, 클라우드 파일은 지원되지 않습니다.<br />
+                                        <span style={{ color: 'var(--text-muted)' }}>휴대폰에 저장된 영상만 선택해주세요.</span>
                                     </p>
                                 </div>
                             ) : (
