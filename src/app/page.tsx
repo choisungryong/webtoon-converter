@@ -182,9 +182,28 @@ export default function Home() {
         setSelectedFrameIndices([]);
         setAiImages([]);
         if (videoRef.current) {
-            videoRef.current.src = URL.createObjectURL(file);
-            videoRef.current.load();
-            setAnalyzing(true);
+            const video = videoRef.current;
+            const objectUrl = URL.createObjectURL(file);
+            video.src = objectUrl;
+
+            // 모바일 브라우저를 위한 강화된 로딩 로직
+            const loadVideo = () => {
+                video.load();
+                setAnalyzing(true);
+            };
+
+            // 이벤트 리스너 추가 (한 번만 실행)
+            video.onloadedmetadata = () => {
+                console.log('Video metadata loaded:', video.duration, video.videoWidth, video.videoHeight);
+            };
+
+            video.onerror = (e) => {
+                console.error('Video load error:', e);
+                message.error('영상을 불러올 수 없습니다. 다른 형식의 영상을 시도해주세요.');
+                setAnalyzing(false);
+            };
+
+            loadVideo();
         }
     };
 
@@ -678,7 +697,15 @@ export default function Home() {
             padding: '24px 16px',
             background: 'var(--bg-primary)'
         }}>
-            <video ref={videoRef} style={{ display: 'none' }} onLoadedData={handleVideoLoaded} crossOrigin="anonymous" muted />
+            <video
+                ref={videoRef}
+                style={{ display: 'none' }}
+                onLoadedData={handleVideoLoaded}
+                crossOrigin="anonymous"
+                muted
+                playsInline
+                preload="auto"
+            />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
             <div style={{ width: '100%', maxWidth: '640px', overflow: 'hidden' }}>
