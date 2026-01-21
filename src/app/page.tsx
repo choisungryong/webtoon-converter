@@ -254,11 +254,29 @@ export default function Home() {
 
     // Video: Extract frames with basic scene change detection
     const handleVideoLoaded = async () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current) {
+            message.error('영상 로드 실패: 비디오 요소를 찾을 수 없습니다.');
+            setAnalyzing(false);
+            return;
+        }
+
         const video = videoRef.current;
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const duration = video.duration;
+
+        // 영상 유효성 검사
+        if (!duration || duration === Infinity || isNaN(duration)) {
+            message.error('영상 로드 실패: 영상 길이를 확인할 수 없습니다. 다른 형식의 영상을 시도해주세요.');
+            setAnalyzing(false);
+            return;
+        }
+
+        if (!video.videoWidth || !video.videoHeight) {
+            message.error('영상 로드 실패: 영상 크기를 확인할 수 없습니다. 다른 형식의 영상을 시도해주세요.');
+            setAnalyzing(false);
+            return;
+        }
 
         // 3. Smart Extraction: Analyze more frames (20) and filter duplicates
         const analyzeCount = 20;
