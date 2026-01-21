@@ -11,14 +11,14 @@ const baseUrl = 'https://banatoon.app';
 export const metadata: Metadata = {
     metadataBase: new URL(baseUrl),
     title: {
-        default: "ToonSnap - 당신의 일상을 K-웹툰으로",
-        template: "%s | ToonSnap"
+        default: "BanaToon - 일상의 바이브를 툰으로 담는다",
+        template: "%s | BanaToon"
     },
     description: "AI 기반으로 사진과 영상을 한국 웹툰 스타일로 변환해주는 무료 서비스입니다. 간단한 업로드만으로 나만의 웹툰 이미지를 만들어보세요.",
-    keywords: ["웹툰 변환", "AI 이미지 변환", "K-웹툰", "사진 웹툰화", "ToonSnap", "웹툰 스타일", "AI 아트", "무료 웹툰", "사진 변환", "AI 그림"],
-    authors: [{ name: "ToonSnap Team", url: baseUrl }],
-    creator: "ToonSnap",
-    publisher: "ToonSnap",
+    keywords: ["웹툰 변환", "AI 이미지 변환", "K-웹툰", "사진 웹툰화", "BanaToon", "웹툰 스타일", "AI 아트", "무료 웹툰", "사진 변환", "AI 그림"],
+    authors: [{ name: "BanaToon Team", url: baseUrl }],
+    creator: "BanaToon",
+    publisher: "BanaToon",
     alternates: {
         canonical: baseUrl,
         languages: {
@@ -26,24 +26,24 @@ export const metadata: Metadata = {
         },
     },
     openGraph: {
-        title: "ToonSnap - 당신의 일상을 K-웹툰으로",
+        title: "BanaToon - 일상의 바이브를 툰으로 담는다",
         description: "AI 기반으로 사진을 한국 웹툰 스타일로 변환해주는 무료 서비스",
         type: "website",
         locale: "ko_KR",
-        siteName: "ToonSnap",
+        siteName: "BanaToon",
         url: baseUrl,
         images: [
             {
                 url: `${baseUrl}/og-image.png`,
                 width: 1200,
                 height: 630,
-                alt: "ToonSnap - AI 웹툰 변환 서비스",
+                alt: "BanaToon - AI 웹툰 변환 서비스",
             },
         ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "ToonSnap - 당신의 일상을 K-웹툰으로",
+        title: "BanaToon - 일상의 바이브를 툰으로 담는다",
         description: "AI 기반으로 사진을 한국 웹툰 스타일로 변환해주는 무료 서비스",
         images: [`${baseUrl}/og-image.png`],
     },
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
 const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'ToonSnap',
+    name: 'BanaToon',
     description: 'AI 기반으로 사진과 영상을 한국 웹툰 스타일로 변환해주는 무료 서비스',
     url: baseUrl,
     applicationCategory: 'MultimediaApplication',
@@ -90,7 +90,7 @@ const jsonLd = {
     },
     author: {
         '@type': 'Organization',
-        name: 'ToonSnap Team',
+        name: 'BanaToon Team',
         url: baseUrl,
     },
     inLanguage: 'ko-KR',
@@ -175,7 +175,7 @@ export default function RootLayout({
                             </p>
 
                             <p className="text-gray-600 text-xs text-center">
-                                © 2026 ToonSnap. All rights reserved.
+                                © 2026 BanaToon. All rights reserved.
                             </p>
                         </div>
                     </footer>

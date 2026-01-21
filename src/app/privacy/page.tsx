@@ -23,7 +23,7 @@ export default function PrivacyPage() {
                             최종 수정일: 2026년 1월 18일
                         </p>
                         <p className="leading-relaxed">
-                            ToonSnap(이하 "서비스")은 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 등 관련 법령을 준수하고 있습니다.
+                            BanaToon(이하 "서비스")은 이용자의 개인정보를 중요시하며, 「개인정보 보호법」 등 관련 법령을 준수하고 있습니다.
                             본 개인정보처리방침은 서비스 이용과 관련하여 수집되는 개인정보의 처리에 관한 사항을 안내합니다.
                         </p>
                     </section>
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
                         <div className="mb-4 p-4 bg-[#CCFF00]/10 border border-[#CCFF00]/30 rounded-lg">
                             <p className="text-[#CCFF00] font-semibold mb-2">🔒 원본 미보관 정책</p>
                             <p className="text-gray-300 text-sm leading-relaxed">
-                                ToonSnap은 이용자가 업로드한 <strong>원본 사진 및 영상을 절대 저장하지 않습니다.</strong><br />
+                                BanaToon은 이용자가 업로드한 <strong>원본 사진 및 영상을 절대 저장하지 않습니다.</strong><br />
                                 업로드된 원본 파일은 AI 변환 처리 후 즉시 폐기되며, 서버에 보관되지 않습니다.<br />
                                 오직 변환이 완료된 결과물만 이용자의 갤러리에 저장됩니다.
                             </p>
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
                         <h2 className="text-xl font-bold text-white mb-4">7. 개인정보 보호책임자</h2>
                         <div className="p-4 bg-white/5 rounded-lg">
                             <p className="text-gray-400">
-                                <strong className="text-gray-300">담당:</strong> ToonSnap 운영팀<br />
+                                <strong className="text-gray-300">담당:</strong> BanaToon 운영팀<br />
                                 <strong className="text-gray-300">이메일:</strong> twinspa0713@gmail.com
                             </p>
                         </div>

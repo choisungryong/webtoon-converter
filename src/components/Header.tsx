@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { SunOutlined, MoonOutlined } from '@ant-design/icons';
 
 export type AppMode = 'photo' | 'video' | 'gallery';
@@ -43,7 +44,7 @@ export default function Header({ mode, onModeChange, theme, onThemeChange }: Hea
                 )}
             </button>
 
-            {/* Logo - Centered, Simple */}
+            {/* Logo - Banana Icon + BanaToon Title */}
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -54,42 +55,44 @@ export default function Header({ mode, onModeChange, theme, onThemeChange }: Hea
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px'
+                    justifyContent: 'center',
+                    gap: '8px'
                 }}>
-                    <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '14px',
-                        background: theme === 'dark'
-                            ? 'linear-gradient(135deg, #CCFF00, #00C853)'
-                            : 'linear-gradient(135deg, #7C3AED, #A855F7)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: theme === 'dark'
-                            ? '0 4px 20px rgba(204, 255, 0, 0.3)'
-                            : '0 4px 20px rgba(124, 58, 237, 0.3)'
-                    }}>
-                        <span style={{ fontSize: '24px' }}>🎨</span>
-                    </div>
+                    {/* Banana Icon */}
+                    <Image
+                        src="/logo.png"
+                        alt="BanaToon"
+                        width={48}
+                        height={40}
+                        style={{
+                            objectFit: 'contain',
+                            marginTop: '2px'
+                        }}
+                        priority
+                    />
+                    {/* Title Text */}
                     <span style={{
-                        fontSize: '28px',
-                        fontWeight: 'bold',
-                        color: accentColor
+                        fontSize: '36px',
+                        fontWeight: 800,
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'center'
                     }}>
-                        ToonSnap
+                        <span style={{ color: theme === 'dark' ? '#FFD700' : '#F59E0B' }}>Bana</span>
+                        <span style={{ color: theme === 'dark' ? '#FFFFFF' : '#1a1a1a' }}>Toon</span>
                     </span>
                 </div>
                 {/* Slogan */}
                 <p style={{
-                    marginTop: '8px',
-                    fontSize: '14px',
+                    marginTop: '10px',
+                    fontSize: '15px',
                     fontWeight: 500,
                     color: 'var(--text-secondary)',
-                    opacity: 0.8,
-                    letterSpacing: '0.02em'
+                    opacity: 0.9,
+                    letterSpacing: '0.05em'
                 }}>
-                    당신의 일상을 명작 웹툰으로
+                    일상의 바이브를 툰으로 담는다
                 </p>
             </div>
 

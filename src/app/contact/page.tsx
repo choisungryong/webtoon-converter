@@ -155,7 +155,7 @@ export default function ContactPage() {
                         무엇이든 물어보세요!
                     </h2>
                     <p className="text-gray-400 max-w-xl mx-auto">
-                        ToonSnap 서비스 이용 중 궁금한 점이나 문제가 있으시면
+                        BanaToon 서비스 이용 중 궁금한 점이나 문제가 있으시면
                         아래 게시판에 질문을 남겨주세요. 빠르게 답변드리겠습니다.
                     </p>
                 </div>
@@ -308,12 +308,12 @@ export default function ContactPage() {
 
                     <div className="space-y-3 mt-6">
                         {[
-                            { q: '서비스 이용료가 있나요?', a: 'ToonSnap의 기본 기능은 완전 무료로 제공됩니다.' },
+                            { q: '서비스 이용료가 있나요?', a: 'BanaToon의 기본 기능은 완전 무료로 제공됩니다.' },
                             { q: '변환된 이미지의 저작권은 누구에게 있나요?', a: '변환 결과물은 개인적, 비상업적 용도로 자유롭게 사용할 수 있습니다.' },
                             { q: '업로드한 사진은 어떻게 처리되나요?', a: '업로드된 사진은 오직 변환 목적으로만 사용되며, AI 모델 학습에 사용되지 않습니다.' },
                             { q: '한 번에 몇 장까지 변환할 수 있나요?', a: '현재 한 번에 최대 5장까지 동시에 변환할 수 있습니다.' },
                             { q: '변환 시간은 얼마나 걸리나요?', a: '평균적으로 이미지 1장당 약 10~30초 정도 소요됩니다.' },
-                            { q: '모바일에서도 사용할 수 있나요?', a: '네! ToonSnap은 모바일 최적화되어 있어 스마트폰에서도 사용할 수 있습니다.' },
+                            { q: '모바일에서도 사용할 수 있나요?', a: '네! BanaToon은 모바일 최적화되어 있어 스마트폰에서도 사용할 수 있습니다.' },
                         ].map((item, idx) => (
                             <details key={idx} className="group/item bg-white/5 rounded-lg">
                                 <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/10 rounded-lg transition-colors">

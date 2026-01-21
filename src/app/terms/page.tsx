@@ -23,7 +23,7 @@ export default function TermsPage() {
                             최종 수정일: 2026년 1월 18일
                         </p>
                         <p className="leading-relaxed">
-                            본 이용약관(이하 "약관")은 ToonSnap(이하 "서비스")의 이용과 관련하여
+                            본 이용약관(이하 "약관")은 BanaToon(이하 "서비스")의 이용과 관련하여
                             서비스 제공자와 이용자 간의 권리, 의무 및 책임사항을 규정합니다.
                         </p>
                     </section>
@@ -31,7 +31,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">제1조 (목적)</h2>
                         <p className="leading-relaxed">
-                            이 약관은 ToonSnap이 제공하는 AI 기반 이미지 변환 서비스의 이용조건 및 절차,
+                            이 약관은 BanaToon이 제공하는 AI 기반 이미지 변환 서비스의 이용조건 및 절차,
                             이용자와 서비스 제공자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
                         </p>
                     </section>
@@ -39,7 +39,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">제2조 (용어의 정의)</h2>
                         <ul className="list-disc list-inside space-y-2 text-gray-400">
-                            <li><strong className="text-gray-300">"서비스":</strong> ToonSnap이 제공하는 AI 이미지 변환 및 관련 기능 일체</li>
+                            <li><strong className="text-gray-300">"서비스":</strong> BanaToon이 제공하는 AI 이미지 변환 및 관련 기능 일체</li>
                             <li><strong className="text-gray-300">"이용자":</strong> 서비스에 접속하여 이 약관에 따라 서비스를 이용하는 자</li>
                             <li><strong className="text-gray-300">"콘텐츠":</strong> 이용자가 업로드하거나 서비스를 통해 생성한 이미지, 영상 등</li>
                         </ul>

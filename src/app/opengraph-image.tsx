@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
-export const alt = 'ToonSnap - AI 웹툰 변환 서비스'
+export const alt = 'BanaToon - AI 웹툰 변환 서비스'
 export const size = {
     width: 1200,
     height: 630,
@@ -42,7 +42,7 @@ export default async function Image() {
                             textShadow: '0 4px 20px rgba(204, 255, 0, 0.4)',
                         }}
                     >
-                        ToonSnap
+                        BanaToon
                     </span>
                 </div>
 
@@ -54,7 +54,7 @@ export default async function Image() {
                         marginBottom: 60,
                     }}
                 >
-                    당신의 일상을 K-웹툰으로
+                    일상의 바이브를 툰으로 담는다
                 </div>
 
                 {/* Features */}

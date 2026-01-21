@@ -185,7 +185,7 @@ function GalleryContent() {
                 const file = new File([blob], 'image.png', { type: blob.type });
 
                 await navigator.share({
-                    title: 'ToonSnap Image',
+                    title: 'BanaToon Image',
                     text: 'Check out this Webtoon style image!',
                     files: [file]
                 });
@@ -230,7 +230,7 @@ function GalleryContent() {
         (window as any).Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
-                title: 'ToonSnap 웹툰 변환',
+                title: 'BanaToon 웹툰 변환',
                 description: '나만의 웹툰 스타일 이미지를 확인해보세요!',
                 imageUrl: absoluteImageUrl,
                 link: {

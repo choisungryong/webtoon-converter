@@ -1,6 +1,6 @@
 {
-    "name": "ToonSnap",
-    "short_name": "ToonSnap",
+    "name": "BanaToon",
+    "short_name": "BanaToon",
     "description": "AI 기반으로 사진과 영상을 한국 웹툰 스타일로 변환해주는 무료 서비스",
     "start_url": "/",
     "display": "standalone",

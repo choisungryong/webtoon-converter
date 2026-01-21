@@ -20,13 +20,13 @@ export default function AboutPage() {
                 {/* Hero Section */}
                 <div className="bg-gradient-to-br from-[#CCFF00]/20 to-transparent border border-[#CCFF00]/30 rounded-2xl p-8 md:p-12 mb-8 text-center">
                     <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-                        Toon<span className="text-[#CCFF00]">Snap</span>
+                        <span className="text-[#FFD700]">Bana</span>Toon
                     </h2>
                     <p className="text-xl text-gray-300 mb-6">
-                        당신의 일상을 <strong className="text-[#CCFF00]">K-웹툰</strong>으로 바꿔드립니다
+                        일상의 바이브를 <strong className="text-[#CCFF00]">툰으로</strong> 담는다
                     </p>
                     <p className="text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                        ToonSnap은 AI 기술을 활용하여 일반 사진이나 영상을
+                        BanaToon은 AI 기술을 활용하여 일반 사진이나 영상을
                         한국 웹툰 특유의 감성적인 스타일로 변환해주는 서비스입니다.
                     </p>
                 </div>
@@ -134,7 +134,7 @@ export default function AboutPage() {
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8">
                     <h3 className="text-xl font-bold text-white mb-4">우리의 미션</h3>
                     <p className="text-gray-300 leading-relaxed mb-4">
-                        ToonSnap은 누구나 쉽게 자신만의 웹툰 콘텐츠를 만들 수 있도록 돕는 것을 목표로 합니다.
+                        BanaToon은 누구나 쉽게 자신만의 웹툰 콘텐츠를 만들 수 있도록 돕는 것을 목표로 합니다.
                         복잡한 그래픽 도구나 전문적인 기술 없이도, AI의 힘을 빌려
                         일상의 순간들을 예술적인 작품으로 변환할 수 있습니다.
                     </p>
