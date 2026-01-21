@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Spin, Modal, message } from 'antd';
-import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleFilled, DownloadOutlined, ShareAltOutlined, MessageOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DeleteOutlined, ExclamationCircleOutlined, CheckCircleFilled, DownloadOutlined, ShareAltOutlined, MessageOutlined, StarFilled } from '@ant-design/icons';
 
 import Link from 'next/link';
 import GlassCard from '../../components/GlassCard';
@@ -63,10 +64,17 @@ const getRelativeDateLabel = (dateStr: string): string => {
     return dateStr;
 };
 
-export default function GalleryPage() {
+function GalleryContent() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
     const [activeTab, setActiveTab] = useState<'image' | 'webtoon' | 'premium'>('image');
     const [savingWebtoon, setSavingWebtoon] = useState(false);
     const [viewMode, setViewMode] = useState<'processed' | 'original'>('processed');
+
+    // 결과 팝업 상태 (URL에서 showResult=true일 때 표시)
+    const [showResultModal, setShowResultModal] = useState(false);
+    const [latestResult, setLatestResult] = useState<GalleryImage | null>(null);
 
     // Premium Gallery State
     const [premiumImages, setPremiumImages] = useState<GalleryImage[]>([]);
@@ -133,6 +141,26 @@ export default function GalleryPage() {
             setUserId(newUserId);
         }
     }, []);
+
+    // Handle URL query parameters (tab, showResult)
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        const showResult = searchParams.get('showResult');
+
+        if (tab === 'webtoon') {
+            setActiveTab('webtoon');
+        } else if (tab === 'image') {
+            setActiveTab('image');
+        } else if (tab === 'premium') {
+            setActiveTab('premium');
+        }
+
+        if (showResult === 'true') {
+            setShowResultModal(true);
+            // URL에서 쿼리 파라미터 제거 (히스토리 정리)
+            router.replace('/gallery' + (tab ? `?tab=${tab}` : ''), { scroll: false });
+        }
+    }, [searchParams, router]);
 
     // Initialize Kakao SDK
     useEffect(() => {
@@ -1274,7 +1302,95 @@ export default function GalleryPage() {
                         </button>
                     </div>
                 </Modal>
+
+                {/* 변환 결과 팝업 모달 */}
+                <Modal
+                    open={showResultModal}
+                    onCancel={() => setShowResultModal(false)}
+                    footer={null}
+                    centered
+                    width={400}
+                    className="result-modal"
+                    styles={{
+                        content: {
+                            background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%)',
+                            borderRadius: '24px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            padding: 0,
+                            overflow: 'hidden'
+                        },
+                        mask: {
+                            backdropFilter: 'blur(8px)'
+                        }
+                    }}
+                >
+                    <div className="p-6 text-center">
+                        {/* Success Icon */}
+                        <div className="mb-4">
+                            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[#CCFF00] to-[#88cc00] flex items-center justify-center shadow-lg shadow-[#CCFF00]/30">
+                                <CheckCircleFilled className="text-3xl text-black" />
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-xl font-bold text-white mb-2">
+                            ✨ 변환 완료!
+                        </h3>
+                        <p className="text-gray-400 text-sm mb-6">
+                            {activeTab === 'webtoon'
+                                ? '웹툰이 성공적으로 저장되었습니다.'
+                                : '사진이 성공적으로 변환되었습니다.'}
+                        </p>
+
+                        {/* Preview of latest image */}
+                        {((activeTab === 'webtoon' && images.length > 0) ||
+                            (activeTab === 'image' && images.length > 0)) && (
+                                <div className="mb-6 rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                                    <img
+                                        src={images[0]?.url}
+                                        alt="변환 결과"
+                                        className="w-full max-h-48 object-cover"
+                                    />
+                                </div>
+                            )}
+
+                        {/* Premium 유도 (웹툰 탭일 때만) */}
+                        {activeTab === 'webtoon' && (
+                            <div className="mb-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                                <div className="flex items-center gap-2 justify-center mb-2">
+                                    <StarFilled className="text-purple-400" />
+                                    <span className="text-purple-400 font-semibold text-sm">프리미엄 변환</span>
+                                </div>
+                                <p className="text-gray-400 text-xs">
+                                    더 고퀄리티 웹툰으로 업그레이드해보세요!<br />
+                                    이미지를 클릭하면 프리미엄 변환이 가능합니다.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Action Button */}
+                        <button
+                            onClick={() => setShowResultModal(false)}
+                            className="w-full py-3 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold transition-all active:scale-95"
+                        >
+                            확인하기
+                        </button>
+                    </div>
+                </Modal>
             </div>
         </main>
+    );
+}
+
+// Suspense boundary for useSearchParams
+export default function GalleryPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen bg-[#0a0a0a] p-4 md:p-8 flex items-center justify-center">
+                <Spin size="large" />
+            </main>
+        }>
+            <GalleryContent />
+        </Suspense>
     );
 }

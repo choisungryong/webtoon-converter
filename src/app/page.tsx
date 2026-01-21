@@ -378,33 +378,25 @@ export default function Home() {
         });
     };
 
-    // Convert Image(s)
+    // Convert Image(s) - Photo mode only (Video uses handlePremiumVideoConvert)
     const handleConvert = async () => {
-        let imagesToConvert: string[] = [];
-        if (mode === 'photo') {
-            if (photoPreviews.length === 0) {
-                message.warning('먼저 사진을 업로드해 주세요!');
-                return;
-            }
-            imagesToConvert = photoPreviews;
-        } else if (mode === 'video') {
-            if (selectedFrameIndices.length === 0) {
-                message.warning('변환할 장면을 선택해 주세요!');
-                return;
-            }
-            imagesToConvert = selectedFrameIndices.map(idx => extractedFrames[idx]);
+        if (mode !== 'photo') return;
+
+        if (photoPreviews.length === 0) {
+            message.warning('먼저 사진을 업로드해 주세요!');
+            return;
         }
 
+        const imagesToConvert = photoPreviews;
         setConverting(true);
         setProgress(0);
-        setAiImages([]);
-        setIsSaved(false);
         setTotalImagesToConvert(imagesToConvert.length);
         setCurrentImageIndex(0);
 
         const generatedImages: string[] = [];
 
         try {
+            // Step 1: AI 변환
             for (let i = 0; i < imagesToConvert.length; i++) {
                 setCurrentImageIndex(i + 1);
                 if (i > 0) await new Promise(r => setTimeout(r, 10000));
@@ -442,15 +434,36 @@ export default function Home() {
                 }
 
                 if (data.success && data.image) {
-                    setAiImages(prev => [...prev, data.image]);
                     generatedImages.push(data.image);
-                    setProgress(Math.round(((i + 1) / imagesToConvert.length) * 100));
+                    setProgress(Math.round(((i + 1) / imagesToConvert.length) * 80)); // 0-80% for conversion
                 }
             }
 
-            if (generatedImages.length > 0) {
-                message.success('변환 완료!');
+            if (generatedImages.length === 0) {
+                throw new Error('변환된 이미지가 없습니다.');
             }
+
+            // Step 2: 자동 저장
+            message.loading({ content: '갤러리에 저장 중...', key: 'photo-save' });
+            setProgress(90);
+
+            for (const img of generatedImages) {
+                await fetch('/api/gallery', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: img,
+                        userId: userId
+                    })
+                });
+            }
+
+            setProgress(100);
+            message.success({ content: `${generatedImages.length}장 변환 완료!`, key: 'photo-save' });
+
+            // Step 3: 갤러리 마이스냅 탭으로 이동하며 결과 팝업 표시
+            router.push('/gallery?tab=image&showResult=true');
+
         } catch (e: any) {
             message.error(`오류: ${e.message}`);
         } finally {
@@ -582,8 +595,9 @@ export default function Home() {
             }
 
             setProgress(100);
-            message.success({ content: `${convertedImages.length}장 에피소드 생성 완료! 마이웹툰에서 확인하세요.`, key: 'episode' });
-            router.push('/gallery');
+            message.success({ content: `${convertedImages.length}장 에피소드 생성 완료!`, key: 'episode' });
+            // 갤러리 마이웹툰 탭으로 이동하며 결과 팝업 표시
+            router.push('/gallery?tab=webtoon&showResult=true');
 
         } catch (e: any) {
             message.error({ content: `오류: ${e.message}`, key: 'episode' });
@@ -836,207 +850,6 @@ export default function Home() {
                                 )}
                             </>
                         )}
-
-                        {aiImages.length > 0 && (
-                            <>
-                                {/* Step 3: 결과 확인 가이드 */}
-                                <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold">3</span>
-                                    <span className="text-green-400 text-sm">변환 완료! 💬 말풍선을 추가하고 갤러리에 저장하세요</span>
-                                </div>
-                                <GlassCard>
-                                    {/* Selection Header */}
-                                    {aiImages.length > 1 && (
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            marginBottom: '12px',
-                                            padding: '0 4px'
-                                        }}>
-                                            <span style={{
-                                                color: 'var(--text-secondary)',
-                                                fontSize: '13px'
-                                            }}>
-                                                {selectedResultIndices.length > 0
-                                                    ? `${selectedResultIndices.length}장 선택됨`
-                                                    : '저장할 이미지를 선택하세요'}
-                                            </span>
-                                            <button
-                                                onClick={selectAllResults}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: 'var(--accent-color)',
-                                                    fontSize: '13px',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {selectedResultIndices.length === aiImages.length ? '전체 해제' : '전체 선택'}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* Result Images Grid */}
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(2, 1fr)',
-                                        gap: '12px',
-                                        marginBottom: '16px'
-                                    }}>
-                                        {aiImages.map((img, idx) => {
-                                            const isSelected = aiImages.length === 1 || selectedResultIndices.includes(idx);
-                                            return (
-                                                <div
-                                                    key={idx}
-                                                    onClick={() => aiImages.length > 1 && toggleResultSelection(idx)}
-                                                    style={{
-                                                        borderRadius: '12px',
-                                                        overflow: 'hidden',
-                                                        position: 'relative',
-                                                        cursor: aiImages.length > 1 ? 'pointer' : 'default',
-                                                        border: isSelected
-                                                            ? '2px solid var(--accent-color)'
-                                                            : '2px solid transparent',
-                                                        opacity: aiImages.length > 1 && !isSelected ? 0.6 : 1,
-                                                        transition: 'all 0.15s ease'
-                                                    }}
-                                                >
-                                                    {/* Selection Checkbox */}
-                                                    {aiImages.length > 1 && (
-                                                        <div style={{
-                                                            position: 'absolute',
-                                                            top: '8px',
-                                                            left: '8px',
-                                                            width: '24px',
-                                                            height: '24px',
-                                                            borderRadius: '50%',
-                                                            background: isSelected ? 'var(--accent-color)' : 'rgba(0,0,0,0.5)',
-                                                            border: isSelected ? 'none' : '2px solid rgba(255,255,255,0.5)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            zIndex: 10,
-                                                            fontSize: '14px',
-                                                            fontWeight: 700,
-                                                            color: isSelected ? 'black' : 'white'
-                                                        }}>
-                                                            {isSelected && '✓'}
-                                                        </div>
-                                                    )}
-
-                                                    <Image
-                                                        src={editedImages[idx] || img}
-                                                        alt={`Result ${idx}`}
-                                                        style={{ width: '100%' }}
-                                                        preview={{ mask: '크게 보기' }}
-                                                    />
-                                                    <div className="bubble-edit-overlay">
-                                                        <button
-                                                            className="bubble-edit-btn"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingImageIndex(idx);
-                                                            }}
-                                                        >
-                                                            💬 말풍선 추가
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {/* Primary: Save to Gallery & Go */}
-                                        <button
-                                            onClick={async () => {
-                                                if (isSavingRef.current) return;
-                                                if (isSaved) {
-                                                    router.push('/gallery');
-                                                    return;
-                                                }
-
-                                                // Determine which images to save
-                                                const indicesToSave = aiImages.length === 1
-                                                    ? [0]
-                                                    : selectedResultIndices;
-
-                                                if (indicesToSave.length === 0) {
-                                                    message.warning('저장할 이미지를 선택해주세요.');
-                                                    return;
-                                                }
-
-                                                isSavingRef.current = true;
-                                                setIsSaving(true);
-                                                try {
-                                                    if (!userId) {
-                                                        message.error('사용자 정보를 찾을 수 없습니다. 페이지를 새로고침 해주세요.');
-                                                        return;
-                                                    }
-                                                    for (const i of indicesToSave) {
-                                                        const imageToSave = editedImages[i] || aiImages[i];
-                                                        const res = await fetch('/api/gallery', {
-                                                            method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({
-                                                                image: imageToSave,
-                                                                userId: userId
-                                                            })
-                                                        });
-                                                        if (!res.ok) {
-                                                            const errData = await res.json().catch(() => ({}));
-                                                            throw new Error(errData.message || '저장 중 오류가 발생했습니다.');
-                                                        }
-                                                    }
-                                                    message.success(`${indicesToSave.length}장이 갤러리에 저장되었습니다.`);
-                                                    setIsSaved(true);
-                                                    isSavingRef.current = false;
-                                                } catch (e: any) {
-                                                    console.error(e);
-                                                    message.error(e.message || '저장 실패');
-                                                    isSavingRef.current = false;
-                                                } finally {
-                                                    setIsSaving(false);
-                                                }
-                                            }}
-                                            disabled={isSaving || (!isSaved && aiImages.length > 1 && selectedResultIndices.length === 0)}
-                                            style={{
-                                                background: isSaved
-                                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                                    : 'var(--accent-color)',
-                                                color: isSaved ? 'white' : '#000',
-                                                border: 'none',
-                                                padding: '16px 24px',
-                                                borderRadius: '14px',
-                                                fontSize: '16px',
-                                                fontWeight: 700,
-                                                cursor: isSaving ? 'wait' : 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '10px',
-                                                boxShadow: isSaved
-                                                    ? '0 4px 20px rgba(102, 126, 234, 0.4)'
-                                                    : '0 4px 20px rgba(204, 255, 0, 0.3)',
-                                                transition: 'all 0.2s ease',
-                                                opacity: isSaving ? 0.7 : 1
-                                            }}
-                                        >
-                                            {isSaving ? (
-                                                <><span>⏳</span> 저장 중...</>
-                                            ) : isSaved ? (
-                                                <><span style={{ fontSize: '20px' }}>🖼️</span> 갤러리에서 보기</>
-                                            ) : (
-                                                <><span style={{ fontSize: '20px' }}>💾</span> 갤러리에 저장하기</>
-                                            )}
-                                        </button>
-                                    </div>
-                                </GlassCard>
-                            </>
-                        )}
                     </>
                 )}
 
@@ -1170,26 +983,19 @@ export default function Home() {
                                         />
                                     </GlassCard>
                                 ) : (
-                                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px', width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', width: '100%' }}>
                                         <button
                                             className="accent-btn"
                                             onClick={handlePremiumVideoConvert}
                                             disabled={converting}
                                             style={{
-                                                flex: 1,
+                                                width: '100%',
+                                                maxWidth: '320px',
                                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                                 color: 'white'
                                             }}
                                         >
                                             ✨ 웹툰으로 변환
-                                        </button>
-                                        <button
-                                            className="accent-btn"
-                                            onClick={handleConvert}
-                                            disabled={converting}
-                                            style={{ flex: 1 }}
-                                        >
-                                            🖼️ 웹컷으로 변환
                                         </button>
                                     </div>
                                 )}
