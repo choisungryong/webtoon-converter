@@ -513,8 +513,17 @@ export default function Home() {
             return;
         }
 
+        // 추출된 프레임이 2장 미만인 경우
+        if (extractedFrames.length < 2) {
+            message.warning({
+                content: '영상이 너무 짧아 2장 이상의 장면을 추출할 수 없습니다. 더 긴 영상을 업로드해 주세요!',
+                duration: 5
+            });
+            return;
+        }
+
         if (selectedFrameIndices.length < 2) {
-            message.warning('최소 2장 이상의 장면을 선택해 주세요!');
+            message.warning('웹툰을 만들려면 최소 2장 이상의 장면을 선택해 주세요!');
             return;
         }
 

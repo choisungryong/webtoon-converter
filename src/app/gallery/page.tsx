@@ -75,6 +75,8 @@ function GalleryContent() {
     // 결과 팝업 상태 (URL에서 showResult=true일 때 표시)
     const [showResultModal, setShowResultModal] = useState(false);
     const [latestResult, setLatestResult] = useState<GalleryImage | null>(null);
+    // 최신 이미지 하이라이트 (팝업 닫은 후 표시)
+    const [highlightLatest, setHighlightLatest] = useState(false);
 
     // Premium Gallery State
     const [premiumImages, setPremiumImages] = useState<GalleryImage[]>([]);
@@ -715,7 +717,10 @@ function GalleryContent() {
                                             onTouchEnd={handleTouchEnd}
                                             onTouchMove={handleTouchEnd}
                                             onContextMenu={(e) => e.preventDefault()}
-                                            className={`${activeTab === 'webtoon' ? 'webtoon-preview-card' : 'gallery-item'} group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''}`}
+                                            className={`${activeTab === 'webtoon' ? 'webtoon-preview-card' : 'gallery-item'} group no-touch-callout ${selectedImages.includes(img.id) ? 'ring-2 ring-[#CCFF00]' : ''} ${highlightLatest && images[0]?.id === img.id
+                                                    ? 'ring-2 ring-[#CCFF00] animate-pulse shadow-lg shadow-[#CCFF00]/30'
+                                                    : ''
+                                                }`}
                                         >
                                             <img
                                                 src={img.url}
@@ -1034,9 +1039,9 @@ function GalleryContent() {
                                             <button
                                                 onClick={handlePremiumConvert}
                                                 disabled={convertingPremium}
-                                                className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 disabled:opacity-50"
+                                                className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm flex items-center gap-1.5 disabled:opacity-50 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105 active:scale-95"
                                             >
-                                                ✨ PRO
+                                                <StarFilled /> 프리미엄 변환
                                             </button>
                                         )}
                                         <button
@@ -1370,7 +1375,12 @@ function GalleryContent() {
 
                         {/* Action Button */}
                         <button
-                            onClick={() => setShowResultModal(false)}
+                            onClick={() => {
+                                setShowResultModal(false);
+                                setHighlightLatest(true);
+                                // 5초 후 하이라이트 자동 해제
+                                setTimeout(() => setHighlightLatest(false), 5000);
+                            }}
                             className="w-full py-3 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold transition-all active:scale-95"
                         >
                             확인하기
