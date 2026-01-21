@@ -53,24 +53,56 @@ For EACH image (index 0 to ${images.length - 1}), respond with:
 Respond ONLY with valid JSON array, no markdown:
 [{"index":0,"type":"...","gutter":"...","importance":0.0,"indent":"center"},...]`;
 
-        // Prepare image parts for Gemini
-        const imageParts = images.map(img => {
-            const match = img.match(/^data:image\/(\w+);base64,(.+)$/);
-            if (match) {
-                return {
+        // Prepare image parts for Gemini - handle both data URLs and remote URLs
+        const imageParts = [];
+
+        for (const img of images) {
+            try {
+                // Check if it's already a data URL
+                const dataUrlMatch = img.match(/^data:image\/(\w+);base64,(.+)$/);
+                if (dataUrlMatch) {
+                    imageParts.push({
+                        inlineData: {
+                            mimeType: `image/${dataUrlMatch[1]}`,
+                            data: dataUrlMatch[2]
+                        }
+                    });
+                    continue;
+                }
+
+                // It's a remote URL - fetch and convert to base64
+                const response = await fetch(img);
+                if (!response.ok) {
+                    console.error(`[Layout API] Failed to fetch image: ${img}`);
+                    continue;
+                }
+
+                const blob = await response.blob();
+                const arrayBuffer = await blob.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                // Convert to base64
+                let binary = '';
+                for (let i = 0; i < uint8Array.length; i++) {
+                    binary += String.fromCharCode(uint8Array[i]);
+                }
+                const base64 = btoa(binary);
+
+                imageParts.push({
                     inlineData: {
-                        mimeType: `image/${match[1]}`,
-                        data: match[2]
+                        mimeType: blob.type || 'image/jpeg',
+                        data: base64
                     }
-                };
+                });
+            } catch (err) {
+                console.error(`[Layout API] Error processing image: ${img}`, err);
             }
-            return null;
-        }).filter(Boolean);
+        }
 
         if (imageParts.length === 0) {
             return NextResponse.json({
                 success: false,
-                error: 'Invalid image format'
+                error: 'Failed to process images'
             }, { status: 400 });
         }
 
