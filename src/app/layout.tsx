@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import Link from 'next/link';
 import Script from 'next/script';
-import KakaoRedirect from '@/components/KakaoRedirect';
+import KakaoRedirect from '../components/KakaoRedirect';
 import "./globals.css";
 
 // runtime config removed to use default nodejs_compat
