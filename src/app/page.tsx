@@ -919,8 +919,8 @@ export default function Home() {
                         )}
                         <GlassCard padding="lg">
                             {!videoFile ? (
-                                <label
-                                    className="upload-area block cursor-pointer"
+                                <div
+                                    className="upload-area"
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
                                     onDrop={handleDrop}
@@ -929,23 +929,76 @@ export default function Home() {
                                         background: isDragging ? 'var(--accent-glow)' : 'transparent'
                                     }}
                                 >
+                                    {/* Hidden file inputs */}
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept="video/*"
+                                        accept="video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.webm,.m4v"
                                         style={{ display: 'none' }}
                                         onChange={handleVideoSelect}
                                     />
+                                    <input
+                                        id="cameraInput"
+                                        type="file"
+                                        accept="video/*"
+                                        capture="environment"
+                                        style={{ display: 'none' }}
+                                        onChange={handleVideoSelect}
+                                    />
+
                                     <div className="upload-icon">
                                         <span style={{ fontSize: '32px' }}>🎬</span>
                                     </div>
-                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                                    <p className="font-bold text-lg" style={{ color: 'var(--text-primary)', marginBottom: '16px' }}>
                                         영상을 선택하세요!
                                     </p>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
-                                        MP4, MOV, WebM
+
+                                    {/* Two separate buttons for mobile */}
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            style={{
+                                                padding: '12px 24px',
+                                                borderRadius: '12px',
+                                                background: 'var(--accent-color)',
+                                                color: 'black',
+                                                fontWeight: 600,
+                                                fontSize: '14px',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                        >
+                                            📁 갤러리에서 선택
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => document.getElementById('cameraInput')?.click()}
+                                            style={{
+                                                padding: '12px 24px',
+                                                borderRadius: '12px',
+                                                background: 'transparent',
+                                                color: 'var(--accent-color)',
+                                                fontWeight: 600,
+                                                fontSize: '14px',
+                                                border: '2px solid var(--accent-color)',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                        >
+                                            📹 영상 촬영
+                                        </button>
+                                    </div>
+
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '12px' }}>
+                                        MP4, MOV, WebM (최대 50MB)
                                     </p>
-                                </label>
+                                </div>
                             ) : (
                                 <div className="text-center py-4">
                                     <p style={{ color: 'var(--text-primary)' }}>{videoFile.name}</p>
