@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -59,8 +59,8 @@ const getRelativeDateLabel = (dateStr: string): string => {
         day: 'numeric'
     });
 
-    if (dateStr === todayStr) return '?�늘';
-    if (dateStr === yesterdayStr) return '?�제';
+    if (dateStr === todayStr) return '?�늘';
+    if (dateStr === yesterdayStr) return '?�제';
     return dateStr;
 };
 
@@ -72,10 +72,10 @@ function GalleryContent() {
     const [savingWebtoon, setSavingWebtoon] = useState(false);
     const [viewMode, setViewMode] = useState<'processed' | 'original'>('processed');
 
-    // 결과 ?�업 ?�태 (URL?�서 showResult=true?????�시)
+    // 결과 ?�업 ?�태 (URL?�서 showResult=true?????�시)
     const [showResultModal, setShowResultModal] = useState(false);
     const [latestResult, setLatestResult] = useState<GalleryImage | null>(null);
-    // 최신 ?��?지 ?�이?�이??(?�업 ?��? ???�시)
+    // 최신 ?��?지 ?�이?�이??(?�업 ?��? ???�시)
     const [highlightLatest, setHighlightLatest] = useState(false);
 
     // Premium Gallery State
@@ -88,7 +88,7 @@ function GalleryContent() {
     const [deleting, setDeleting] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [webtoonPreviewImage, setWebtoonPreviewImage] = useState<GalleryImage | null>(null);
-    const [isPremiumPreview, setIsPremiumPreview] = useState(false);  // ?�리미엄 ?��?지 ?��?
+    const [isPremiumPreview, setIsPremiumPreview] = useState(false);  // ?�리미엄 ?��?지 ?��?
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [webtoonViewOpen, setWebtoonViewOpen] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -159,7 +159,7 @@ function GalleryContent() {
 
         if (showResult === 'true') {
             setShowResultModal(true);
-            // URL?�서 쿼리 ?�라미터 ?�거 (?�스?�리 ?�리)
+            // URL?�서 쿼리 ?�라미터 ?�거 (?�스?�리 ?�리)
             router.replace('/gallery' + (tab ? `?tab=${tab}` : ''), { scroll: false });
         }
     }, [searchParams, router]);
@@ -199,20 +199,20 @@ function GalleryContent() {
         // Fallback: Copy to clipboard if Web Share fails or not supported (Desktop)
         try {
             await navigator.clipboard.writeText(imageUrl);
-            message.success('?��?지 주소가 복사?�었?�니??');
+            message.success('?��?지 주소가 복사?�었?�니??');
         } catch (err) {
-            message.error('공유?�기�?지?�하지 ?�는 ?�경?�니??');
+            message.error('공유?�기�?지?�하지 ?�는 ?�경?�니??');
         }
     };
 
     const handleKakaoShare = (imageUrl: string) => {
         if (typeof window === 'undefined' || !(window as any).Kakao) {
-            message.error('카카??SDK가 로드?��? ?�았?�니??');
+            message.error('카카??SDK가 로드?��? ?�았?�니??');
             return;
         }
 
         if (!(window as any).Kakao.isInitialized()) {
-            message.error('카카?????�정???�요?�니??');
+            message.error('카카?????�정???�요?�니??');
             return;
         }
 
@@ -226,14 +226,14 @@ function GalleryContent() {
 
         const absoluteImageUrl = new URL(imageUrl, targetOrigin).toString();
 
-        // 공유 ?�용 ?�이지 - 받는 ?�람???��?지�?�????�음
+        // 공유 ?�용 ?�이지 - 받는 ?�람???��?지�?�????�음
         const shareLink = new URL(`/share?image=${encodeURIComponent(absoluteImageUrl)}`, targetOrigin).toString();
 
         (window as any).Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
-                title: 'BanaToon ?�툰 변??,
-                description: '친구가 만든 ?�툰 ?��????��?지�??�인?�보?�요!',
+                title: 'BanaToon ?�툰 변??,
+                description: '친구가 만든 ?�툰 ?��????��?지�??�인?�보?�요!',
                 imageUrl: absoluteImageUrl,
                 link: {
                     mobileWebUrl: shareLink,
@@ -242,7 +242,7 @@ function GalleryContent() {
             },
             buttons: [
                 {
-                    title: '?��?지 보기',
+                    title: '?��?지 보기',
                     link: {
                         mobileWebUrl: shareLink,
                         webUrl: shareLink,
@@ -283,7 +283,7 @@ function GalleryContent() {
             setSelectedImages([]); // Reset selection on tab change
         } catch (err: any) {
             console.error('Fetch Error:', err);
-            message.error(err.message || '갤러리�? 불러?�는???�패?�습?�다.');
+            message.error(err.message || '갤러리�? 불러?�는???�패?�습?�다.');
         } finally {
             setLoading(false);
         }
@@ -352,14 +352,14 @@ function GalleryContent() {
                 throw new Error(data.message || data.error || 'Conversion failed');
             }
 
-            message.success('?�리미엄 변???�료! ?�리미엄 ??��???�인?�세??');
+            message.success('?�리미엄 변???�료! ?�리미엄 ??��???�인?�세??');
             setWebtoonPreviewImage(null);
             setActiveTab('premium');
             fetchPremiumImages();
 
         } catch (err: any) {
             console.error('Premium conversion error:', err);
-            message.error(err.message || '?�리미엄 변?�에 ?�패?�습?�다.');
+            message.error(err.message || '?�리미엄 변?�에 ?�패?�습?�다.');
         } finally {
             setConvertingPremium(false);
         }
@@ -367,7 +367,7 @@ function GalleryContent() {
 
     // Delete Premium Image
     const handlePremiumDelete = async (imageId: string) => {
-        if (!window.confirm('???�리미엄 ?��?지�???��?�시겠습?�까?')) return;
+        if (!window.confirm('???�리미엄 ?��?지�???��?�시겠습?�까?')) return;
 
         try {
             const res = await fetch(`/api/premium/gallery?id=${imageId}`, {
@@ -377,9 +377,9 @@ function GalleryContent() {
             if (!res.ok) throw new Error('Delete failed');
 
             setPremiumImages(prev => prev.filter(img => img.id !== imageId));
-            message.success('??��?�었?�니??');
+            message.success('??��?�었?�니??');
         } catch (err) {
-            message.error('??��???�패?�습?�다.');
+            message.error('??��???�패?�습?�다.');
         }
     };
 
@@ -402,7 +402,7 @@ function GalleryContent() {
                     const img = new window.Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => resolve(img);
-                    img.onerror = () => reject(new Error('?��?지 로드 ?�패'));
+                    img.onerror = () => reject(new Error('?��?지 로드 ?�패'));
                     img.src = url;
                 });
             };
@@ -432,7 +432,7 @@ function GalleryContent() {
 
             // Mobile memory safety check
             if (totalHeight > 8000) {
-                throw new Error('?��?지가 ?�무 깁니?? ?�택???��?지 ?��? 줄여주세??');
+                throw new Error('?��?지가 ?�무 깁니?? ?�택???��?지 ?��? 줄여주세??');
             }
 
             // 3. Phase 2: Create canvas and draw images sequentially
@@ -463,7 +463,7 @@ function GalleryContent() {
 
             // Validate result
             if (!webtoonDataUrl || webtoonDataUrl === 'data:,' || webtoonDataUrl.length < 1000) {
-                throw new Error('?��?지 ?�성???�패?�습?�다. 메모리�? 부족할 ???�습?�다.');
+                throw new Error('?��?지 ?�성???�패?�습?�다. 메모리�? 부족할 ???�습?�다.');
             }
 
             // 5. Save to Server
@@ -476,10 +476,10 @@ function GalleryContent() {
                 });
 
                 if (!res.ok) {
-                    throw new Error('?�버 ?�?�에 ?�패?�습?�다.');
+                    throw new Error('?�버 ?�?�에 ?�패?�습?�다.');
                 }
 
-                message.success('마이?�툰???�?�되?�습?�다!');
+                message.success('마이?�툰???�?�되?�습?�다!');
                 setActiveTab('webtoon');
                 setWebtoonViewOpen(false);
                 setSelectedImages([]);
@@ -488,7 +488,7 @@ function GalleryContent() {
 
         } catch (err: any) {
             console.error(err);
-            message.error(err.message || '?�툰 ?�?�에 ?�패?�습?�다.');
+            message.error(err.message || '?�툰 ?�?�에 ?�패?�습?�다.');
         } finally {
             // Explicitly release canvas memory
             if (canvas) {
@@ -502,7 +502,7 @@ function GalleryContent() {
 
 
     const handleDelete = async (imageId: string) => {
-        if (!window.confirm('???��?지�???��?�시겠습?�까?')) {
+        if (!window.confirm('???��?지�???��?�시겠습?�까?')) {
             return;
         }
 
@@ -518,12 +518,12 @@ function GalleryContent() {
             }
 
             setImages(prev => prev.filter(img => img.id !== imageId));
-            message.success('?��?지가 ??��?�었?�니??');
+            message.success('?��?지가 ??��?�었?�니??');
             // If deleting via modal, close it
             if (previewImage) setPreviewImage(null);
         } catch (err: any) {
             console.error(err);
-            message.error(err.message || '??��???�패?�습?�다.');
+            message.error(err.message || '??��???�패?�습?�다.');
         } finally {
             setDeleting(null);
         }
@@ -543,14 +543,14 @@ function GalleryContent() {
             window.URL.revokeObjectURL(blobUrl);
         } catch (err) {
             console.error(err);
-            message.error('?�운로드???�패?�습?�다.');
+            message.error('?�운로드???�패?�습?�다.');
         }
     };
 
     const handleBulkDelete = async () => {
         if (selectedImages.length === 0) return;
 
-        if (!window.confirm(`?�택??${selectedImages.length}?�의 ?��?지�???��?�시겠습?�까?`)) {
+        if (!window.confirm(`?�택??${selectedImages.length}?�의 ?��?지�???��?�시겠습?�까?`)) {
             return;
         }
 
@@ -565,7 +565,7 @@ function GalleryContent() {
             const failed = results.filter(r => !r.ok);
             if (failed.length > 0) {
                 console.error('Failed to delete some images:', failed);
-                message.warning(`${failed.length}?�의 ?��?지�???��?��? 못했?�니??`);
+                message.warning(`${failed.length}?�의 ?��?지�???��?��? 못했?�니??`);
             }
 
             const successfulIds = results.filter(r => r.ok).map(r => r.id);
@@ -573,11 +573,11 @@ function GalleryContent() {
             setSelectedImages(prev => prev.filter(id => !successfulIds.includes(id)));
 
             if (failed.length === 0) {
-                message.success('??��?�었?�니??');
+                message.success('??��?�었?�니??');
             }
         } catch (err) {
             console.error(err);
-            message.error('??�� �??�류가 발생?�습?�다.');
+            message.error('??�� �??�류가 발생?�습?�다.');
         } finally {
             setDeleting(null);
             setIsSelectionMode(false);
@@ -607,7 +607,7 @@ function GalleryContent() {
                                 : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            ?���?마이?�냅
+                            ?���?마이?�냅
                         </button>
                         <button
                             onClick={() => setActiveTab('webtoon')}
@@ -616,7 +616,7 @@ function GalleryContent() {
                                 : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            ?�� 마이?�툰
+                            ?�� 마이?�툰
                         </button>
                         <button
                             onClick={() => setActiveTab('premium')}
@@ -625,7 +625,7 @@ function GalleryContent() {
                                 : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            ???�리미엄
+                            ???�리미엄
                         </button>
                     </div>
 
@@ -636,7 +636,7 @@ function GalleryContent() {
                             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50"
                         >
                             <ReloadOutlined spin={loading} />
-                            ?�로고침
+                            ?�로고침
                         </button>
                     </div>
                 </div>
@@ -645,24 +645,24 @@ function GalleryContent() {
                 <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
                     {activeTab === 'image' ? (
                         <p className="text-sm text-gray-400">
-                            ?�� <strong className="text-white">마이?�냅:</strong> 변?�된 ?��?지가 ?�기???�?�됩?�다.<br />
+                            ?�� <strong className="text-white">마이?�냅:</strong> 변?�된 ?��?지가 ?�기???�?�됩?�다.<br />
                             <span className="text-gray-500">
-                                ???��?지�?길게 ?�러 ?�택 ??<strong className="text-[#CCFF00]">?�툰 보기</strong>�??�쳐보세??<br />
-                                ???�릭?�면 ?�게 보고 ?�운로드/공유?????�습?�다.
+                                ???��?지�?길게 ?�러 ?�택 ??<strong className="text-[#CCFF00]">?�툰 보기</strong>�??�쳐보세??<br />
+                                ???�릭?�면 ?�게 보고 ?�운로드/공유?????�습?�다.
                             </span>
                         </p>
                     ) : activeTab === 'webtoon' ? (
                         <p className="text-sm text-gray-400">
-                            ?�� <strong className="text-white">마이?�툰:</strong> ?�러 ?��?지�??�쳐 만든 ?�툰???�?�됩?�다.<br />
+                            ?�� <strong className="text-white">마이?�툰:</strong> ?�러 ?��?지�??�쳐 만든 ?�툰???�?�됩?�다.<br />
                             <span className="text-gray-500">
-                                ???�툰 ?��?지�??�릭 ??<strong className="text-purple-400">?�리미엄 변??/strong>?�로 고퀄리???�그?�이??
+                                ???�툰 ?��?지�??�릭 ??<strong className="text-purple-400">?�리미엄 변??/strong>?�로 고퀄리???�그?�이??
                             </span>
                         </p>
                     ) : (
                         <p className="text-sm text-gray-400">
-                            ??<strong className="text-white">?�리미엄:</strong> AI�?고퀄리??변?�된 ?�툰???�?�됩?�다.<br />
+                            ??<strong className="text-white">?�리미엄:</strong> AI�?고퀄리??변?�된 ?�툰???�?�됩?�다.<br />
                             <span className="text-gray-500">
-                                ??800×1280px ?�네마틱 ?�리미엄 ?�툰 ?�식
+                                ??800×1280px ?�네마틱 ?�리미엄 ?�툰 ?�식
                             </span>
                         </p>
                     )}
@@ -713,16 +713,16 @@ function GalleryContent() {
                     ) : (
                         <GlassCard className="text-center py-16">
                             <p className="text-gray-400 text-lg mb-4">
-                                ?�직 ?�리미엄 변?�된 ?�툰???�습?�다.
+                                ?�직 ?�리미엄 변?�된 ?�툰???�습?�다.
                             </p>
                             <p className="text-sm text-gray-500 mb-4">
-                                마이?�툰?�서 ?��?지�??�택?�고 "?�리미엄 변?? 버튼???�러보세??
+                                마이?�툰?�서 ?��?지�??�택?�고 "?�리미엄 변?? 버튼???�러보세??
                             </p>
                             <button
                                 onClick={() => setActiveTab('webtoon')}
                                 className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold"
                             >
-                                ?�� 마이?�툰?�로 ?�동
+                                ?�� 마이?�툰?�로 ?�동
                             </button>
                         </GlassCard>
                     )
@@ -808,11 +808,11 @@ function GalleryContent() {
                 ) : (
                     <GlassCard className="text-center py-16">
                         <p className="text-gray-400 text-lg mb-4">
-                            {activeTab === 'image' ? '?�직 변?�된 ?��?지가 ?�습?�다.' : '?�?�된 ?�툰???�습?�다.'}
+                            {activeTab === 'image' ? '?�직 변?�된 ?��?지가 ?�습?�다.' : '?�?�된 ?�툰???�습?�다.'}
                         </p>
                         <Link href="/">
                             <button className="accent-btn">
-                                ???�품 만들??가�?
+                                ???�품 만들??가�?
                             </button>
                         </Link>
                         <p className="text-xs text-gray-600 mt-4">User ID: {userId?.slice(0, 8)}...</p>
@@ -825,7 +825,7 @@ function GalleryContent() {
                         <button
                             onClick={() => { setSelectedImages([]); setIsSelectionMode(false); }}
                             className="text-white/60 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-                            title="?�택 취소"
+                            title="?�택 취소"
                         >
                             ??
                         </button>
@@ -837,7 +837,7 @@ function GalleryContent() {
                             onClick={() => setWebtoonViewOpen(true)}
                             className="bg-[#CCFF00] text-black px-4 py-2 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-sm"
                         >
-                            <span>?��</span> ?�툰 보기
+                            <span>?��</span> ?�툰 보기
                         </button>
                         <button
                             onClick={(e) => {
@@ -846,7 +846,7 @@ function GalleryContent() {
                             }}
                             className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-2 text-sm"
                         >
-                            <DeleteOutlined /> ??��
+                            <DeleteOutlined /> ??��
                         </button>
                     </div>
                 )}
@@ -883,7 +883,7 @@ function GalleryContent() {
                                                 : 'text-gray-400 hover:text-white'
                                                 }`}
                                         >
-                                            ??변?�본
+                                            ??변?�본
                                         </button>
                                         <button
                                             onClick={() => setViewMode('original')}
@@ -892,7 +892,7 @@ function GalleryContent() {
                                                 : 'text-gray-400 hover:text-white'
                                                 }`}
                                         >
-                                            ?�� ?�본
+                                            ?�� ?�본
                                         </button>
                                     </div>
                                 </div>
@@ -925,8 +925,8 @@ function GalleryContent() {
                                         boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)'
                                     }}
                                 >
-                                    <span style={{ fontSize: '22px' }}>?��</span>
-                                    ?�토리에 공유?�기
+                                    <span style={{ fontSize: '22px' }}>?��</span>
+                                    ?�토리에 공유?�기
                                 </button>
 
                                 {/* Secondary Actions Row */}
@@ -941,7 +941,7 @@ function GalleryContent() {
                                         }}
                                         className="px-3 py-2.5 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-1.5 transition-colors text-sm"
                                     >
-                                        <DeleteOutlined /> ??��
+                                        <DeleteOutlined /> ??��
                                     </button>
 
                                     <div className="flex gap-2">
@@ -954,7 +954,7 @@ function GalleryContent() {
                                             )}
                                             className="px-3 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-1.5 transition-colors text-sm"
                                         >
-                                            <DownloadOutlined /> ?�??
+                                            <DownloadOutlined /> ?�??
                                         </button>
                                         <button
                                             onClick={() => handleKakaoShare(
@@ -963,7 +963,7 @@ function GalleryContent() {
                                                     : previewImage
                                             )}
                                             className="px-3 py-2.5 bg-[#ffe812] hover:bg-[#ffe812]/90 text-black rounded-lg flex items-center gap-1.5 transition-colors text-sm font-bold"
-                                            title="카카?�톡 공유"
+                                            title="카카?�톡 공유"
                                         >
                                             <MessageOutlined /> 카카??
                                         </button>
@@ -974,7 +974,7 @@ function GalleryContent() {
                     )}
                 </Modal>
 
-                {/* 마이?�툰 ?�용 ?�?�크�??�크�?뷰어 */}
+                {/* 마이?�툰 ?�용 ?�?�크�??�크�?뷰어 */}
                 <Modal
                     open={!!webtoonPreviewImage}
                     footer={null}
@@ -1015,7 +1015,7 @@ function GalleryContent() {
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 bg-[#1a1a1a] border-b border-white/10">
                                 <div className="text-white font-medium">
-                                    ?�� 마이?�툰 뷰어
+                                    ?�� 마이?�툰 뷰어
                                 </div>
                                 <span className="text-gray-400 text-sm">
                                     {new Date((webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at) * 1000).toLocaleDateString('ko-KR', {
@@ -1044,7 +1044,7 @@ function GalleryContent() {
                                 <div className="px-4 py-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10">
                                     <div className="flex items-center justify-center gap-2 text-white">
                                         <Spin size="small" />
-                                        <span className="text-sm font-medium">?�리미엄 변??�?..</span>
+                                        <span className="text-sm font-medium">?�리미엄 변??�?..</span>
                                     </div>
                                     <div className="mt-2 h-1 bg-white/20 rounded-full overflow-hidden">
                                         <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" style={{ width: '60%' }}></div>
@@ -1064,7 +1064,7 @@ function GalleryContent() {
                                         boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
                                     }}
                                 >
-                                    <span>?��</span> ?�토리에 공유?�기
+                                    <span>?��</span> ?�토리에 공유?�기
                                 </button>
 
                                 {/* Secondary Actions Row */}
@@ -1080,7 +1080,7 @@ function GalleryContent() {
                                         }}
                                         className="px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-1.5 text-sm"
                                     >
-                                        <DeleteOutlined /> ??��
+                                        <DeleteOutlined /> ??��
                                     </button>
 
                                     <div className="flex gap-2">
@@ -1091,14 +1091,14 @@ function GalleryContent() {
                                                 disabled={convertingPremium}
                                                 className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm flex items-center gap-1.5 disabled:opacity-50 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all hover:scale-105 active:scale-95"
                                             >
-                                                <StarFilled /> ?�리미엄 변??
+                                                <StarFilled /> ?�리미엄 변??
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleDownload(webtoonPreviewImage.url, `webtoon-${Date.now()}.jpg`)}
                                             className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-1.5 text-sm"
                                         >
-                                            <DownloadOutlined /> ?�??
+                                            <DownloadOutlined /> ?�??
                                         </button>
                                         <button
                                             onClick={() => handleKakaoShare(webtoonPreviewImage.url)}
@@ -1113,7 +1113,7 @@ function GalleryContent() {
                     )}
                 </Modal>
 
-                {/* ?�리미엄 ?�용 뷰어 (마이?�툰�?분리) */}
+                {/* ?�리미엄 ?�용 뷰어 (마이?�툰�?분리) */}
                 <Modal
                     open={!!premiumPreviewImage}
                     footer={null}
@@ -1159,7 +1159,7 @@ function GalleryContent() {
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10">
                                 <div className="text-white font-medium flex items-center gap-2">
-                                    ??<span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-bold">?�리미엄 뷰어</span>
+                                    ??<span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-bold">?�리미엄 뷰어</span>
                                 </div>
                                 <span className="text-gray-400 text-sm">
                                     {new Date((premiumPreviewImage.createdAt || premiumPreviewImage.created_at) * 1000).toLocaleDateString('ko-KR', {
@@ -1195,7 +1195,7 @@ function GalleryContent() {
                                         boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
                                     }}
                                 >
-                                    <span>?��</span> ?�토리에 공유?�기
+                                    <span>?��</span> ?�토리에 공유?�기
                                 </button>
 
                                 <div className="flex justify-between items-center gap-2">
@@ -1208,7 +1208,7 @@ function GalleryContent() {
                                         }}
                                         className="px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-1.5 text-sm"
                                     >
-                                        <DeleteOutlined /> ??��
+                                        <DeleteOutlined /> ??��
                                     </button>
 
                                     <div className="flex gap-2">
@@ -1216,7 +1216,7 @@ function GalleryContent() {
                                             onClick={() => handleDownload(premiumPreviewImage.url, `premium-${Date.now()}.jpg`)}
                                             className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center gap-1.5 text-sm"
                                         >
-                                            <DownloadOutlined /> ?�??
+                                            <DownloadOutlined /> ?�??
                                         </button>
                                         <button
                                             onClick={() => handleKakaoShare(premiumPreviewImage.url)}
@@ -1258,7 +1258,7 @@ function GalleryContent() {
                     {/* Smart Layout Toggle Header */}
                     <div className={`p-3 border-b flex justify-between items-center ${smartLayoutEnabled ? 'bg-[#1a1a1a] border-white/10' : 'bg-white border-gray-200'}`}>
                         <span className={`text-sm font-medium ${smartLayoutEnabled ? 'text-white' : 'text-gray-700'}`}>
-                            {selectedImages.length}�??�결??
+                            {selectedImages.length}�??�결??
                         </span>
                         <button
                             onClick={async () => {
@@ -1285,11 +1285,11 @@ function GalleryContent() {
                                             setSmartLayoutEnabled(true);
                                         } else {
                                             console.error('[SmartLayout] Failed:', data);
-                                            message.error(data.error || '?�이?�웃 분석???�패?�습?�다.');
+                                            message.error(data.error || '?�이?�웃 분석???�패?�습?�다.');
                                         }
                                     } catch (err) {
                                         console.error(err);
-                                        message.error('?�이?�웃 분석 �??�류가 발생?�습?�다.');
+                                        message.error('?�이?�웃 분석 �??�류가 발생?�습?�다.');
                                     } finally {
                                         setAnalyzingLayout(false);
                                     }
@@ -1305,9 +1305,9 @@ function GalleryContent() {
                                 }`}
                         >
                             {analyzingLayout ? (
-                                <><Spin size="small" /> 분석�?..</>
+                                <><Spin size="small" /> 분석�?..</>
                             ) : (
-                                <>???�마???�이?�웃 {smartLayoutEnabled ? 'ON' : 'OFF'}</>
+                                <>???�마???�이?�웃 {smartLayoutEnabled ? 'ON' : 'OFF'}</>
                             )}
                         </button>
                     </div>
@@ -1348,7 +1348,7 @@ function GalleryContent() {
                             }}
                             className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${smartLayoutEnabled ? 'text-gray-400 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
                         >
-                            ?�기
+                            ?�기
                         </button>
                         <button
                             onClick={handleWebtoonSave}
@@ -1356,12 +1356,12 @@ function GalleryContent() {
                             className="px-6 py-2.5 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
                         >
                             {savingWebtoon ? <Spin size="small" /> : <DownloadOutlined />}
-                            마이?�툰???�??
+                            마이?�툰???�??
                         </button>
                     </div>
                 </Modal>
 
-                {/* 변??결과 ?�업 모달 */}
+                {/* 변??결과 ?�업 모달 */}
                 <Modal
                     open={showResultModal}
                     onCancel={() => setShowResultModal(false)}
@@ -1392,12 +1392,12 @@ function GalleryContent() {
 
                         {/* Title */}
                         <h3 className="text-xl font-bold text-white mb-2">
-                            ??변???�료!
+                            ??변???�료!
                         </h3>
                         <p className="text-gray-400 text-sm mb-6">
                             {activeTab === 'webtoon'
-                                ? '?�툰???�공?�으�??�?�되?�습?�다.'
-                                : '?�진???�공?�으�?변?�되?�습?�다.'}
+                                ? '?�툰???�공?�으�??�?�되?�습?�다.'
+                                : '?�진???�공?�으�?변?�되?�습?�다.'}
                         </p>
 
                         {/* Preview of latest image */}
@@ -1412,16 +1412,16 @@ function GalleryContent() {
                                 </div>
                             )}
 
-                        {/* Premium ?�도 (?�툰 ??�� ?�만) */}
+                        {/* Premium ?�도 (?�툰 ??�� ?�만) */}
                         {activeTab === 'webtoon' && (
                             <div className="mb-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
                                 <div className="flex items-center gap-2 justify-center mb-2">
                                     <StarFilled className="text-purple-400" />
-                                    <span className="text-purple-400 font-semibold text-sm">?�리미엄 변??/span>
+                                    <span className="text-purple-400 font-semibold text-sm">?�리미엄 변??/span>
                                 </div>
                                 <p className="text-gray-400 text-xs">
-                                    ??고퀄리???�툰?�로 ?�그?�이?�해보세??<br />
-                                    ?��?지�??�릭?�면 ?�리미엄 변?�이 가?�합?�다.
+                                    ??고퀄리???�툰?�로 ?�그?�이?�해보세??<br />
+                                    ?��?지�??�릭?�면 ?�리미엄 변?�이 가?�합?�다.
                                 </p>
                             </div>
                         )}
@@ -1431,12 +1431,12 @@ function GalleryContent() {
                             onClick={() => {
                                 setShowResultModal(false);
                                 setHighlightLatest(true);
-                                // 5�????�이?�이???�동 ?�제
+                                // 5�????�이?�이???�동 ?�제
                                 setTimeout(() => setHighlightLatest(false), 5000);
                             }}
                             className="w-full py-3 bg-[#CCFF00] hover:bg-[#bbe600] text-black rounded-xl font-bold transition-all active:scale-95"
                         >
-                            ?�인?�기
+                            ?�인?�기
                         </button>
                     </div>
                 </Modal>
@@ -1457,3 +1457,4 @@ export default function GalleryPage() {
         </Suspense>
     );
 }
+
