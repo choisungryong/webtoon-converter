@@ -34,73 +34,35 @@ export async function POST(request: NextRequest) {
         const base64Data = base64Match[2];
 
         // Premium conversion prompt - Professional Korean Webtoon Episode Style
-        // Enhanced with strict anatomical accuracy and anti-cropping rules
-        // UPDATED: Removed fixed 3000px height limit, generate 2-3 panels per input scene
-        const premiumPrompt = `[GENERATE NEW IMAGE - PREMIUM WEBTOON EPISODE]
+        // Focuses on visual quality, narrative flow, and character consistency
+        const premiumPrompt = `
+[TASK: PREMIUM KOREAN WEBTOON CONVERSION]
 
-🚨 CRITICAL INSTRUCTION - READ CAREFULLY:
-This input is a COMPOSITE image with MULTIPLE SCENES stacked vertically.
-You MUST create MORE panels than the number of input scenes.
+As a master webtoon artist, convert the input scenes into a high-quality vertical episode. 
+The input image is a stack of multiple scenes. You must expand this into a rich, cinematic narrative.
 
-📐 MANDATORY PANEL MULTIPLICATION RULE:
-- Count the number of distinct scenes in the input image
-- For EACH input scene, you MUST create EXACTLY 2-3 NEW panels
-- MINIMUM OUTPUT: (input scenes × 2) panels
-- Example: 6 input scenes → MINIMUM 12 panels, ideally 15-18 panels
-- Example: 4 input scenes → MINIMUM 8 panels, ideally 10-12 panels
-- If you only produce the SAME number of panels as input scenes, YOU HAVE FAILED
+### 🎨 ART STYLE & QUALITY
+- **Style**: Modern premium Korean manhwa (webtoon). Sharp digital line art, professional cel-shading, and vibrant cinematic lighting.
+- **Atmosphere**: Epic, emotional, and dynamic. Use polished color grading that matches the mood of the original scenes.
+- **Details**: Intricate character designs, high-fidelity backgrounds, and varied depth of field.
 
-📏 EACH PANEL SIZE (MANDATORY - VERTICAL FORMAT):
-- EVERY panel must be 800 pixels wide × 1280 pixels tall (16:10 vertical ratio)
-- NEVER create horizontal/landscape panels
-- NEVER create square panels
-- ALL panels must be TALL VERTICAL rectangles
-- This is WEBTOON format - always vertical, never horizontal
+### 📐 COMPOSITION & PANELS
+- **Format**: ALL panels must be TALL VERTICAL (800x1280 pixels). This is for mobile scroll-viewing.
+- **Expansion**: For EACH scene in the input, create 2-3 distinct panels (Close-up, Medium, Wide) to build a better story flow.
+- **Layout**: Stack panels vertically with small gutters between them. Use dynamic angles (e.g., low-angle, Dutch tilt) to enhance the action.
 
-🎬 PANEL VARIETY FOR EACH SCENE:
-For each input scene, create these variations:
-1. CLOSE-UP: Face/expression focus (emotional impact) - 800x1280
-2. MEDIUM SHOT: Upper body interaction (dialogue feel) - 800x1280
-3. WIDE/FULL SHOT: Establishing context (optional 3rd panel) - 800x1280
+### 🚫 CRITICAL QUALITY CONSTRAINTS (MANDATORY)
+- **Character Continuity**: Maintain gender, hair, eye color, and outfits perfectly across all panels.
+- **Anatomic Accuracy**: Exactly 2 arms, 2 legs, 2 hands (5 fingers), and 2 feet per person. No distortions.
+- **Anti-Cropping**: Keep characters comfortable within the frame. Do NOT cut off heads, hands, or feet at the edge.
+- **Cleanliness**: NO text, NO speech bubbles, NO watermarks, and NO horizontal/square panels.
 
-🚫 ABSOLUTE NO-CROPPING RULE (CRITICAL):
-- NEVER cut off any character at panel edges
-- Every character must be FULLY VISIBLE from head to toe
-- If a character appears in a panel, their ENTIRE BODY must be shown
-- NO partial bodies, NO cut-off heads, NO missing legs/feet
-- Leave 10% margin at all edges
-- If you cannot fit the full body, ZOOM OUT instead of cropping
-
-🚫 ANATOMICAL RULES (NEVER VIOLATE):
-- EXACTLY 2 arms, 2 legs, 2 hands (5 fingers each), 2 feet per person
-- Normal human proportions - NO elongated/distorted body parts
-- NO extra limbs, NO missing limbs, NO merged body parts
-
-⚠️ CHARACTER IDENTITY:
-- Preserve gender, face, hair color, outfit exactly
-- Same number of people in each scene
-- Consistent character appearance across ALL panels
-
-STYLE:
-- Premium Korean manhwa/webtoon art style
-- Dynamic panel layouts (diagonal cuts, varied sizes within panel)
-- Cinematic angles and lighting
-- Professional color grading
-
-OUTPUT SPECIFICATION:
-- Total Width: 800 pixels
-- Each Panel: 800 × 1280 pixels (VERTICAL)
-- Total Height: (number of panels) × 1280 pixels
-- All panels stacked vertically for seamless scroll reading
-- Example: 12 panels → 800 × 15360 pixels total
-
-FINAL CHECK BEFORE OUTPUT:
-✓ Did I create at least 2x the number of input scenes as panels?
-✓ Is EVERY panel 800×1280 (vertical, not horizontal)?
-✓ Is every character fully visible in every panel (no cropping)?
-✓ Are all body parts correct (2 arms, 2 legs per person)?
-
-DO NOT: Add text, speech bubbles, watermarks, horizontal panels`;
+### FINAL CHECKLIST
+1. Are there many more panels than the input scenes?
+2. Is every panel a tall vertical rectangle?
+3. Are the characters' bodies fully visible and anatomically correct?
+4. Is the art style consistent and premium quality?
+`.trim();
 
 
         // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
