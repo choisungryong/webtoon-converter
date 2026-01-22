@@ -781,6 +781,8 @@ body {
     width: 100%;
     height: auto;
     display: block;
+    padding-bottom: 120px;
+    /* Add space for footer buttons */
 }
 
 /* 스크롤바 스타일링 */
