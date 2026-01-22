@@ -34,11 +34,29 @@ export async function POST(request: NextRequest) {
         const base64Data = base64Match[2];
 
         // Premium conversion prompt - Professional Korean Webtoon Episode Style
+        // Enhanced with strict anatomical accuracy and anti-cropping rules
         const premiumPrompt = `[GENERATE NEW IMAGE - PREMIUM WEBTOON EPISODE]
 
-Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a stunning 800x1280 pixel vertical webtoon page.
+Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a stunning 800x3000 pixel TALL vertical webtoon page with 8-10 panels.
 
-⚠️ CRITICAL - CHARACTER IDENTITY PRESERVATION (MOST IMPORTANT):
+🚫 ABSOLUTE ANATOMICAL RULES (NEVER VIOLATE):
+- EXACTLY 2 arms per person (left and right)
+- EXACTLY 2 legs per person (left and right) 
+- EXACTLY 2 hands with 5 fingers each
+- EXACTLY 2 feet per person
+- NORMAL human body proportions: head:body ratio ~1:7, arm length to hip, legs proportional
+- NO elongated torso, NO elongated limbs, NO distorted body parts
+- NO extra limbs, NO missing limbs, NO merged body parts
+- If a body part is hidden/obscured in original, keep it hidden - do NOT invent wrong anatomy
+
+🚫 ANTI-CROPPING RULES (CRITICAL):
+- EVERY character must be FULLY visible within the frame from head to toe
+- NO cutting off heads at the top
+- NO cutting off feet at the bottom
+- Leave adequate margin (at least 5%) at all edges
+- If original shows partial body, maintain the SAME framing - do NOT add incorrect body parts
+
+⚠️ CHARACTER IDENTITY PRESERVATION (MOST IMPORTANT):
 - PRESERVE EXACT GENDER: If female, MUST remain female. If male, MUST remain male.
 - PRESERVE EXACT APPEARANCE: Same face shape, hairstyle, hair color, eye color
 - PRESERVE CLOTHING: Same outfit colors and style
@@ -47,10 +65,13 @@ Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a s
 
 REQUIREMENTS:
 
-1. PANEL LAYOUT:
-   - Create 2-4 panels showing different angles of the SAME scene
-   - Use dynamic panel shapes (diagonal cuts, overlapping)
-   - One large "hero" panel featuring the main moment
+1. PANEL LAYOUT (8-10 PANELS REQUIRED):
+   - Create 8-10 panels showing different angles, moments, and compositions of the SAME scene
+   - Include: extreme close-up (eyes/face), close-up, medium shot, full body shot, wide establishing shot
+   - Use dynamic panel shapes (diagonal cuts, overlapping, varied sizes)
+   - Mix panel sizes: 2-3 large "hero" panels + smaller reaction/detail panels
+   - ALL panels must show COMPLETE characters with correct anatomy
+   - Arrange vertically for smooth scrolling experience
 
 2. CINEMATIC STYLE:
    - Dramatic camera angles (close-up, medium shot, wide shot)
@@ -58,10 +79,11 @@ REQUIREMENTS:
    - Strong lighting contrast
    - Speed lines or emotion particles where appropriate
 
-3. CHARACTER ENHANCEMENT (while preserving identity):
+3. CHARACTER ENHANCEMENT (while preserving identity and anatomy):
    - Enhance to premium manhwa art style
    - Add detailed expressions
    - KEEP same gender, face, hair, outfit
+   - VERIFY body part count before finalizing
    - Consistent design across ALL panels
 
 4. ATMOSPHERE:
@@ -69,12 +91,15 @@ REQUIREMENTS:
    - Atmospheric lighting effects
    - Layered backgrounds with depth
 
-OUTPUT: Single 800x1280px vertical webtoon page.
+OUTPUT: Single 800x3000px TALL vertical webtoon page with 8-10 panels stacked vertically.
 
 STRICT RULES:
 - NO text, speech bubbles, watermarks
 - NO changing character gender or appearance
+- NO anatomical errors (wrong number of limbs, distorted proportions)
+- NO cropping characters at top or bottom edges
 - SAME characters must appear consistently across panels`;
+
 
         // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
         // Note: gemini-3-pro-image is not yet available in v1beta API
