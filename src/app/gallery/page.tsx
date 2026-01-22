@@ -383,75 +383,123 @@ function GalleryContent() {
         }
     };
 
+    // Memory-optimized: Sequential image loading + explicit cleanup
     const handleWebtoonSave = async () => {
         if (selectedImages.length === 0) return;
         setSavingWebtoon(true);
 
+        let canvas: HTMLCanvasElement | null = null;
+
         try {
-            // 1. Load all images
+            // 1. Sort selected images by selection order
             const sortedSelectedImages = images
                 .filter(img => selectedImages.includes(img.id))
                 .sort((a, b) => selectedImages.indexOf(a.id) - selectedImages.indexOf(b.id));
 
-            const loadedImages = await Promise.all(
-                sortedSelectedImages.map(img => new Promise<HTMLImageElement>((resolve, reject) => {
-                    const image = new window.Image();
-                    image.crossOrigin = 'anonymous';
-                    image.onload = () => resolve(image);
-                    image.onerror = reject;
-                    image.src = img.url;
-                }))
-            );
+            // Helper to load a single image
+            const loadImage = (url: string): Promise<HTMLImageElement> => {
+                return new Promise((resolve, reject) => {
+                    const img = new window.Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error('이미지 로드 실패'));
+                    img.src = url;
+                });
+            };
 
-            // 2. Calculate dimensions
-            const maxWidth = Math.max(...loadedImages.map(img => img.width));
-            const totalHeight = loadedImages.reduce((sum, img) => {
-                // Resize height proportionally if width is scaled up to maxWidth
-                const scale = maxWidth / img.width;
-                return sum + (img.height * scale);
-            }, 0);
+            // 2. Phase 1: Calculate dimensions (load once, get sizes, release)
+            const dimensions: { url: string; width: number; height: number; scaledHeight: number }[] = [];
+            let maxWidth = 0;
 
-            // 3. Draw to canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = maxWidth;
+            for (const imgData of sortedSelectedImages) {
+                const img = await loadImage(imgData.url);
+                if (img.width > maxWidth) maxWidth = img.width;
+                dimensions.push({ url: imgData.url, width: img.width, height: img.height, scaledHeight: 0 });
+                // Release immediately
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
+            }
+
+            // Calculate scaled heights and total
+            const TARGET_WIDTH = Math.min(maxWidth, 800); // Cap at 800px for mobile
+            let totalHeight = 0;
+            for (const dim of dimensions) {
+                const scale = TARGET_WIDTH / dim.width;
+                dim.scaledHeight = Math.round(dim.height * scale);
+                totalHeight += dim.scaledHeight;
+            }
+
+            // Mobile memory safety check
+            if (totalHeight > 8000) {
+                throw new Error('이미지가 너무 깁니다. 선택한 이미지 수를 줄여주세요.');
+            }
+
+            // 3. Phase 2: Create canvas and draw images sequentially
+            canvas = document.createElement('canvas');
+            canvas.width = TARGET_WIDTH;
             canvas.height = totalHeight;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
 
             if (!ctx) throw new Error('Canvas context not available');
 
             let currentY = 0;
-            loadedImages.forEach(img => {
-                const scale = maxWidth / img.width;
-                const h = img.height * scale;
-                ctx.drawImage(img, 0, currentY, maxWidth, h);
-                currentY += h;
-            });
+            for (const dim of dimensions) {
+                const img = await loadImage(dim.url);
+                ctx.drawImage(img, 0, currentY, TARGET_WIDTH, dim.scaledHeight);
+                currentY += dim.scaledHeight;
 
-            // 4. Convert to Data URL
-            const webtoonDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                // Release image immediately after drawing
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
 
-            // 5. Save to Server (Toon Archive)
+                // Give browser a chance to GC
+                await new Promise(r => setTimeout(r, 10));
+            }
+
+            // 4. Convert to Data URL with lower quality for mobile
+            const webtoonDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+
+            // Validate result
+            if (!webtoonDataUrl || webtoonDataUrl === 'data:,' || webtoonDataUrl.length < 1000) {
+                throw new Error('이미지 생성에 실패했습니다. 메모리가 부족할 수 있습니다.');
+            }
+
+            // 5. Save to Server
             const userId = localStorage.getItem('toonsnap_user_id');
             if (userId) {
-                await fetch('/api/webtoon/save', {
+                const res = await fetch('/api/webtoon/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: webtoonDataUrl, userId })
                 });
+
+                if (!res.ok) {
+                    throw new Error('서버 저장에 실패했습니다.');
+                }
+
                 message.success('마이웹툰에 저장되었습니다!');
-                setActiveTab('webtoon'); // Switch to My Webtoon
+                setActiveTab('webtoon');
                 setWebtoonViewOpen(false);
-                setSelectedImages([]); // Clear selection
+                setSelectedImages([]);
                 setIsSelectionMode(false);
             }
 
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            message.error('웹툰 저장에 실패했습니다.');
+            message.error(err.message || '웹툰 저장에 실패했습니다.');
         } finally {
+            // Explicitly release canvas memory
+            if (canvas) {
+                canvas.width = 0;
+                canvas.height = 0;
+                canvas = null;
+            }
             setSavingWebtoon(false);
         }
     };
+
 
     const handleDelete = async (imageId: string) => {
         if (!window.confirm('이 이미지를 삭제하시겠습니까?')) {

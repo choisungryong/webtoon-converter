@@ -525,7 +525,7 @@ export default function Home() {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
-                const canvas = document.createElement('canvas');
+                let canvas: HTMLCanvasElement | null = document.createElement('canvas');
                 const MAX_SIZE = 512;
                 let width = img.width;
                 let height = img.height;
@@ -536,13 +536,25 @@ export default function Home() {
                 }
                 canvas.width = width;
                 canvas.height = height;
-                canvas.getContext('2d', { willReadFrequently: true })?.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.95));
+                const ctx = canvas.getContext('2d', { willReadFrequently: false });
+                ctx?.drawImage(img, 0, 0, width, height);
+                const result = canvas.toDataURL('image/jpeg', 0.90);
+
+                // Explicitly release memory
+                canvas.width = 0;
+                canvas.height = 0;
+                canvas = null;
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
+
+                resolve(result);
             };
             img.onerror = () => reject(new Error('이미지 로드 실패'));
             img.src = src;
         });
     };
+
 
     const handleReset = () => {
         setPhotoFiles([]);
@@ -677,57 +689,91 @@ export default function Home() {
     };
 
     // Helper: Stitch images vertically (800px width, variable height)
+    // Memory-optimized for mobile: sequential loading + immediate canvas release
     const stitchImagesVertically = async (imageUrls: string[]): Promise<string> => {
         const TARGET_WIDTH = 800;
+        let canvas: HTMLCanvasElement | null = null;
 
         try {
-            // Load all images
-            const loadedImages = await Promise.all(
-                imageUrls.map(url => new Promise<HTMLImageElement>((resolve, reject) => {
+            // Helper to load a single image
+            const loadImage = (url: string): Promise<HTMLImageElement> => {
+                return new Promise((resolve, reject) => {
                     const img = new window.Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => resolve(img);
                     img.onerror = () => reject(new Error('이미지 로드 실패'));
                     img.src = url;
-                }))
-            );
+                });
+            };
 
-            // Calculate total height (scale each to 800px width)
+            // Phase 1: Calculate dimensions first (lightweight - just get sizes)
+            const dimensions: { width: number; height: number; scaledHeight: number }[] = [];
             let totalHeight = 0;
-            const scaledDimensions: { width: number; height: number }[] = [];
 
-            for (const img of loadedImages) {
+            for (const url of imageUrls) {
+                const img = await loadImage(url);
                 const scale = TARGET_WIDTH / img.width;
                 const scaledHeight = Math.round(img.height * scale);
-                scaledDimensions.push({ width: TARGET_WIDTH, height: scaledHeight });
+                dimensions.push({ width: img.width, height: img.height, scaledHeight });
                 totalHeight += scaledHeight;
+                // Release image reference immediately
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
             }
 
-            // 모바일 메모리 제한 체크 (대략 10000px 높이 제한)
-            if (totalHeight > 10000) {
+            // Mobile memory limit check (lower threshold for safety)
+            if (totalHeight > 8000) {
                 throw new Error('이미지가 너무 깁니다. 선택한 장면 수를 줄여주세요.');
             }
 
-            // Create canvas and draw images
-            const canvas = document.createElement('canvas');
+            // Phase 2: Create canvas and draw images sequentially
+            canvas = document.createElement('canvas');
             canvas.width = TARGET_WIDTH;
             canvas.height = totalHeight;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
 
             if (!ctx) throw new Error('Canvas를 생성할 수 없습니다.');
 
             let currentY = 0;
-            for (let i = 0; i < loadedImages.length; i++) {
-                const { height } = scaledDimensions[i];
-                ctx.drawImage(loadedImages[i], 0, currentY, TARGET_WIDTH, height);
-                currentY += height;
+            for (let i = 0; i < imageUrls.length; i++) {
+                const img = await loadImage(imageUrls[i]);
+                const { scaledHeight } = dimensions[i];
+
+                // Draw immediately
+                ctx.drawImage(img, 0, currentY, TARGET_WIDTH, scaledHeight);
+                currentY += scaledHeight;
+
+                // Release image reference immediately after drawing
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
+
+                // Give browser a chance to GC between images
+                await new Promise(r => setTimeout(r, 10));
             }
 
-            return canvas.toDataURL('image/jpeg', 0.85); // 모바일을 위해 품질 살짝 낮춤
+            // Get result with lower quality for mobile
+            const result = canvas.toDataURL('image/jpeg', 0.80);
+
+            // Validate result
+            if (!result || result === 'data:,' || result.length < 1000) {
+                throw new Error('이미지 생성에 실패했습니다. 메모리가 부족할 수 있습니다.');
+            }
+
+            return result;
         } catch (e: any) {
             throw new Error(`이미지 합치기 실패: ${e.message}`);
+        } finally {
+            // Explicitly release canvas memory
+            if (canvas) {
+                canvas.width = 0;
+                canvas.height = 0;
+                canvas = null;
+            }
         }
     };
+
 
 
     const handleModeChange = (m: AppMode) => {
