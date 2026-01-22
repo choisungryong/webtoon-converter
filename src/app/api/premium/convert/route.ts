@@ -35,9 +35,17 @@ export async function POST(request: NextRequest) {
 
         // Premium conversion prompt - Professional Korean Webtoon Episode Style
         // Enhanced with strict anatomical accuracy and anti-cropping rules
+        // UPDATED: Removed fixed 3000px height limit, generate 2-3 panels per input scene
         const premiumPrompt = `[GENERATE NEW IMAGE - PREMIUM WEBTOON EPISODE]
 
-Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a stunning 800x3000 pixel TALL vertical webtoon page with 8-10 panels.
+Transform this TALL composite image into a PROFESSIONAL Korean webtoon episode page.
+
+📐 PANEL GENERATION RULE (MOST IMPORTANT):
+- This input image is a COMPOSITE of multiple scenes stacked vertically
+- For EACH distinct scene/segment you detect in the input, create 2-3 panels with varied camera angles
+- Example: If input has 5 scenes → create 10-15 panels total
+- Example: If input has 3 scenes → create 6-9 panels total
+- DO NOT limit to a fixed number of panels - generate enough to cover ALL scenes
 
 🚫 ABSOLUTE ANATOMICAL RULES (NEVER VIOLATE):
 - EXACTLY 2 arms per person (left and right)
@@ -56,7 +64,7 @@ Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a s
 - Leave adequate margin (at least 5%) at all edges
 - If original shows partial body, maintain the SAME framing - do NOT add incorrect body parts
 
-⚠️ CHARACTER IDENTITY PRESERVATION (MOST IMPORTANT):
+⚠️ CHARACTER IDENTITY PRESERVATION:
 - PRESERVE EXACT GENDER: If female, MUST remain female. If male, MUST remain male.
 - PRESERVE EXACT APPEARANCE: Same face shape, hairstyle, hair color, eye color
 - PRESERVE CLOTHING: Same outfit colors and style
@@ -65,13 +73,15 @@ Transform this image into a PROFESSIONAL Korean webtoon episode page. Create a s
 
 REQUIREMENTS:
 
-1. PANEL LAYOUT (8-10 PANELS REQUIRED):
-   - Create 8-10 panels showing different angles, moments, and compositions of the SAME scene
-   - Include: extreme close-up (eyes/face), close-up, medium shot, full body shot, wide establishing shot
+1. PANEL LAYOUT (DYNAMIC - based on input scenes):
+   - Analyze input image and identify each distinct scene/segment
+   - For EACH scene, create 2-3 panels with different angles:
+     * Close-up (face/expression)
+     * Medium shot (upper body interaction)
+     * Full/wide shot (establishing context)
    - Use dynamic panel shapes (diagonal cuts, overlapping, varied sizes)
-   - Mix panel sizes: 2-3 large "hero" panels + smaller reaction/detail panels
    - ALL panels must show COMPLETE characters with correct anatomy
-   - Arrange vertically for smooth scrolling experience
+   - Arrange ALL panels vertically for seamless webtoon scrolling
 
 2. CINEMATIC STYLE:
    - Dramatic camera angles (close-up, medium shot, wide shot)
@@ -84,21 +94,25 @@ REQUIREMENTS:
    - Add detailed expressions
    - KEEP same gender, face, hair, outfit
    - VERIFY body part count before finalizing
-   - Consistent design across ALL panels
+   - Consistent character design across ALL panels
 
 4. ATMOSPHERE:
    - Professional color grading
    - Atmospheric lighting effects
    - Layered backgrounds with depth
 
-OUTPUT: Single 800x3000px TALL vertical webtoon page with 8-10 panels stacked vertically.
+OUTPUT: Single TALL vertical webtoon image with:
+- Width: 800 pixels
+- Height: PROPORTIONAL to number of panels created (NO fixed limit)
+- All panels stacked vertically for seamless scroll reading
 
 STRICT RULES:
 - NO text, speech bubbles, watermarks
 - NO changing character gender or appearance
 - NO anatomical errors (wrong number of limbs, distorted proportions)
 - NO cropping characters at top or bottom edges
-- SAME characters must appear consistently across panels`;
+- SAME characters must appear consistently across panels
+- Cover ALL scenes from the input image - do not skip any`;
 
 
         // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
