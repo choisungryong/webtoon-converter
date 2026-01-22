@@ -169,7 +169,7 @@ function GalleryContent() {
         if (typeof window !== 'undefined' && (window as any).Kakao) {
             if (!(window as any).Kakao.isInitialized()) {
                 // REPLACE WITH YOUR ACTUAL KAKAO JAVASCRIPT KEY
-                (window as any).Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY || 'ced8744ba3c227fa310cba489c339bb0');
+                (window as any).Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
             }
         }
     }, []);
@@ -225,13 +225,15 @@ function GalleryContent() {
         const targetOrigin = productionOrigin;
 
         const absoluteImageUrl = new URL(imageUrl, targetOrigin).toString();
-        const shareLink = new URL('/gallery', targetOrigin).toString();
+
+        // 공유 전용 페이지 - 받는 사람이 이미지를 볼 수 있음
+        const shareLink = new URL(`/share?image=${encodeURIComponent(absoluteImageUrl)}`, targetOrigin).toString();
 
         (window as any).Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
                 title: 'BanaToon 웹툰 변환',
-                description: '나만의 웹툰 스타일 이미지를 확인해보세요!',
+                description: '친구가 만든 웹툰 스타일 이미지를 확인해보세요!',
                 imageUrl: absoluteImageUrl,
                 link: {
                     mobileWebUrl: shareLink,
@@ -240,7 +242,7 @@ function GalleryContent() {
             },
             buttons: [
                 {
-                    title: '웹으로 보기',
+                    title: '이미지 보기',
                     link: {
                         mobileWebUrl: shareLink,
                         webUrl: shareLink,
