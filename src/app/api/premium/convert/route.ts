@@ -38,81 +38,69 @@ export async function POST(request: NextRequest) {
         // UPDATED: Removed fixed 3000px height limit, generate 2-3 panels per input scene
         const premiumPrompt = `[GENERATE NEW IMAGE - PREMIUM WEBTOON EPISODE]
 
-Transform this TALL composite image into a PROFESSIONAL Korean webtoon episode page.
+🚨 CRITICAL INSTRUCTION - READ CAREFULLY:
+This input is a COMPOSITE image with MULTIPLE SCENES stacked vertically.
+You MUST create MORE panels than the number of input scenes.
 
-📐 PANEL GENERATION RULE (MOST IMPORTANT):
-- This input image is a COMPOSITE of multiple scenes stacked vertically
-- For EACH distinct scene/segment you detect in the input, create 2-3 panels with varied camera angles
-- Example: If input has 5 scenes → create 10-15 panels total
-- Example: If input has 3 scenes → create 6-9 panels total
-- DO NOT limit to a fixed number of panels - generate enough to cover ALL scenes
+📐 MANDATORY PANEL MULTIPLICATION RULE:
+- Count the number of distinct scenes in the input image
+- For EACH input scene, you MUST create EXACTLY 2-3 NEW panels
+- MINIMUM OUTPUT: (input scenes × 2) panels
+- Example: 6 input scenes → MINIMUM 12 panels, ideally 15-18 panels
+- Example: 4 input scenes → MINIMUM 8 panels, ideally 10-12 panels
+- If you only produce the SAME number of panels as input scenes, YOU HAVE FAILED
 
-🚫 ABSOLUTE ANATOMICAL RULES (NEVER VIOLATE):
-- EXACTLY 2 arms per person (left and right)
-- EXACTLY 2 legs per person (left and right) 
-- EXACTLY 2 hands with 5 fingers each
-- EXACTLY 2 feet per person
-- NORMAL human body proportions: head:body ratio ~1:7, arm length to hip, legs proportional
-- NO elongated torso, NO elongated limbs, NO distorted body parts
+📏 EACH PANEL SIZE (MANDATORY - VERTICAL FORMAT):
+- EVERY panel must be 800 pixels wide × 1280 pixels tall (16:10 vertical ratio)
+- NEVER create horizontal/landscape panels
+- NEVER create square panels
+- ALL panels must be TALL VERTICAL rectangles
+- This is WEBTOON format - always vertical, never horizontal
+
+🎬 PANEL VARIETY FOR EACH SCENE:
+For each input scene, create these variations:
+1. CLOSE-UP: Face/expression focus (emotional impact) - 800x1280
+2. MEDIUM SHOT: Upper body interaction (dialogue feel) - 800x1280
+3. WIDE/FULL SHOT: Establishing context (optional 3rd panel) - 800x1280
+
+🚫 ABSOLUTE NO-CROPPING RULE (CRITICAL):
+- NEVER cut off any character at panel edges
+- Every character must be FULLY VISIBLE from head to toe
+- If a character appears in a panel, their ENTIRE BODY must be shown
+- NO partial bodies, NO cut-off heads, NO missing legs/feet
+- Leave 10% margin at all edges
+- If you cannot fit the full body, ZOOM OUT instead of cropping
+
+🚫 ANATOMICAL RULES (NEVER VIOLATE):
+- EXACTLY 2 arms, 2 legs, 2 hands (5 fingers each), 2 feet per person
+- Normal human proportions - NO elongated/distorted body parts
 - NO extra limbs, NO missing limbs, NO merged body parts
-- If a body part is hidden/obscured in original, keep it hidden - do NOT invent wrong anatomy
 
-🚫 ANTI-CROPPING RULES (CRITICAL):
-- EVERY character must be FULLY visible within the frame from head to toe
-- NO cutting off heads at the top
-- NO cutting off feet at the bottom
-- Leave adequate margin (at least 5%) at all edges
-- If original shows partial body, maintain the SAME framing - do NOT add incorrect body parts
+⚠️ CHARACTER IDENTITY:
+- Preserve gender, face, hair color, outfit exactly
+- Same number of people in each scene
+- Consistent character appearance across ALL panels
 
-⚠️ CHARACTER IDENTITY PRESERVATION:
-- PRESERVE EXACT GENDER: If female, MUST remain female. If male, MUST remain male.
-- PRESERVE EXACT APPEARANCE: Same face shape, hairstyle, hair color, eye color
-- PRESERVE CLOTHING: Same outfit colors and style
-- PRESERVE NUMBER OF PEOPLE: If 2 people shown, draw exactly 2 people
-- DO NOT change any character's identity, gender, or distinguishing features
+STYLE:
+- Premium Korean manhwa/webtoon art style
+- Dynamic panel layouts (diagonal cuts, varied sizes within panel)
+- Cinematic angles and lighting
+- Professional color grading
 
-REQUIREMENTS:
-
-1. PANEL LAYOUT (DYNAMIC - based on input scenes):
-   - Analyze input image and identify each distinct scene/segment
-   - For EACH scene, create 2-3 panels with different angles:
-     * Close-up (face/expression)
-     * Medium shot (upper body interaction)
-     * Full/wide shot (establishing context)
-   - Use dynamic panel shapes (diagonal cuts, overlapping, varied sizes)
-   - ALL panels must show COMPLETE characters with correct anatomy
-   - Arrange ALL panels vertically for seamless webtoon scrolling
-
-2. CINEMATIC STYLE:
-   - Dramatic camera angles (close-up, medium shot, wide shot)
-   - Depth of field effects
-   - Strong lighting contrast
-   - Speed lines or emotion particles where appropriate
-
-3. CHARACTER ENHANCEMENT (while preserving identity and anatomy):
-   - Enhance to premium manhwa art style
-   - Add detailed expressions
-   - KEEP same gender, face, hair, outfit
-   - VERIFY body part count before finalizing
-   - Consistent character design across ALL panels
-
-4. ATMOSPHERE:
-   - Professional color grading
-   - Atmospheric lighting effects
-   - Layered backgrounds with depth
-
-OUTPUT: Single TALL vertical webtoon image with:
-- Width: 800 pixels
-- Height: PROPORTIONAL to number of panels created (NO fixed limit)
+OUTPUT SPECIFICATION:
+- Total Width: 800 pixels
+- Each Panel: 800 × 1280 pixels (VERTICAL)
+- Total Height: (number of panels) × 1280 pixels
 - All panels stacked vertically for seamless scroll reading
+- Example: 12 panels → 800 × 15360 pixels total
 
-STRICT RULES:
-- NO text, speech bubbles, watermarks
-- NO changing character gender or appearance
-- NO anatomical errors (wrong number of limbs, distorted proportions)
-- NO cropping characters at top or bottom edges
-- SAME characters must appear consistently across panels
-- Cover ALL scenes from the input image - do not skip any`;
+FINAL CHECK BEFORE OUTPUT:
+✓ Did I create at least 2x the number of input scenes as panels?
+✓ Is EVERY panel 800×1280 (vertical, not horizontal)?
+✓ Is every character fully visible in every panel (no cropping)?
+✓ Are all body parts correct (2 arms, 2 legs per person)?
+
+DO NOT: Add text, speech bubbles, watermarks, horizontal panels`;
 
 
         // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
