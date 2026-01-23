@@ -3,7 +3,6 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import Link from 'next/link';
 import Script from 'next/script';
 import KakaoRedirect from '../components/KakaoRedirect';
-import FAQSection from '../components/FAQSection';
 import './globals.css';
 
 // runtime config removed to use default nodejs_compat
@@ -158,9 +157,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <KakaoRedirect />
           <main className="flex-1">{children}</main>
 
-          {/* FAQ Section */}
-          <FAQSection />
-
           {/* Footer with Navigation and Disclaimer */}
           <footer className="border-t border-white/10 px-4 py-8">
             <div className="mx-auto max-w-4xl">
@@ -177,6 +173,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
                 >
                   갤러리
+                </Link>
+                <Link
+                  href="/faq"
+                  className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
+                >
+                  FAQ
                 </Link>
                 <Link
                   href="/privacy"

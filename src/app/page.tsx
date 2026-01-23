@@ -664,13 +664,12 @@ export default function Home() {
   );
 
   return (
-    <main
+    <div
       style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '24px 16px',
         background: 'var(--bg-primary)',
       }}
     >
@@ -686,7 +685,7 @@ export default function Home() {
       />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: '640px', overflow: 'hidden' }}>
+      <div style={{ width: '100%', maxWidth: '640px', overflow: 'hidden', padding: '24px 16px' }}>
         <Header
           mode={mode}
           onModeChange={handleModeChange}
@@ -709,6 +708,6 @@ export default function Home() {
         onSave={handleEditImageSave}
         onClose={() => setEditingImageIndex(null)}
       />
-    </main>
+    </div>
   );
 }
