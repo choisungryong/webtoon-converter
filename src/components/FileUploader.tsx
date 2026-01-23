@@ -1,11 +1,6 @@
 'use client';
 
-import React, {
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-  useState,
-} from 'react';
+import React, { useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { isValidFileSize } from '../utils/fileUtils';
 
 export type UploadMode = 'photo' | 'video';
@@ -124,8 +119,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
       }
     };
 
-    const shouldShowUpload =
-      mode === 'photo' ? currentPhotoCount < maxPhotos : true;
+    const shouldShowUpload = mode === 'photo' ? currentPhotoCount < maxPhotos : true;
     const hasPhotos = mode === 'photo' && currentPhotoCount > 0;
 
     if (!shouldShowUpload) return null;
@@ -137,9 +131,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         style={{
-          borderColor: isDragging
-            ? 'var(--accent-color)'
-            : 'var(--border-color)',
+          borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
           background: isDragging ? 'var(--accent-glow)' : 'transparent',
           padding: hasPhotos ? '12px' : '32px',
           cursor: disabled ? 'not-allowed' : 'pointer',
@@ -172,7 +164,8 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
         )}
 
         {mode === 'photo' ? (
-          <label
+          <div
+            onClick={() => fileInputRef.current?.click()}
             style={{
               cursor: disabled ? 'not-allowed' : 'pointer',
               display: 'block',
@@ -183,10 +176,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                 <div className="upload-icon">
                   <span style={{ fontSize: '32px' }}>📷</span>
                 </div>
-                <p
-                  className="text-lg font-bold"
-                  style={{ color: 'var(--text-primary)' }}
-                >
+                <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                   사진을 선택하세요!
                 </p>
                 <p
@@ -211,11 +201,10 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                   gap: '6px',
                 }}
               >
-                <span>➕</span> 사진 추가하기 ({maxPhotos - currentPhotoCount}장
-                더 가능)
+                <span>➕</span> 사진 추가하기 ({maxPhotos - currentPhotoCount}장 더 가능)
               </p>
             )}
-          </label>
+          </div>
         ) : (
           <>
             <div className="upload-icon">

@@ -8,7 +8,7 @@ export default function AboutSection() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="mx-auto mb-24 mt-12 w-full max-w-4xl px-4">
+    <div className="mx-auto mb-10 mt-8 w-full max-w-5xl px-4">
       <GlassCard padding="lg" className="border-t-4 border-t-neonYellow">
         <div className="mb-6 text-center">
           <h2 className="mb-2 text-2xl font-bold text-white">About BanaToon</h2>

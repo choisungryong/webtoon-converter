@@ -685,7 +685,7 @@ export default function Home() {
       />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: '640px', overflow: 'hidden', padding: '24px 16px' }}>
+      <div className="mx-auto w-full max-w-5xl overflow-hidden px-4 py-6">
         <Header
           mode={mode}
           onModeChange={handleModeChange}
