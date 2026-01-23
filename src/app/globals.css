@@ -92,11 +92,9 @@ body {
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      transparent 100%);
   border-radius: 14px 14px 0 0;
   pointer-events: none;
 }
@@ -631,6 +629,7 @@ body {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     opacity: 0.7;
@@ -868,13 +867,11 @@ body {
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.2) 30%,
-    rgba(0, 0, 0, 0.5) 60%,
-    rgba(0, 0, 0, 0.7) 100%
-  );
+  background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.2) 30%,
+      rgba(0, 0, 0, 0.5) 60%,
+      rgba(0, 0, 0, 0.7) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -889,12 +886,10 @@ body {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 40%,
-    black 100%
-  );
+  -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      black 40%,
+      black 100%);
   pointer-events: none;
   z-index: 2;
 }

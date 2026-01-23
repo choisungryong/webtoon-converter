@@ -57,9 +57,11 @@ The input image is a stack of multiple scenes. You must expand this into a rich,
 - **Details**: Intricate character designs, high-fidelity backgrounds, and varied depth of field.
 
 ### 📐 COMPOSITION & PANELS
-- **Format**: ALL panels must be TALL VERTICAL (800x1280 pixels). This is for mobile scroll-viewing.
-- **Expansion**: For EACH scene in the input, create 2-3 distinct panels (Close-up, Medium, Wide) to build a better story flow.
-- **Layout**: Stack panels vertically with small gutters between them. Use dynamic angles (e.g., low-angle, Dutch tilt) to enhance the action.
+- **Format**: EVERY single panel must be a TALL VERTICAL rectangle (800x1280 pixels). 
+- **Orientation**: NEVER place panels horizontally. Stack them strictly one after another vertically.
+- **Expansion**: For EACH input scene, create 2-3 distinct vertical panels (Close-up, Medium, Wide) to expand the story into a full episode.
+- **Layout & Gutters**: Use **CLEAN WHITE gutters** (background) between panels. Avoid black or dark backgrounds for the layout.
+- **Framing**: Keep characters fully within the frame. Ensure heads, hands, and feet are NOT cropped by the panel edges.
 
 ### 🚫 CRITICAL QUALITY CONSTRAINTS (MANDATORY)
 - **Character Continuity**: Maintain gender, hair, eye color, and outfits perfectly across all panels.
