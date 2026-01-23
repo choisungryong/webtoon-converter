@@ -4,15 +4,15 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-    try {
-        const { env } = getRequestContext();
+  try {
+    const { env } = getRequestContext();
 
-        if (!env.DB) {
-            return NextResponse.json({ error: 'DB not available' }, { status: 500 });
-        }
+    if (!env.DB) {
+      return NextResponse.json({ error: 'DB not available' }, { status: 500 });
+    }
 
-        // Create tables if not exist
-        await env.DB.exec(`
+    // Create tables if not exist
+    await env.DB.exec(`
             CREATE TABLE IF NOT EXISTS generated_images (
                 id TEXT PRIMARY KEY,
                 r2_key TEXT NOT NULL,
@@ -24,13 +24,15 @@ export async function GET(request: NextRequest) {
             CREATE INDEX IF NOT EXISTS idx_created_at ON generated_images(created_at);
         `);
 
-        return NextResponse.json({
-            success: true,
-            message: 'Database tables created/verified'
-        });
-
-    } catch (error) {
-        console.error('Setup Error:', error);
-        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
-    }
+    return NextResponse.json({
+      success: true,
+      message: 'Database tables created/verified',
+    });
+  } catch (error) {
+    console.error('Setup Error:', error);
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 500 }
+    );
+  }
 }

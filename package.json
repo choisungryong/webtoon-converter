@@ -1,36 +1,44 @@
 {
-    "name": "webtoon-converter",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start",
-        "pages:build": "npx @cloudflare/next-on-pages",
-        "preview": "npm run pages:build && wrangler pages dev .vercel/output/static",
-        "deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static",
-        "cf-build": "npx @cloudflare/next-on-pages"
-    },
-    "dependencies": {
-        "@ant-design/icons": "^5.2.6",
-        "@ant-design/nextjs-registry": "^1.0.1",
-        "antd": "^5.12.2",
-        "lottie-react": "^2.4.1",
-        "lucide-react": "^0.294.0",
-        "next": "15.1.0",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0"
-    },
-    "devDependencies": {
-        "@cloudflare/next-on-pages": "^1.13.16",
-        "@types/node": "20.10.0",
-        "@types/react": "18.2.45",
-        "@types/react-dom": "18.2.18",
-        "autoprefixer": "10.4.16",
-        "esbuild": "^0.24.0",
-        "postcss": "8.4.32",
-        "tailwindcss": "3.4.0",
-        "typescript": "5.3.3",
-        "wrangler": "^3.99.0"
-    }
+  "name": "webtoon-converter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "preview": "npm run pages:build && wrangler pages dev .vercel/output/static",
+    "deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static",
+    "cf-build": "npx @cloudflare/next-on-pages",
+    "lint": "next lint",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.2.6",
+    "@ant-design/nextjs-registry": "^1.0.1",
+    "antd": "^5.12.2",
+    "lottie-react": "^2.4.1",
+    "lucide-react": "^0.294.0",
+    "next": "15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
+    "@types/node": "20.10.0",
+    "@types/react": "18.2.45",
+    "@types/react-dom": "18.2.18",
+    "autoprefixer": "10.4.16",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^15.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-tailwindcss": "^3.18.2",
+    "postcss": "8.4.32",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "tailwindcss": "3.4.0",
+    "typescript": "5.3.3",
+    "wrangler": "^3.99.0"
+  }
 }

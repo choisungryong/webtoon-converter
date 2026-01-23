@@ -1,0 +1,3 @@
+echo "node_modules/" > .opencodeignore
+echo ".next/" >> .opencodeignore
+echo "dist/" >> .ignore

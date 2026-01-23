@@ -1,34 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
-import type { PanelLayout, LayoutAnalysisResponse } from '../../../../types/layout';
+import type {
+  PanelLayout,
+  LayoutAnalysisResponse,
+} from '../../../../types/layout';
 
 export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
-    try {
-        const { env } = getRequestContext();
-        const apiKey = env?.GEMINI_API_KEY;
+  try {
+    const { env } = getRequestContext();
+    const apiKey = env?.GEMINI_API_KEY;
 
-        if (!apiKey) {
-            console.error('[Layout API] No Gemini API Key');
-            return NextResponse.json({
-                success: false,
-                error: 'API key not configured'
-            }, { status: 500 });
-        }
+    if (!apiKey) {
+      console.error('[Layout API] No Gemini API Key');
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'API key not configured',
+        },
+        { status: 500 }
+      );
+    }
 
-        const body = await request.json() as { images: string[] };
-        const { images } = body;
+    const body = (await request.json()) as { images: string[] };
+    const { images } = body;
 
-        if (!images || images.length === 0) {
-            return NextResponse.json({
-                success: false,
-                error: 'No images provided'
-            }, { status: 400 });
-        }
+    if (!images || images.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No images provided',
+        },
+        { status: 400 }
+      );
+    }
 
-        // Build prompt for layout analysis
-        const analysisPrompt = `You are a professional webtoon layout designer. Analyze these ${images.length} webtoon panel images and determine the optimal layout for each.
+    // Build prompt for layout analysis
+    const analysisPrompt = `You are a professional webtoon layout designer. Analyze these ${images.length} webtoon panel images and determine the optimal layout for each.
 
 For EACH image (index 0 to ${images.length - 1}), respond with:
 1. Panel Type: 
@@ -53,162 +62,171 @@ For EACH image (index 0 to ${images.length - 1}), respond with:
 Respond ONLY with valid JSON array, no markdown:
 [{"index":0,"type":"...","gutter":"...","importance":0.0,"indent":"center"},...]`;
 
-        // Prepare image parts for Gemini - handle both data URLs and remote URLs
-        const imageParts = [];
+    // Prepare image parts for Gemini - handle both data URLs and remote URLs
+    const imageParts = [];
 
-        for (const img of images) {
-            try {
-                // Check if it's already a data URL
-                const dataUrlMatch = img.match(/^data:image\/(\w+);base64,(.+)$/);
-                if (dataUrlMatch) {
-                    imageParts.push({
-                        inlineData: {
-                            mimeType: `image/${dataUrlMatch[1]}`,
-                            data: dataUrlMatch[2]
-                        }
-                    });
-                    continue;
-                }
-
-                // It's a remote URL - fetch and convert to base64
-                const response = await fetch(img);
-                if (!response.ok) {
-                    console.error(`[Layout API] Failed to fetch image: ${img}`);
-                    continue;
-                }
-
-                const blob = await response.blob();
-                const arrayBuffer = await blob.arrayBuffer();
-                const uint8Array = new Uint8Array(arrayBuffer);
-
-                // Convert to base64
-                let binary = '';
-                for (let i = 0; i < uint8Array.length; i++) {
-                    binary += String.fromCharCode(uint8Array[i]);
-                }
-                const base64 = btoa(binary);
-
-                imageParts.push({
-                    inlineData: {
-                        mimeType: blob.type || 'image/jpeg',
-                        data: base64
-                    }
-                });
-            } catch (err) {
-                console.error(`[Layout API] Error processing image: ${img}`, err);
-            }
+    for (const img of images) {
+      try {
+        // Check if it's already a data URL
+        const dataUrlMatch = img.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (dataUrlMatch) {
+          imageParts.push({
+            inlineData: {
+              mimeType: `image/${dataUrlMatch[1]}`,
+              data: dataUrlMatch[2],
+            },
+          });
+          continue;
         }
 
-        if (imageParts.length === 0) {
-            // 이미지 처리 실패 시 기본 레이아웃 반환
-            console.log('[Layout API] Image processing failed, using default layouts');
-            return NextResponse.json({
-                success: true,
-                layouts: getDefaultLayouts(images.length),
-                fallback: true
-            });
+        // It's a remote URL - fetch and convert to base64
+        const response = await fetch(img);
+        if (!response.ok) {
+          console.error(`[Layout API] Failed to fetch image: ${img}`);
+          continue;
         }
 
-        // Call Gemini API for analysis
-        const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
 
-        const geminiRes = await fetch(geminiEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        ...imageParts,
-                        { text: analysisPrompt }
-                    ]
-                }],
-                generationConfig: {
-                    temperature: 0.3,
-                    topP: 0.8,
-                    maxOutputTokens: 1024
-                }
-            })
+        // Convert to base64
+        let binary = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        const base64 = btoa(binary);
+
+        imageParts.push({
+          inlineData: {
+            mimeType: blob.type || 'image/jpeg',
+            data: base64,
+          },
         });
-
-        if (!geminiRes.ok) {
-            const errorText = await geminiRes.text();
-            console.error('[Layout API] Gemini error:', errorText);
-
-            // Return default layouts on API error
-            return NextResponse.json({
-                success: true,
-                layouts: getDefaultLayouts(images.length),
-                fallback: true
-            });
-        }
-
-        const geminiData = await geminiRes.json();
-        const textContent = geminiData?.candidates?.[0]?.content?.parts?.find(
-            (p: any) => p.text
-        )?.text;
-
-        if (!textContent) {
-            console.error('[Layout API] No text response from Gemini');
-            return NextResponse.json({
-                success: true,
-                layouts: getDefaultLayouts(images.length),
-                fallback: true
-            });
-        }
-
-        // Parse JSON response
-        try {
-            // Clean up response - remove markdown code blocks if present
-            let cleanJson = textContent.trim();
-            if (cleanJson.startsWith('```')) {
-                cleanJson = cleanJson.replace(/```json?\n?/g, '').replace(/```/g, '');
-            }
-
-            const layouts: PanelLayout[] = JSON.parse(cleanJson);
-
-            // Validate and sanitize
-            const validatedLayouts = layouts.map((l, i) => ({
-                index: i,
-                type: ['full-width', 'half', 'third', 'inset-over-prev'].includes(l.type)
-                    ? l.type : 'half',
-                gutter: ['none', 'small', 'medium', 'large'].includes(l.gutter)
-                    ? l.gutter : 'medium',
-                importance: typeof l.importance === 'number'
-                    ? Math.max(0, Math.min(1, l.importance)) : 0.5,
-                indent: ['left', 'right', 'center'].includes(l.indent || '')
-                    ? l.indent : 'center'
-            })) as PanelLayout[];
-
-            return NextResponse.json({
-                success: true,
-                layouts: validatedLayouts
-            });
-
-        } catch (parseError) {
-            console.error('[Layout API] JSON parse error:', parseError);
-            return NextResponse.json({
-                success: true,
-                layouts: getDefaultLayouts(images.length),
-                fallback: true
-            });
-        }
-
-    } catch (error) {
-        console.error('[Layout API] Error:', error);
-        return NextResponse.json({
-            success: false,
-            error: 'Internal server error'
-        }, { status: 500 });
+      } catch (err) {
+        console.error(`[Layout API] Error processing image: ${img}`, err);
+      }
     }
+
+    if (imageParts.length === 0) {
+      // 이미지 처리 실패 시 기본 레이아웃 반환
+      console.log(
+        '[Layout API] Image processing failed, using default layouts'
+      );
+      return NextResponse.json({
+        success: true,
+        layouts: getDefaultLayouts(images.length),
+        fallback: true,
+      });
+    }
+
+    // Call Gemini API for analysis
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const geminiRes = await fetch(geminiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [...imageParts, { text: analysisPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          topP: 0.8,
+          maxOutputTokens: 1024,
+        },
+      }),
+    });
+
+    if (!geminiRes.ok) {
+      const errorText = await geminiRes.text();
+      console.error('[Layout API] Gemini error:', errorText);
+
+      // Return default layouts on API error
+      return NextResponse.json({
+        success: true,
+        layouts: getDefaultLayouts(images.length),
+        fallback: true,
+      });
+    }
+
+    const geminiData = await geminiRes.json();
+    const textContent = geminiData?.candidates?.[0]?.content?.parts?.find(
+      (p: any) => p.text
+    )?.text;
+
+    if (!textContent) {
+      console.error('[Layout API] No text response from Gemini');
+      return NextResponse.json({
+        success: true,
+        layouts: getDefaultLayouts(images.length),
+        fallback: true,
+      });
+    }
+
+    // Parse JSON response
+    try {
+      // Clean up response - remove markdown code blocks if present
+      let cleanJson = textContent.trim();
+      if (cleanJson.startsWith('```')) {
+        cleanJson = cleanJson.replace(/```json?\n?/g, '').replace(/```/g, '');
+      }
+
+      const layouts: PanelLayout[] = JSON.parse(cleanJson);
+
+      // Validate and sanitize
+      const validatedLayouts = layouts.map((l, i) => ({
+        index: i,
+        type: ['full-width', 'half', 'third', 'inset-over-prev'].includes(
+          l.type
+        )
+          ? l.type
+          : 'half',
+        gutter: ['none', 'small', 'medium', 'large'].includes(l.gutter)
+          ? l.gutter
+          : 'medium',
+        importance:
+          typeof l.importance === 'number'
+            ? Math.max(0, Math.min(1, l.importance))
+            : 0.5,
+        indent: ['left', 'right', 'center'].includes(l.indent || '')
+          ? l.indent
+          : 'center',
+      })) as PanelLayout[];
+
+      return NextResponse.json({
+        success: true,
+        layouts: validatedLayouts,
+      });
+    } catch (parseError) {
+      console.error('[Layout API] JSON parse error:', parseError);
+      return NextResponse.json({
+        success: true,
+        layouts: getDefaultLayouts(images.length),
+        fallback: true,
+      });
+    }
+  } catch (error) {
+    console.error('[Layout API] Error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    );
+  }
 }
 
 // Fallback: Generate default layouts
 function getDefaultLayouts(count: number): PanelLayout[] {
-    return Array.from({ length: count }, (_, i) => ({
-        index: i,
-        type: i === 0 ? 'full-width' : 'half',
-        gutter: 'medium',
-        importance: i === 0 ? 0.8 : 0.5,
-        indent: 'center'
-    }));
+  return Array.from({ length: count }, (_, i) => ({
+    index: i,
+    type: i === 0 ? 'full-width' : 'half',
+    gutter: 'medium',
+    importance: i === 0 ? 0.8 : 0.5,
+    indent: 'center',
+  }));
 }

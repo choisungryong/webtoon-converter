@@ -7,6 +7,7 @@ This guide describes how to set up the `webtoon-converter` project on a fresh Vi
 Ensure your VM has internet access.
 
 ### Install Node.js (via NVM recommended)
+
 ```bash
 # Install NVM (Node Version Manager)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -20,6 +21,7 @@ nvm use --lts
 ```
 
 ### Install Git & Wrangler
+
 ```bash
 # Install Git
 sudo apt update
@@ -32,30 +34,38 @@ npm install -g wrangler
 ## 2. Project Setup
 
 ### Clone the Repository
+
 ```bash
 git clone <YOUR_REPO_URL> webtoon-converter
 cd webtoon-converter
 ```
 
 ### Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### Environment Configuration
+
 1.  **Cloudflare Login**:
     You must login to Cloudflare to access your D1 Database and R2 Storage.
+
     ```bash
     npx wrangler login
     ```
+
     Follow the link provided to authenticate.
 
 2.  **Environment Variables**:
     Create a `.env.local` file in the root directory for your secrets.
+
     ```bash
     nano .env.local
     ```
+
     Add your secrets (e.g., Replicate API Token):
+
     ```env
     REPLICATE_API_TOKEN=your_token_here
     ```
@@ -69,6 +79,7 @@ npm install
 ## 3. Running the Project
 
 ### Local Development Server
+
 To run the project with full Cloudflare bindings support (D1, R2, AI):
 
 ```bash
@@ -80,16 +91,20 @@ npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01 --c
 ```
 
 ## 4. Automated Setup Script (Non-Docker)
+
 You can use the provided script to automate system installation.
+
 ```bash
 chmod +x scripts/setup-vm.sh
 ./scripts/setup-vm.sh
 ```
 
 ## 5. Docker Deployment (Easiest)
+
 If you prefer not to install Node.js manually, you can use Docker.
 
 1.  **Install Docker** (if not installed)
+
     ```bash
     curl -fsSL https://get.docker.com -o get-docker.sh
     sh get-docker.sh
