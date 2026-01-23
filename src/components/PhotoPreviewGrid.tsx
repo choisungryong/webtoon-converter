@@ -50,50 +50,22 @@ export default function PhotoPreviewGrid({
           전체 삭제
         </button>
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-        }}
-      >
+      <div className="flex flex-wrap justify-center gap-2">
         {previews.map((preview, idx) => (
           <div
             key={idx}
-            style={{
-              position: 'relative',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              aspectRatio: '1',
-            }}
+            className="relative aspect-square w-[calc(33%-6px)] overflow-hidden rounded-lg"
           >
             <Image
               src={preview}
               alt={`Photo ${idx + 1}`}
               fill
-              style={{
-                objectFit: 'cover',
-              }}
+              className="object-cover"
               sizes="(max-width: 640px) 33vw, 25vw"
             />
             <button
               onClick={() => onRemove(idx)}
-              style={{
-                position: 'absolute',
-                top: '4px',
-                right: '4px',
-                width: '22px',
-                height: '22px',
-                borderRadius: '50%',
-                background: 'rgba(0,0,0,0.7)',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-              }}
+              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full border-none bg-black/70 text-xs text-white hover:bg-black/90"
             >
               ✕
             </button>

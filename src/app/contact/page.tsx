@@ -137,7 +137,7 @@ export default function ContactPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] p-4 md:p-8">
+    <main className="bg-[#0a0a0a] p-4 md:p-8">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8 flex items-center gap-4">

@@ -587,8 +587,8 @@ function GalleryContent() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] p-4 md:p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <main className="bg-[#0a0a0a] p-4 md:p-8">
+      <div className="mx-auto max-w-2xl space-y-6">
         {/* Header */}
         <div className="animate-fade-in flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">

@@ -666,11 +666,11 @@ export default function Home() {
   return (
     <div
       style={{
-        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         background: 'var(--bg-primary)',
+        width: '100%',
       }}
     >
       {/* Hidden video/canvas for frame extraction */}
@@ -685,7 +685,7 @@ export default function Home() {
       />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <div className="mx-auto w-full max-w-5xl overflow-hidden px-4 py-6">
+      <div className="mx-auto w-full max-w-2xl overflow-hidden px-4 py-6">
         <Header
           mode={mode}
           onModeChange={handleModeChange}

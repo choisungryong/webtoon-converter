@@ -1,10 +1,7 @@
-import React from 'react';
-import { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: '기술 FAQ (Technical FAQ)',
-  description: 'BanaToon의 기술 스택과 아키텍처에 대한 상세한 질문과 답변입니다.',
-};
+import React from 'react';
+import Link from 'next/link';
 
 export default function FAQPage() {
   const faqList = [
@@ -59,32 +56,47 @@ export default function FAQPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 text-gray-200 md:py-20">
-      <h1 className="mb-8 text-3xl font-bold text-white md:text-4xl">Technical FAQ</h1>
-      <p className="mb-12 text-lg text-gray-400">
-        BanaToon의 기술적 배경과 아키텍처에 대한 심층적인 답변을 확인하세요.
-        <br className="hidden md:block" />
-        Cloudflare Workers, R2, D1 및 Google Gemini 기술이 어떻게 적용되었는지 설명합니다.
-      </p>
+    <main className="bg-[#0a0a0a] p-4 md:p-8">
+      <div className="mx-auto max-w-2xl">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-4">
+          <Link href="/" className="text-gray-400 transition-colors hover:text-white">
+            ← 홈
+          </Link>
+          <h1 className="text-2xl font-bold text-white">
+            Technical <span className="text-neonYellow">FAQ</span>
+          </h1>
+        </div>
 
-      <div className="space-y-10">
-        {faqList.map((item, idx) => (
-          <div key={idx} className="border-b border-white/10 pb-8 last:border-0">
-            <h2 className="mb-4 text-xl font-semibold text-neonYellow">Q. {item.q}</h2>
-            <p className="whitespace-pre-wrap leading-relaxed text-gray-300">{item.a}</p>
+        {/* Content */}
+        <div className="space-y-8 rounded-2xl border border-white/10 bg-white/5 p-6 text-gray-300 md:p-8">
+          <div className="mb-8 border-b border-white/10 pb-8">
+            <h2 className="mb-4 text-xl font-bold text-white">BanaToon 기술 가이드</h2>
+            <p className="leading-relaxed text-gray-400">
+              BanaToon의 기술적 배경과 아키텍처에 대한 심층적인 답변을 확인하세요. Cloudflare
+              Workers, R2, D1 및 Google Gemini 기술이 어떻게 적용되었는지 설명합니다.
+            </p>
           </div>
-        ))}
-      </div>
 
-      <div className="mt-12 rounded-xl bg-white/5 p-6 text-center">
-        <p className="text-gray-400">
-          더 깊이 있는 기술적 논의가 필요하신가요? <br />
-          <a href="/contact" className="text-neonYellow hover:underline">
-            개발팀에 문의하기
-          </a>{' '}
-          를 통해 연락해 주세요.
-        </p>
+          <div className="space-y-10">
+            {faqList.map((item, idx) => (
+              <div key={idx} className="border-b border-white/10 pb-8 last:border-0">
+                <h3 className="mb-4 text-lg font-semibold text-neonYellow">Q. {item.q}</h3>
+                <p className="whitespace-pre-wrap leading-relaxed text-gray-300">{item.a}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 rounded-lg bg-white/5 p-4 text-center">
+            <p className="text-sm text-gray-400">
+              더 깊이 있는 기술적 논의가 필요하신가요?{' '}
+              <Link href="/contact" className="text-neonYellow hover:underline">
+                개발팀에 문의하기
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

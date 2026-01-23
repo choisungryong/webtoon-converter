@@ -4,14 +4,11 @@ import Link from 'next/link';
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] p-4 md:p-8">
+    <main className="bg-[#0a0a0a] p-4 md:p-8">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8 flex items-center gap-4">
-          <Link
-            href="/"
-            className="text-gray-400 transition-colors hover:text-white"
-          >
+          <Link href="/" className="text-gray-400 transition-colors hover:text-white">
             ← 홈
           </Link>
           <h1 className="text-2xl font-bold text-white">
@@ -22,44 +19,36 @@ export default function PrivacyPage() {
         {/* Content */}
         <div className="space-y-8 rounded-2xl border border-white/10 bg-white/5 p-6 text-gray-300 md:p-8">
           <section>
-            <p className="mb-6 text-sm text-gray-400">
-              최종 수정일: 2026년 1월 18일
-            </p>
+            <p className="mb-6 text-sm text-gray-400">최종 수정일: 2026년 1월 18일</p>
             <p className="leading-relaxed">
-              BanaToon(이하 &quot;서비스&quot;)은 이용자의 개인정보를
-              중요시하며, 「개인정보 보호법」 등 관련 법령을 준수하고 있습니다.
-              본 개인정보처리방침은 서비스 이용과 관련하여 수집되는 개인정보의
-              처리에 관한 사항을 안내합니다.
+              BanaToon(이하 &quot;서비스&quot;)은 이용자의 개인정보를 중요시하며, 「개인정보
+              보호법」 등 관련 법령을 준수하고 있습니다. 본 개인정보처리방침은 서비스 이용과
+              관련하여 수집되는 개인정보의 처리에 관한 사항을 안내합니다.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              1. 수집하는 개인정보
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">1. 수집하는 개인정보</h2>
             <p className="mb-4 leading-relaxed">
               서비스는 원활한 서비스 제공을 위해 최소한의 정보만을 수집합니다.
             </p>
             <ul className="list-inside list-disc space-y-2 text-gray-400">
               <li>
-                <strong className="text-gray-300">자동 수집 정보:</strong> 익명
-                사용자 식별자(UUID), 접속 로그, 브라우저 정보
+                <strong className="text-gray-300">자동 수집 정보:</strong> 익명 사용자 식별자(UUID),
+                접속 로그, 브라우저 정보
               </li>
               <li>
-                <strong className="text-gray-300">이용자 제공 정보:</strong>{' '}
-                업로드한 이미지 또는 영상(변환 목적으로만 사용)
+                <strong className="text-gray-300">이용자 제공 정보:</strong> 업로드한 이미지 또는
+                영상(변환 목적으로만 사용)
               </li>
               <li>
-                <strong className="text-gray-300">쿠키:</strong> 서비스 이용
-                편의를 위한 세션 정보
+                <strong className="text-gray-300">쿠키:</strong> 서비스 이용 편의를 위한 세션 정보
               </li>
             </ul>
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              2. 개인정보의 이용 목적
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">2. 개인정보의 이용 목적</h2>
             <ul className="list-inside list-disc space-y-2 text-gray-400">
               <li>AI 기반 이미지 변환 서비스 제공</li>
               <li>갤러리 기능을 통한 변환 결과 저장 및 관리</li>
@@ -69,58 +58,46 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              3. 개인정보의 보관 및 파기
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">3. 개인정보의 보관 및 파기</h2>
             <div className="mb-4 rounded-lg border border-[#CCFF00]/30 bg-[#CCFF00]/10 p-4">
-              <p className="mb-2 font-semibold text-neonYellow">
-                🔒 원본 미보관 정책
-              </p>
+              <p className="mb-2 font-semibold text-neonYellow">🔒 원본 미보관 정책</p>
               <p className="text-sm leading-relaxed text-gray-300">
                 BanaToon은 이용자가 업로드한{' '}
                 <strong>원본 사진 및 영상을 절대 저장하지 않습니다.</strong>
                 <br />
-                업로드된 원본 파일은 AI 변환 처리 후 즉시 폐기되며, 서버에
-                보관되지 않습니다.
+                업로드된 원본 파일은 AI 변환 처리 후 즉시 폐기되며, 서버에 보관되지 않습니다.
                 <br />
                 오직 변환이 완료된 결과물만 이용자의 갤러리에 저장됩니다.
               </p>
             </div>
             <p className="mb-4 leading-relaxed">
-              변환 결과물은 갤러리에 저장되며, 이용자가 직접 삭제하거나 계정
-              비활성화 시 파기됩니다.
+              변환 결과물은 갤러리에 저장되며, 이용자가 직접 삭제하거나 계정 비활성화 시 파기됩니다.
             </p>
             <ul className="list-inside list-disc space-y-2 text-gray-400">
               <li>
-                <strong className="text-gray-300">원본 이미지/영상:</strong>{' '}
-                변환 후 즉시 삭제 (서버 미보관)
+                <strong className="text-gray-300">원본 이미지/영상:</strong> 변환 후 즉시 삭제 (서버
+                미보관)
               </li>
               <li>
-                <strong className="text-gray-300">변환된 이미지:</strong> 이용자
-                삭제 시까지 보관
+                <strong className="text-gray-300">변환된 이미지:</strong> 이용자 삭제 시까지 보관
               </li>
               <li>
-                <strong className="text-gray-300">서비스 로그:</strong> 최대
-                90일간 보관 후 자동 삭제
+                <strong className="text-gray-300">서비스 로그:</strong> 최대 90일간 보관 후 자동
+                삭제
               </li>
             </ul>
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              4. 제3자 제공 및 위탁
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">4. 제3자 제공 및 위탁</h2>
             <p className="mb-4 leading-relaxed">
-              서비스는 이용자의 개인정보를 원칙적으로 제3자에게 제공하지
-              않습니다. 다만, 아래의 경우에는 예외로 합니다.
+              서비스는 이용자의 개인정보를 원칙적으로 제3자에게 제공하지 않습니다. 다만, 아래의
+              경우에는 예외로 합니다.
             </p>
             <ul className="list-inside list-disc space-y-2 text-gray-400">
               <li>이용자가 사전에 동의한 경우</li>
               <li>법령에 의해 요구되는 경우</li>
-              <li>
-                서비스 제공을 위해 필요한 범위 내에서 업무 위탁 (클라우드
-                호스팅, AI 처리 등)
-              </li>
+              <li>서비스 제공을 위해 필요한 범위 내에서 업무 위탁 (클라우드 호스팅, AI 처리 등)</li>
             </ul>
             <div className="mt-4 rounded-lg bg-white/5 p-4">
               <p className="text-sm text-gray-400">
@@ -133,12 +110,10 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              5. 쿠키 및 광고
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">5. 쿠키 및 광고</h2>
             <p className="mb-4 leading-relaxed">
-              서비스는 Google AdSense를 통해 광고를 게재할 수 있으며, 이
-              과정에서 Google이 쿠키를 사용할 수 있습니다.
+              서비스는 Google AdSense를 통해 광고를 게재할 수 있으며, 이 과정에서 Google이 쿠키를
+              사용할 수 있습니다.
             </p>
             <ul className="list-inside list-disc space-y-2 text-gray-400">
               <li>
@@ -153,19 +128,14 @@ export default function PrivacyPage() {
                 </a>
                 을 참조하세요.
               </li>
-              <li>
-                이용자는 브라우저 설정을 통해 쿠키 사용을 거부할 수 있습니다.
-              </li>
+              <li>이용자는 브라우저 설정을 통해 쿠키 사용을 거부할 수 있습니다.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              6. 이용자의 권리
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">6. 이용자의 권리</h2>
             <p className="mb-4 leading-relaxed">
-              이용자는 언제든지 자신의 개인정보에 대해 다음과 같은 권리를 행사할
-              수 있습니다.
+              이용자는 언제든지 자신의 개인정보에 대해 다음과 같은 권리를 행사할 수 있습니다.
             </p>
             <ul className="list-inside list-disc space-y-2 text-gray-400">
               <li>개인정보 열람 요청</li>
@@ -182,26 +152,21 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              7. 개인정보 보호책임자
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">7. 개인정보 보호책임자</h2>
             <div className="rounded-lg bg-white/5 p-4">
               <p className="text-gray-400">
                 <strong className="text-gray-300">담당:</strong> BanaToon 운영팀
                 <br />
-                <strong className="text-gray-300">이메일:</strong>{' '}
-                twinspa0713@gmail.com
+                <strong className="text-gray-300">이메일:</strong> twinspa0713@gmail.com
               </p>
             </div>
           </section>
 
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">
-              8. 개인정보처리방침의 변경
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-white">8. 개인정보처리방침의 변경</h2>
             <p className="leading-relaxed">
-              본 개인정보처리방침은 법령 및 서비스 정책 변경에 따라 수정될 수
-              있습니다. 변경 시에는 서비스 내 공지를 통해 안내드립니다.
+              본 개인정보처리방침은 법령 및 서비스 정책 변경에 따라 수정될 수 있습니다. 변경 시에는
+              서비스 내 공지를 통해 안내드립니다.
             </p>
           </section>
         </div>
