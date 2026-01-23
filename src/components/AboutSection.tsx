@@ -22,72 +22,49 @@ export default function AboutSection() {
         >
           <div className="space-y-4 text-justify text-sm leading-relaxed text-gray-300">
             <h3 className="mt-4 text-lg font-bold text-white">
-              1. 혁신적인 AI 이미지 처리 기술 (Advanced AI Image Processing)
+              1. Cloudflare Workers 기반의 Serverless Architecture
             </h3>
             <p>
-              BanaToon은 최첨단 생성형 AI(Generative AI) 기술을 기반으로 사용자의 사진과 영상을
-              고품질의 한국형 웹툰 스타일로 변환하는 서비스입니다. 우리의 핵심 엔진은 Stable
-              Diffusion 기반의 파인튜닝된 모델을 활용하며, 특히 인물 중심의 이미지에서 이목구비와
-              표정을 정확하게 인식하고 만화적인 터치로 재해석하는 데 특화되어 있습니다. 단순히
-              필터를 씌우는 수준을 넘어, 이미지의 구조적 특징(Semantic Structure)을 분석하여
-              선화(Line Art)와 채색(Coloring)을 분리 처리함으로써 작가가 직접 그린 듯한 자연스러운
-              결과물을 제공합니다.
-            </p>
-            <p>
-              특히, BanaToon의 독자적인 &apos;Style Transfer Pipeline&apos;은 입력 이미지의 조명,
-              텍스처, 색감 정보를 보존하면서도 웹툰 특유의 플랫(Flat)한 채색 스타일과 역동적인 명암
-              대비를 적용합니다. 이를 위해 우리는 수만 장의 고품질 웹툰 데이터셋을 구축하여 AI를
-              학습시켰으며, 그 결과 일상적인 스마트폰 사진도 프로 작가의 컷처럼 변환할 수 있는
-              수준에 도달했습니다. 또한, 영상 처리 시에는 프레임 간의 일관성(Temporal Consistency)을
-              유지하기 위해 Optical Flow 알고리즘을 결합하여, 연속된 장면에서도 캐릭터의 외형이
-              무너지지 않고 자연스럽게 이어지도록 최적화했습니다.
+              BanaToon은 전통적인 서버 인프라를 벗어나, <strong>Cloudflare Workers</strong>를 활용한
+              완전한 서버리스(Serverless) 아키텍처로 구축되었습니다. 이를 통해 전 세계 300여 개
+              도시의 엣지(Edge) 네트워크에서 사용자의 요청을 즉각적으로 처리하며, 콜드 스타트(Cold
+              Start) 없는 빠른 응답 속도를 제공합니다. 이미지 업로드와 전처리 과정은 엣지 단계에서
+              수행되어 지연 시간(Latency)을 최소화했습니다.
             </p>
 
             <h3 className="mt-6 text-lg font-bold text-white">
-              2. Edge Runtime과 고성능 클라우드 인프라 (High-Performance Infrastructure)
+              2. Google Gemini Pro Vision을 활용한 이미지 분석
             </h3>
             <p>
-              BanaToon은 사용자 경험(UX)을 극대화하기 위해 최신 Vercel Edge Runtime과 AWS Lambda GPU
-              인스턴스를 결합한 하이브리드 아키텍처를 채택했습니다. 이미지 업로드와 전처리 과정은
-              Edge Network에서 지연 시간(Latency)을 최소화하여 즉각적으로 처리되며, 무거운 AI
-              추론(Inference) 작업은 고성능 GPU 클러스터에서 병렬로 수행됩니다. 이를 통해 사용자는
-              모바일 환경에서도 끊김 없는 빠른 변환 속도를 경험할 수 있습니다.
-            </p>
-            <p>
-              또한, 우리는 이미지 처리 과정에서의 데이터 보안을 최우선으로 생각합니다. 사용자가
-              업로드한 모든 미디어 파일은 암호화된 상태로 전송되며, 변환 작업이 완료된 후에는 임시
-              스토리지에서 즉시 영구 삭제되는 &apos;Ephemeral Storage Policy&apos;를 적용하고
-              있습니다. 이는 사용자의 프라이버시를 완벽하게 보호하기 위한 BanaToon만의 철저한 보안
-              원칙입니다. 서버리스(Serverless) 아키텍처를 통해 트래픽 급증 시에도 안정적인 서비스를
-              제공하며, 글로벌 CDN을 통해 전 세계 어디서든 쾌적한 접속 속도를 보장합니다.
+              단순한 스타일 변환을 넘어, <strong>Google Gemini Pro Vision</strong> 멀티모달 모델을
+              도입하여 이미지의 맥락(Context)을 깊이 있게 이해합니다. Gemini는 업로드된 사진 속
+              인물의 표정, 동작, 그리고 배경의 분위기를 분석하여 프롬프트를 최적화하며, 이를 통해
+              웹툰 스타일로 변환 시 원작의 의도를 정확하게 반영한 결과물을 생성합니다.
             </p>
 
             <h3 className="mt-6 text-lg font-bold text-white">
-              3. 저작권 정책 및 창작자 생태계 기여 (Copyright & Creative Ecosystem)
+              3. Cloudflare R2와 D1을 이용한 데이터 처리 및 보안
             </h3>
             <p>
-              BanaToon은 AI 기술과 창작자의 권리가 공존하는 건전한 생태계를 지향합니다. 서비스
-              내에서 제공되는 모든 변환 스타일은 저작권 문제가 없는 라이선스 프리(License-Free)
-              데이터셋 혹은 당사가 직접 제작한 오리지널 아트워크를 기반으로 학습되었습니다. 따라서
-              사용자가 BanaToon을 통해 생성한 결과물은 개인적인 용도는 물론, 비상업적인 목적의 소셜
-              미디어 공유, 커뮤니티 활동 등에 자유롭게 활용할 수 있습니다. (단, 상업적 이용에
-              대해서는 별도의 비즈니스 라이선스 문의가 필요합니다.)
-            </p>
-            <p>
-              우리는 AI 기술이 창작을 대체하는 것이 아니라, 누구나 쉽고 재미있게 스토리텔링을 할 수
-              있도록 돕는 도구라고 믿습니다. BanaToon의 &apos;말풍선 편집기&apos;와 &apos;스토리
-              모드&apos;는 사용자가 단순한 이미지 변환을 넘어 자신만의 이야기를 웹툰 형식으로 구성할
-              수 있도록 지원합니다. 앞으로도 우리는 AI 기술의 윤리적 사용 가이드라인을 준수하며,
-              사용자 여러분이 안심하고 창작의 즐거움을 누릴 수 있는 플랫폼을 만들어가겠습니다.
+              사용자의 미디어 데이터는 AWS S3 호환 객체 스토리지인 <strong>Cloudflare R2</strong>에
+              암호화되어 저장됩니다. R2는 Egress 비용이 발생하지 않아 대용량 이미지 처리에도
+              경제적이며,
+              <strong>Ephemeral Storage Policy</strong>를 적용하여 변환 완료 후 데이터가 자동으로
+              영구 삭제되도록 설계되었습니다. 또한, 메타데이터와 애플리케이션 상태 정보는 엣지 SQL
+              데이터베이스인
+              <strong>Cloudflare D1</strong>에서 분산 처리되어 데이터의 무결성과 높은 가용성을
+              보장합니다.
             </p>
 
             <div className="mt-8 border-t border-white/10 pt-6">
-              <h4 className="text-md mb-2 font-semibold text-white">기술 스택 (Tech Stack)</h4>
+              <h4 className="text-md mb-2 font-semibold text-white">Technical Stack</h4>
               <ul className="grid list-inside list-disc grid-cols-2 gap-2 text-xs text-gray-500">
-                <li>Frontend: Next.js 14, React, TypeScript, Tailwind CSS</li>
-                <li>AI Engine: PyTorch, Stable Diffusion XL, ControlNet</li>
-                <li>Infrastructure: AWS Lambda, S3, CloudFront, Vercel Edge</li>
-                <li>Database & Storage: Supabase, Redis (Caching)</li>
+                <li>Frontend: Next.js 14 (App Router)</li>
+                <li>Compute: Cloudflare Workers (Edge Runtime)</li>
+                <li>AI Model: Google Gemini Pro Vision</li>
+                <li>Storage: Cloudflare R2 (Object Storage)</li>
+                <li>Database: Cloudflare D1 (Edge SQL)</li>
+                <li>Styling: Tailwind CSS, Ant Design</li>
               </ul>
             </div>
           </div>

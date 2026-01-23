@@ -59,7 +59,6 @@ The input image is a stack of multiple scenes. You must expand this into a rich,
 ### 📐 COMPOSITION & PANELS
 - **Format**: EVERY single panel must be a TALL VERTICAL rectangle (800x1280 pixels). 
 - **Orientation**: NEVER place panels horizontally. Stack them strictly one after another vertically.
-- **Expansion**: For EACH input scene, create 2-3 distinct vertical panels (Close-up, Medium, Wide) to expand the story into a full episode.
 - **Layout & Gutters**: Use **CLEAN WHITE gutters** (background) between panels. Avoid black or dark backgrounds for the layout.
 - **Framing**: Keep characters fully within the frame. Ensure heads, hands, and feet are NOT cropped by the panel edges.
 
