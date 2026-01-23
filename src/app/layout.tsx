@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { Nunito } from 'next/font/google';
 import Link from 'next/link';
 import Script from 'next/script';
 import KakaoRedirect from '../components/KakaoRedirect';
@@ -9,6 +10,11 @@ import './globals.css';
 // runtime config removed to use default nodejs_compat
 
 const baseUrl = 'https://banatoon.app';
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -115,12 +121,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#CCFF00" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -131,7 +131,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="flex min-h-screen flex-col bg-[#0a0a0a]" suppressHydrationWarning>
+      <body
+        className={`flex min-h-screen flex-col bg-[#0a0a0a] ${nunito.className}`}
+        suppressHydrationWarning
+      >
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
           strategy="afterInteractive"
