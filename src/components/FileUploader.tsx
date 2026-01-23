@@ -124,12 +124,28 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
 
     if (!shouldShowUpload) return null;
 
+    const handleClick = () => {
+      if (!disabled) {
+        if (mode === 'photo') {
+          fileInputRef.current?.click();
+        } else {
+          // For video, we don't auto-click since there are two buttons (gallery/camera)
+          // But if the user clicks the empty area, maybe we default to gallery?
+          // The current UI has explicit buttons for video.
+          // Let's only enable area click for photo mode or if the user clicks specific parts.
+          // Actually, for photo mode, the whole area should be clickable.
+          fileInputRef.current?.click();
+        }
+      }
+    };
+
     return (
       <div
         className="upload-area"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={mode === 'photo' ? handleClick : undefined}
         style={{
           borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
           background: isDragging ? 'var(--accent-glow)' : 'transparent',
@@ -165,10 +181,10 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
 
         {mode === 'photo' ? (
           <div
-            onClick={() => fileInputRef.current?.click()}
             style={{
               cursor: disabled ? 'not-allowed' : 'pointer',
               display: 'block',
+              pointerEvents: 'none', // Allow clicks to pass through to parent
             }}
           >
             {!hasPhotos ? (
@@ -191,7 +207,6 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
               </>
             ) : (
               <p
-                onClick={() => fileInputRef.current?.click()}
                 style={{
                   color: 'var(--accent-color)',
                   fontSize: '13px',

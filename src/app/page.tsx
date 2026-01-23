@@ -15,7 +15,7 @@ import ConvertingProgress from '../components/ConvertingProgress';
 import ResultGallery from '../components/ResultGallery';
 import SpeechBubbleModal from '../components/SpeechBubbleModal';
 import StepGuide from '../components/StepGuide';
-import AboutSection from '../components/AboutSection';
+import TechnicalGuide from '../components/TechnicalGuide';
 
 // Hooks & Utils
 import { useUserId } from '../hooks/useUserId';
@@ -697,9 +697,9 @@ export default function Home() {
 
         {mode === 'photo' && renderPhotoMode()}
         {mode === 'video' && renderVideoMode()}
-      </div>
 
-      <AboutSection />
+        <TechnicalGuide />
+      </div>
 
       {/* Speech Bubble Editor Modal */}
       <SpeechBubbleModal
