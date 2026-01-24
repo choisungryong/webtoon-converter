@@ -14,7 +14,7 @@ export const STYLE_OPTIONS: StyleOption[] = [
     description: '부드러운 색감과 따뜻한 분위기',
     thumbnail: '/styles/watercolor.png',
     prompt:
-      'Studio Ghibli style, soft watercolor textures, Hayao Miyazaki aesthetic, lush green landscape, dreamy atmosphere, warm lighting, hand-painted look, anime illustration',
+      '[SUBJECT] rendered in a warm, Studio Ghibli inspired animated style. The image features soft, hand-painted watercolor textures with visible brushstrokes, evoking the aesthetic of Hayao Miyazaki. Lush green landscapes and natural elements fill the background. The atmosphere is dreamy and nostalgic, bathed in soft, golden hour lighting. It looks like a traditional hand-drawn illustration.',
   },
   {
     id: 'cinematic-noir',
@@ -22,7 +22,7 @@ export const STYLE_OPTIONS: StyleOption[] = [
     description: '묵직한 현대 판타지 분위기',
     thumbnail: '/styles/cinematic-noir.png',
     prompt:
-      'Korean thriller webtoon style, cinematic noir aesthetic, dark moody atmosphere, dramatic shadows and highlights',
+      'A cinematic noir illustration of [SUBJECT] in the style of a gritty Korean thriller webtoon. The aesthetic is dark, moody, and atmospheric, resembling a film still from a crime drama. High-contrast lighting creates dramatic deep shadows and sharp, stark highlights (chiaroscuro). The overall tone is tense, serious, and mysterious with a muted, desaturated color palette.',
   },
   {
     id: 'dark-fantasy',
@@ -30,7 +30,7 @@ export const STYLE_OPTIONS: StyleOption[] = [
     description: '강렬한 대비와 화려한 이펙트',
     thumbnail: '/styles/dark-fantasy.png',
     prompt:
-      'Solo Leveling manhwa style, high contrast, sharp digital line art, glowing blue aura, dramatic shadows, intense cinematic vibe, Korean webtoon, bold black outlines',
+      "[SUBJECT] depicted in an intense dark fantasy action manhwa style, similar to 'Solo Leveling'. The image features sharp digital line art with bold, distinct black outlines. High contrast lighting creates dramatic shadows. Intense, glowing blue energy auras and magical effects surround key elements. The atmosphere is dynamic, powerful, and cinematic, typical of modern Korean action webtoons.",
   },
   {
     id: 'elegant-fantasy',
@@ -38,7 +38,7 @@ export const STYLE_OPTIONS: StyleOption[] = [
     description: '세련된 디지털 페인팅',
     thumbnail: '/styles/elegant-fantasy.png',
     prompt:
-      "Omniscient Reader's Viewpoint style, elegant digital painting, bold lines, unique fantasy color palette, detailed character rendering, Korean manhwa aesthetic",
+      "An elegant digital painting of [SUBJECT] in the style of high-end Korean fantasy webtoons like 'Omniscient Reader's Viewpoint'. The artwork features refined, beautiful character details and sophisticated digital painting techniques. The line work is clean and graceful. The color palette is vibrant yet sophisticated, creating a rich fantasy aesthetic with a soft glow.",
   },
   {
     id: 'classic-webtoon',
@@ -46,7 +46,7 @@ export const STYLE_OPTIONS: StyleOption[] = [
     description: '전통적인 한국 웹툰 화풍',
     thumbnail: '/styles/classic-webtoon.png',
     prompt:
-      'Korean webtoon manhwa style, bold black outlines, cel-shading, flat colors with minimal gradients, anime-style eyes and faces, clean digital illustration',
+      'A clean digital illustration of [SUBJECT] in a classic Korean webtoon format. The image uses bold, uniform black outlines and distinct cel-shading techniques with flat colors and minimal gradients. Character features, especially eyes and faces, are drawn in a typical animation style. The overall look is neat, highly readable, and optimized for mobile scrolling.',
   },
 ];
 
