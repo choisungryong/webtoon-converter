@@ -183,7 +183,10 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
           <div
             style={{
               cursor: disabled ? 'not-allowed' : 'pointer',
-              display: 'block',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              width: '100%',
               pointerEvents: 'none', // Allow clicks to pass through to parent
             }}
           >
