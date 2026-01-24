@@ -46,33 +46,27 @@ export async function POST(request: NextRequest) {
     // Premium conversion prompt - Professional Korean Webtoon Episode Style
     // Focuses on visual quality, narrative flow, and character consistency
     const premiumPrompt = `
-[TASK: PREMIUM KOREAN WEBTOON CONVERSION]
+**Role & Goal:** Act as a master Korean webtoon artist. Your sole task is to transform the provided scene descriptions into a single, high-quality, vertical scroll webtoon episode strip.
 
-As a master webtoon artist, convert the input scenes into a high-quality vertical episode. 
-The input image is a stack of multiple scenes. You must expand this into a rich, cinematic narrative.
+**Input Scenes to Visualize:**
+\`[SCENE DESCRIPTIONS: 여기에 변환할 이야기의 장면들을 순서대로 상세히 묘사하세요. 예: "1. 검은 후드를 쓴 남자가 비 오는 골목길을 걸어간다. 2. 그가 멈춰 서서 뒤를 돌아본다. 3. 놀란 표정의 여자 주인공과 마주친다."]\`
 
-### 🎨 ART STYLE & QUALITY
-- **Style**: Modern premium Korean manhwa (webtoon). Sharp digital line art, professional cel-shading, and vibrant cinematic lighting.
-- **Atmosphere**: Epic, emotional, and dynamic. Use polished color grading that matches the mood of the original scenes.
-- **Details**: Intricate character designs, high-fidelity backgrounds, and varied depth of field.
+**🎨 Art Style & Mood (Premium Quality):**
+* **Style:** Modern premium Korean webtoon. Utilize sharp, clean digital line art, professional cel-shading, and vibrant, cinematic lighting (e.g., dramatic shadows, glowing effects).
+* **Vibe:** Epic, emotional, and dynamic. Apply sophisticated color grading to match the scene's tone.
+* **Detail:** High-resolution backgrounds with depth of field, complex character designs, and rich textures.
 
-### 📐 COMPOSITION & PANELS
-- **Format**: EVERY single panel must be a TALL VERTICAL rectangle (800x1280 pixels). 
-- **Orientation**: NEVER place panels horizontally. Stack them strictly one after another vertically.
-- **Layout & Gutters**: Use **CLEAN WHITE gutters** (background) between panels. Avoid black or dark backgrounds for the layout.
-- **Framing**: Keep characters fully within the frame. Ensure heads, hands, and feet are NOT cropped by the panel edges.
+**📐 Layout & Composition (CRITICAL CONSTRAINTS):**
+* **Format:** The final output MUST be a continuous sequence of **long vertical rectangular panels (approx. 800x1280 aspect ratio each)**, stacked strictly from top to bottom.
+* **Direction:** **NEVER use horizontal or square panels.** Never place panels side-by-side. The flow is strictly vertical.
+* **Spacing:** Use clean, plain WHITE gutters (margins) between panels. No black backgrounds.
+* **Framing (Anti-Cropping):** Ensure characters are fully contained within their frames. **DO NOT CROP heads, hands, or feet at the panel edges.** Leave comfortable breathing room around the subjects.
 
-### 🚫 CRITICAL QUALITY CONSTRAINTS (MANDATORY)
-- **Character Continuity**: Maintain gender, hair, eye color, and outfits perfectly across all panels.
-- **Anatomic Accuracy**: Exactly 2 arms, 2 legs, 2 hands (5 fingers), and 2 feet per person. No distortions.
-- **Anti-Cropping**: Keep characters comfortable within the frame. Do NOT cut off heads, hands, or feet at the edge.
-- **Cleanliness**: NO text, NO speech bubbles, NO watermarks, and NO horizontal/square panels.
-
-### FINAL CHECKLIST
-1. Are there many more panels than the input scenes?
-2. Is every panel a tall vertical rectangle?
-3. Are the characters' bodies fully visible and anatomically correct?
-4. Is the art style consistent and premium quality?
+**🚫 Quality & Consistency Rules:**
+* **Consistency:** Maintain perfect continuity of character designs (hair, eyes, outfit, gender) across all panels.
+* **Anatomy:** Render anatomically accurate figures (2 arms, 2 legs, 5 fingers per hand, etc.). No distortions.
+* **Cleanliness:** absolutely NO text, speech bubbles, watermarks, or UI elements. Just pure visuals.
+* **Volume:** Expand the input into a rich, multi-panel sequence, creating more panels than described to ensure a full, flowing episode feel.
 `.trim();
 
     // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
