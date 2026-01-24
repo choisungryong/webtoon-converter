@@ -136,7 +136,7 @@ export default function Home() {
           duration: 5,
         });
         setAnalyzing(false);
-        setVideoFile(null);
+        // setVideoFile(null); // Keep the file selected so user sees the error
       };
 
       video.load();
@@ -163,7 +163,8 @@ export default function Home() {
         duration: 5,
       });
       setAnalyzing(false);
-      setVideoFile(null);
+      // setVideoFile(null); // Keep file to show error
+      setAnalyzing(false);
       return;
     }
 
@@ -174,7 +175,8 @@ export default function Home() {
         duration: 5,
       });
       setAnalyzing(false);
-      setVideoFile(null);
+      setAnalyzing(false);
+      // setVideoFile(null); 
       return;
     }
 
@@ -383,7 +385,7 @@ export default function Home() {
           key: 'episode',
         });
 
-        if (i > 0) await new Promise((r) => setTimeout(r, 10000));
+        if (i > 0) await new Promise((r) => setTimeout(r, 3000));
 
         const compressedDataUrl = await compressImage(imagesToConvert[i]);
         const res = await fetch('/api/ai/start', {
