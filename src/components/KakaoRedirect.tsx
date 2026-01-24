@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export default function KakaoRedirect() {
+  const t = useTranslations('KakaoRedirect');
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
@@ -91,7 +93,7 @@ export default function KakaoRedirect() {
             color: '#000',
           }}
         >
-          원활한 이용을 위해 외부 브라우저로 열어주세요
+          {t('message')}
         </span>
       </div>
       <button
@@ -108,7 +110,7 @@ export default function KakaoRedirect() {
           whiteSpace: 'nowrap',
         }}
       >
-        브라우저로 열기
+        {t('btn')}
       </button>
     </div>
   );

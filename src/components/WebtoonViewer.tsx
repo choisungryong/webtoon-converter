@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Image } from 'antd';
+import { useTranslations } from 'next-intl';
 import type { PanelLayout } from '../types/layout';
 
 interface WebtoonViewerProps {
@@ -31,6 +32,8 @@ export default function WebtoonViewer({
   layouts,
   onImageClick,
 }: WebtoonViewerProps) {
+  const t = useTranslations('WebtoonViewer');
+
   // Ensure we have layouts for all images
   const getLayout = (index: number): PanelLayout => {
     return (
@@ -82,13 +85,13 @@ export default function WebtoonViewer({
       >
         <Image
           src={image}
-          alt={`Panel ${index + 1}`}
+          alt={t('panel_alt', { index: index + 1 })}
           style={{
             width: '100%',
             display: 'block',
             cursor: onImageClick ? 'pointer' : 'default',
           }}
-          preview={{ mask: '크게 보기' }}
+          preview={{ mask: t('view_large') }}
         />
 
         {/* Frame break effect for high importance */}

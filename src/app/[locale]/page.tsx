@@ -3,30 +3,31 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { message, Spin } from 'antd';
+import { useTranslations } from 'next-intl';
 
 // Components
-import Header, { AppMode, ThemeMode } from '../components/Header';
-import GlassCard from '../components/GlassCard';
-import StyleSelector from '../components/StyleSelector';
-import FileUploader, { FileUploaderRef } from '../components/FileUploader';
-import PhotoPreviewGrid from '../components/PhotoPreviewGrid';
-import FrameSelector from '../components/FrameSelector';
-import ConvertingProgress from '../components/ConvertingProgress';
-import ResultGallery from '../components/ResultGallery';
-import SpeechBubbleModal from '../components/SpeechBubbleModal';
-import StepGuide from '../components/StepGuide';
-import TechnicalGuide from '../components/TechnicalGuide';
+import Header, { AppMode, ThemeMode } from '../../components/Header';
+import GlassCard from '../../components/GlassCard';
+import StyleSelector from '../../components/StyleSelector';
+import FileUploader, { FileUploaderRef } from '../../components/FileUploader';
+import PhotoPreviewGrid from '../../components/PhotoPreviewGrid';
+import FrameSelector from '../../components/FrameSelector';
+import ConvertingProgress from '../../components/ConvertingProgress';
+import ResultGallery from '../../components/ResultGallery';
+import SpeechBubbleModal from '../../components/SpeechBubbleModal';
+import StepGuide from '../../components/StepGuide';
+import TechnicalGuide from '../../components/TechnicalGuide';
 
 // Hooks & Utils
-import { useUserId } from '../hooks/useUserId';
+import { useUserId } from '../../hooks/useUserId';
 import {
   compressImage,
   calculateImageDifference,
   stitchImagesVertically,
-} from '../utils/imageUtils';
+} from '../../utils/imageUtils';
 
 // Types & Data
-import { StyleOption, DEFAULT_STYLE } from '../data/styles';
+import { StyleOption, DEFAULT_STYLE } from '../../data/styles';
 
 // Constants
 const MAX_PHOTOS = 5;
@@ -34,20 +35,8 @@ const MAX_FRAMES = 10;
 const MAX_VIDEO_SIZE_MB = 50;
 const DIFF_THRESHOLD = 30;
 
-// Help text configuration
-const HELP_TEXT = {
-  video: {
-    text: '💡 사용법: 영상을 업로드하면 AI가 주요 장면을 자동으로 찾아줍니다. 원하는 장면을 선택하고 스타일을 골라 웹툰으로 변환해보세요! (최대 10장)',
-  },
-  photo: {
-    text: '💡 사용법: 사진을 올리고 원하는 그림체를 선택하세요. AI가 멋진 웹툰 스타일로 바꿔드립니다! (최대 5장)',
-  },
-  gallery: {
-    text: '💡 사용법: 변환된 이미지를 선택해서 삭제하거나, 여러 장을 선택해 웹툰 보기로 이어볼 수 있습니다.',
-  },
-};
-
 export default function Home() {
+  const t = useTranslations('Home');
   const router = useRouter();
   const userId = useUserId();
 
@@ -91,7 +80,7 @@ export default function Home() {
   // ============ Photo Mode Handlers ============
   const handlePhotoSelect = (files: File[], previews: string[]) => {
     if (photoPreviews.length + previews.length > MAX_PHOTOS) {
-      message.warning(`최대 ${MAX_PHOTOS}장까지만 선택할 수 있습니다.`);
+      message.warning(t('max_photos_warning', { count: MAX_PHOTOS }));
     }
     setPhotoFiles((prev) => [...prev, ...files]);
     setPhotoPreviews((prev) => [...prev, ...previews]);
@@ -106,12 +95,12 @@ export default function Home() {
   // ============ Video Mode Handlers ============
   const handleVideoSelect = (file: File) => {
     if (!file.type.startsWith('video/')) {
-      message.error('동영상 파일만 가능합니다.');
+      message.error(t('video_format_error'));
       return;
     }
 
     if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-      message.error(`동영상 용량은 ${MAX_VIDEO_SIZE_MB}MB 이하여야 합니다.`);
+      message.error(t('video_size_error', { size: MAX_VIDEO_SIZE_MB }));
       return;
     }
 
@@ -131,8 +120,7 @@ export default function Home() {
 
       video.onerror = () => {
         message.error({
-          content:
-            '영상을 불러올 수 없습니다. 클라우드 파일이 아닌 휴대폰에 저장된 영상을 선택해주세요.',
+          content: t('video_load_error'),
           duration: 5,
         });
         setAnalyzing(false);
@@ -146,7 +134,7 @@ export default function Home() {
 
   const handleVideoLoaded = async () => {
     if (!videoRef.current || !canvasRef.current) {
-      message.error('영상 로드 실패: 비디오 요소를 찾을 수 없습니다.');
+      message.error('영상 로드 실패: 비디오 요소를 찾을 수 없습니다.'); // This works for dev, maybe extract later
       setAnalyzing(false);
       return;
     }
@@ -158,8 +146,7 @@ export default function Home() {
 
     if (!duration || duration === Infinity || isNaN(duration)) {
       message.error({
-        content:
-          '영상을 분석할 수 없습니다. 클라우드 파일이 아닌 휴대폰에 저장된 영상을 선택해주세요.',
+        content: t('video_analyze_error'),
         duration: 5,
       });
       setAnalyzing(false);
@@ -170,8 +157,7 @@ export default function Home() {
 
     if (!video.videoWidth || !video.videoHeight) {
       message.error({
-        content:
-          '영상 정보를 읽을 수 없습니다. 클라우드 파일이 아닌 휴대폰에 저장된 영상을 선택해주세요.',
+        content: t('video_info_error'),
         duration: 5,
       });
       setAnalyzing(false);
@@ -187,7 +173,7 @@ export default function Home() {
     let previousImageData: ImageData | null = null;
 
     try {
-      message.loading({ content: '주요 장면 심층 분석 중...', key: 'analyze' });
+      message.loading({ content: t('analyzing'), key: 'analyze' });
 
       for (const time of timestamps) {
         video.currentTime = time;
@@ -249,12 +235,12 @@ export default function Home() {
 
       setSelectedFrameIndices(autoSelectIndices.slice(0, MAX_FRAMES));
       message.success({
-        content: `분석 완료! ${frames.length}개의 주요 장면을 찾았습니다.`,
+        content: t('analyze_success', { count: frames.length }),
         key: 'analyze',
       });
     } catch (e) {
       console.error(e);
-      message.error({ content: '장면 분석 실패', key: 'analyze' });
+      message.error({ content: t('analyze_fail'), key: 'analyze' });
     } finally {
       setAnalyzing(false);
     }
@@ -266,7 +252,7 @@ export default function Home() {
         return prev.filter((i) => i !== idx);
       } else {
         if (prev.length >= MAX_FRAMES) {
-          message.warning(`최대 ${MAX_FRAMES}장까지만 선택할 수 있습니다.`);
+          message.warning(t('max_frames_warning', { count: MAX_FRAMES }));
           return prev;
         }
         return [...prev, idx];
@@ -277,7 +263,7 @@ export default function Home() {
   // ============ Conversion Handlers ============
   const handlePhotoConvert = async () => {
     if (photoPreviews.length === 0) {
-      message.warning('먼저 사진을 업로드해 주세요!');
+      message.warning(t('upload_photo_warning'));
       return;
     }
 
@@ -317,9 +303,9 @@ export default function Home() {
         }
       }
 
-      if (generatedImages.length === 0) throw new Error('변환된 이미지가 없습니다.');
+      if (generatedImages.length === 0) throw new Error(t('no_converted_images'));
 
-      message.loading({ content: '갤러리에 저장 중...', key: 'photo-save' });
+      message.loading({ content: t('saving_gallery'), key: 'photo-save' });
       setProgress(90);
 
       for (const img of generatedImages) {
@@ -332,7 +318,7 @@ export default function Home() {
 
       setProgress(100);
       message.success({
-        content: `${generatedImages.length}장 변환 완료!`,
+        content: t('convert_complete', { count: generatedImages.length }),
         key: 'photo-save',
       });
       router.push('/gallery?tab=image&showResult=true');
@@ -346,21 +332,20 @@ export default function Home() {
 
   const handleVideoConvert = async () => {
     if (selectedFrameIndices.length === 0) {
-      message.warning('변환할 장면을 선택해 주세요!');
+      message.warning(t('select_scenes_warning'));
       return;
     }
 
     if (extractedFrames.length < 2) {
       message.warning({
-        content:
-          '영상이 너무 짧아 2장 이상의 장면을 추출할 수 없습니다. 더 긴 영상을 업로드해 주세요!',
+        content: t('video_too_short'),
         duration: 5,
       });
       return;
     }
 
     if (selectedFrameIndices.length < 2) {
-      message.warning('웹툰을 만들려면 최소 2장 이상의 장면을 선택해 주세요!');
+      message.warning(t('min_scenes_warning'));
       return;
     }
 
@@ -374,14 +359,14 @@ export default function Home() {
 
     try {
       message.loading({
-        content: `${imagesToConvert.length}장 변환 시작...`,
+        content: t('convert_start', { count: imagesToConvert.length }),
         key: 'episode',
       });
 
       for (let i = 0; i < imagesToConvert.length; i++) {
         setCurrentImageIndex(i + 1);
         message.loading({
-          content: `${i + 1}/${imagesToConvert.length} 변환 중...`,
+          content: t('converting_progress', { current: i + 1, total: imagesToConvert.length }),
           key: 'episode',
         });
 
@@ -402,7 +387,7 @@ export default function Home() {
 
         if (data.error === 'DAILY_LIMIT_EXCEEDED' || data.error === 'QUOTA_EXCEEDED') {
           message.warning({
-            content: data.message || 'API 한도 초과',
+            content: data.message || 'API 한도 초과', // Fallback
             key: 'episode',
           });
           break;
@@ -416,14 +401,14 @@ export default function Home() {
         setProgress(Math.round(((i + 1) / imagesToConvert.length) * 70));
       }
 
-      if (convertedImages.length < 2) throw new Error('변환된 이미지가 부족합니다.');
+      if (convertedImages.length < 2) throw new Error(t('insufficient_images'));
 
-      message.loading({ content: '이미지 합치는 중...', key: 'episode' });
+      message.loading({ content: t('stitching'), key: 'episode' });
       setProgress(75);
 
       const stitchedImage = await stitchImagesVertically(convertedImages);
 
-      message.loading({ content: '마이웹툰에 저장 중...', key: 'episode' });
+      message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
       setProgress(90);
 
       const saveRes = await fetch('/api/webtoon/save', {
@@ -434,12 +419,12 @@ export default function Home() {
 
       if (!saveRes.ok) {
         const errData = await saveRes.json().catch(() => ({}));
-        throw new Error(errData.message || '저장 실패');
+        throw new Error(errData.message || t('save_failed'));
       }
 
       setProgress(100);
       message.success({
-        content: `${convertedImages.length}장 에피소드 생성 완료!`,
+        content: t('episode_complete', { count: convertedImages.length }),
         key: 'episode',
         duration: 3,
       });
@@ -448,9 +433,9 @@ export default function Home() {
       router.push('/gallery?tab=webtoon&showResult=true');
     } catch (e) {
       console.error('Video convert error:', e);
-      const errorMessage = e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다';
+      const errorMessage = e instanceof Error ? e.message : t('unknown_error');
       message.error({
-        content: `변환 오류: ${errorMessage}`,
+        content: t('convert_error', { message: errorMessage }),
         key: 'episode',
         duration: 5,
       });
@@ -491,21 +476,28 @@ export default function Home() {
   };
 
   // ============ Render Helpers ============
-  const renderHelpText = () => (
-    <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
-      <p
-        className="text-sm text-gray-400"
-        dangerouslySetInnerHTML={{
-          __html: HELP_TEXT[mode].text.replace(/\n/g, '<br />'),
-        }}
-      />
-    </div>
-  );
+  const renderHelpText = () => {
+    let helpContent = '';
+    if (mode === 'video') helpContent = t('help_video', { maxFrames: MAX_FRAMES });
+    if (mode === 'photo') helpContent = t('help_photo', { maxPhotos: MAX_PHOTOS });
+    if (mode === 'gallery') helpContent = t('help_gallery');
+
+    return (
+      <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+        <p
+          className="text-sm text-gray-400"
+          dangerouslySetInnerHTML={{
+            __html: helpContent.replace(/\n/g, '<br />'),
+          }}
+        />
+      </div>
+    );
+  };
 
   const renderPhotoMode = () => (
     <>
       {photoPreviews.length === 0 && (
-        <StepGuide step={1} text="먼저 변환할 사진을 선택해주세요" variant="blue" />
+        <StepGuide step={1} text={t('step1_photo')} variant="blue" />
       )}
       <GlassCard padding={photoPreviews.length > 0 ? 'md' : 'lg'}>
         <FileUploader
@@ -526,7 +518,7 @@ export default function Home() {
       {photoPreviews.length > 0 && (
         <>
           {aiImages.length === 0 && (
-            <StepGuide step={2} text="원하는 웹툰 스타일을 선택하세요" variant="purple" />
+            <StepGuide step={2} text={t('step2_style')} variant="purple" />
           )}
           <GlassCard>
             <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
@@ -553,7 +545,7 @@ export default function Home() {
                 disabled={converting}
                 style={{ width: '100%', maxWidth: '320px' }}
               >
-                ✨ {photoPreviews.length}장 웹툰으로 변환하기
+                {t('convert_btn_photo', { count: photoPreviews.length })}
               </button>
             </div>
           )}
@@ -564,7 +556,7 @@ export default function Home() {
 
   const renderVideoMode = () => (
     <>
-      {!videoFile && <StepGuide step={1} text="먼저 변환할 영상을 선택해주세요" variant="blue" />}
+      {!videoFile && <StepGuide step={1} text={t('step1_video')} variant="blue" />}
       <GlassCard padding="lg">
         {!videoFile ? (
           <FileUploader
@@ -586,7 +578,7 @@ export default function Home() {
           {aiImages.length === 0 && (
             <StepGuide
               step={2}
-              text={`변환할 장면을 클릭해서 선택하세요 (최대 ${MAX_FRAMES}장)`}
+              text={t('step2_scenes', { count: MAX_FRAMES })}
               variant="orange"
             />
           )}
@@ -602,7 +594,7 @@ export default function Home() {
           {aiImages.length === 0 && (
             <StepGuide
               step={3}
-              text="원하는 웹툰 스타일을 선택하고 변환 버튼을 누르세요"
+              text={t('step3_style')}
               variant="purple"
             />
           )}
@@ -636,7 +628,7 @@ export default function Home() {
                   color: 'white',
                 }}
               >
-                ✨ 웹툰으로 변환
+                {t('convert_btn_video')}
               </button>
             </div>
           )}
@@ -647,7 +639,7 @@ export default function Home() {
         <>
           <StepGuide
             step={4}
-            text="변환 완료! 💬 말풍선을 추가하고 갤러리에 저장하세요"
+            text={t('step4_complete')}
             variant="green"
           />
           <GlassCard>

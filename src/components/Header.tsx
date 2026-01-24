@@ -14,18 +14,27 @@ interface HeaderProps {
   onThemeChange: (theme: ThemeMode) => void;
 }
 
+import { useTranslations } from 'next-intl';
+import LanguageSwitcher from './LanguageSwitcher';
+
 export default function Header({
   mode,
   onModeChange,
   theme,
   onThemeChange,
 }: HeaderProps) {
+  const t = useTranslations('Header');
   const accentColor = theme === 'dark' ? '#CCFF00' : '#7C3AED';
 
   return (
     <header
       style={{ width: '100%', marginBottom: '24px', position: 'relative' }}
     >
+      {/* Language Switcher - Left Top */}
+      <div style={{ position: 'absolute', left: 0, top: 0 }}>
+        <LanguageSwitcher />
+      </div>
+
       {/* Theme Toggle - Right Top */}
       <button
         onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
@@ -111,7 +120,7 @@ export default function Header({
             letterSpacing: '0.05em',
           }}
         >
-          일상의 바이브를 툰으로 담는다
+          {t('slogan')}
         </p>
       </div>
 
@@ -129,11 +138,6 @@ export default function Header({
         >
           {(['video', 'photo', 'gallery'] as AppMode[]).map((m) => {
             const isActive = mode === m;
-            const labels: Record<AppMode, string> = {
-              photo: '📷 사진',
-              video: '🎬 영상',
-              gallery: '🖼 갤러리',
-            };
             return (
               <button
                 key={m}
@@ -154,7 +158,10 @@ export default function Header({
                   transition: 'all 0.2s ease',
                 }}
               >
-                {labels[m]}
+                {/* Simplified label mapping for i18n */}
+                {m === 'photo' && `📷 ${t('photo')}`}
+                {m === 'video' && `🎬 ${t('video')}`}
+                {m === 'gallery' && `🖼 ${t('gallery')}`}
               </button>
             );
           })}

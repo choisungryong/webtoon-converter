@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, forwardRef, useImperativeHandle, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { isValidFileSize } from '../utils/fileUtils';
 
 export type UploadMode = 'photo' | 'video';
@@ -34,6 +35,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
     },
     ref
   ) => {
+    const t = useTranslations('FileUploader');
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -129,11 +131,6 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
         if (mode === 'photo') {
           fileInputRef.current?.click();
         } else {
-          // For video, we don't auto-click since there are two buttons (gallery/camera)
-          // But if the user clicks the empty area, maybe we default to gallery?
-          // The current UI has explicit buttons for video.
-          // Let's only enable area click for photo mode or if the user clicks specific parts.
-          // Actually, for photo mode, the whole area should be clickable.
           fileInputRef.current?.click();
         }
       }
@@ -196,7 +193,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                   <span style={{ fontSize: '32px' }}>📷</span>
                 </div>
                 <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                  사진을 선택하세요!
+                  {t('select_photo')}
                 </p>
                 <p
                   style={{
@@ -205,7 +202,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                     marginTop: '8px',
                   }}
                 >
-                  드래그 & 드롭 · 클릭 (최대 {maxPhotos}장)
+                  {t('drag_drop_click', { maxPhotos })}
                 </p>
               </>
             ) : (
@@ -219,7 +216,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                   gap: '6px',
                 }}
               >
-                <span>➕</span> 사진 추가하기 ({maxPhotos - currentPhotoCount}장 더 가능)
+                <span>➕</span> {t('add_more_photos', { count: maxPhotos - currentPhotoCount })}
               </p>
             )}
           </div>
@@ -232,7 +229,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
               className="text-lg font-bold"
               style={{ color: 'var(--text-primary)', marginBottom: '16px' }}
             >
-              영상을 선택하세요!
+              {t('select_video')}
             </p>
 
             <div
@@ -260,7 +257,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                   gap: '8px',
                 }}
               >
-                📁 갤러리에서 선택
+                📁 {t('select_from_gallery')}
               </button>
               <button
                 type="button"
@@ -279,7 +276,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                   gap: '8px',
                 }}
               >
-                📹 영상 촬영
+                📹 {t('record_video')}
               </button>
             </div>
 
@@ -290,7 +287,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                 marginTop: '12px',
               }}
             >
-              MP4, MOV, WebM (최대 {maxVideoSizeMB}MB)
+              {t('video_format_guide', { size: maxVideoSizeMB })}
             </p>
             <p
               style={{
@@ -303,10 +300,10 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
                 border: '1px solid rgba(245, 158, 11, 0.3)',
               }}
             >
-              ⚠️ 구글 드라이브, 클라우드 파일은 지원되지 않습니다.
+              ⚠️ {t('cloud_warning')}
               <br />
               <span style={{ color: 'var(--text-muted)' }}>
-                휴대폰에 저장된 영상만 선택해주세요.
+                {t('local_file_only')}
               </span>
             </p>
           </>
@@ -319,3 +316,5 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
 FileUploader.displayName = 'FileUploader';
 
 export default FileUploader;
+
+

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { STYLE_OPTIONS, StyleOption } from '../data/styles';
 import { CheckCircleFilled, FireFilled } from '@ant-design/icons';
+import { useTranslations } from 'next-intl';
 
 interface StyleSelectorProps {
   selectedStyleId: string;
@@ -11,6 +12,8 @@ interface StyleSelectorProps {
 }
 
 export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleSelectorProps) {
+  const t = useTranslations('StyleSelector');
+  const tStyles = useTranslations('Styles');
   const [hoveredStyle, setHoveredStyle] = useState<string | null>(null);
 
   // Bento Grid layout - first item is featured (larger)
@@ -21,11 +24,14 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
     onStyleSelect(style);
   };
 
+  const getStyleName = (id: string) => tStyles(`${id.replace(/-/g, '_')}_name` as any);
+  const getStyleDesc = (id: string) => tStyles(`${id.replace(/-/g, '_')}_desc` as any);
+
   return (
     <div className="bento-style-selector">
       <div className="selector-header">
-        <h3>스타일 선택</h3>
-        <span className="style-count">{STYLE_OPTIONS.length}개 스타일</span>
+        <h3>{t('title')}</h3>
+        <span className="style-count">{t('count', { count: STYLE_OPTIONS.length })}</span>
       </div>
 
       {/* Bento Grid Layout */}
@@ -40,7 +46,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
           <div className="card-image">
             <Image
               src={featuredStyle.thumbnail}
-              alt={featuredStyle.name}
+              alt={getStyleName(featuredStyle.id)}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               priority
@@ -48,7 +54,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
             />
             <div className="card-overlay">
               <span className="hot-badge">
-                <FireFilled /> 인기
+                <FireFilled /> {t('popular')}
               </span>
             </div>
             {selectedStyleId === featuredStyle.id && (
@@ -58,8 +64,8 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
             )}
           </div>
           <div className="card-info">
-            <h4>{featuredStyle.name}</h4>
-            <p>{featuredStyle.description}</p>
+            <h4>{getStyleName(featuredStyle.id)}</h4>
+            <p>{getStyleDesc(featuredStyle.id)}</p>
           </div>
         </div>
 
@@ -75,7 +81,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
             <div className="card-image">
               <Image
                 src={style.thumbnail}
-                alt={style.name}
+                alt={getStyleName(style.id)}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 style={{ objectFit: 'cover' }}
@@ -87,7 +93,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
               )}
             </div>
             <div className="card-info">
-              <h4>{style.name.split(' ')[0]}</h4>
+              <h4>{getStyleName(style.id).split(' ')[0]}</h4>
             </div>
           </div>
         ))}
@@ -95,8 +101,10 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
 
       {/* Selected Style Description */}
       <div className="selected-description">
-        <span className="label">선택됨:</span>
-        <span className="name">{STYLE_OPTIONS.find((s) => s.id === selectedStyleId)?.name}</span>
+        <span className="label">{t('selected')}</span>
+        <span className="name">
+          {getStyleName(selectedStyleId)}
+        </span>
       </div>
 
       <style jsx>{`

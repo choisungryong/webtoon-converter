@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { message } from 'antd';
+import { useTranslations } from 'next-intl';
 import SpeechBubbleEditor from './SpeechBubbleEditor';
 
 interface SpeechBubbleModalProps {
@@ -17,6 +18,8 @@ export default function SpeechBubbleModal({
   onSave,
   onClose,
 }: SpeechBubbleModalProps) {
+  const t = useTranslations('SpeechBubble');
+
   if (!isOpen || !imageSrc) return null;
 
   return (
@@ -42,10 +45,10 @@ export default function SpeechBubbleModal({
       >
         <SpeechBubbleEditor
           imageSrc={imageSrc}
-          suggestedText="대사를 입력하세요"
+          suggestedText={t('placeholder')}
           onSave={(compositeImageDataUrl) => {
             onSave(compositeImageDataUrl);
-            message.success('말풍선이 추가되었습니다!');
+            message.success(t('added'));
           }}
           onCancel={onClose}
         />

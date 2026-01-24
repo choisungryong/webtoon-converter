@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export default function Footer() {
+  const t = useTranslations('Footer');
+  const tHeader = useTranslations('Header');
+
   return (
     <footer className="border-t border-white/10 px-4 py-8">
       <div className="mx-auto max-w-5xl">
@@ -10,47 +14,46 @@ export default function Footer() {
             href="/about"
             className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
           >
-            서비스 소개
+            {tHeader('service_intro')}
           </Link>
           <Link
             href="/gallery"
             className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
           >
-            갤러리
+            {tHeader('gallery')}
           </Link>
           <Link
             href="/faq"
             className="text-sm font-semibold text-neonYellow transition-colors hover:text-neonYellow/80"
           >
-            FAQ
+            {tHeader('faq')}
           </Link>
           <Link
             href="/privacy"
             className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
           >
-            개인정보처리방침
+            {t('privacy')}
           </Link>
           <Link
             href="/terms"
             className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
           >
-            이용약관
+            {t('terms')}
           </Link>
           <Link
             href="/contact"
             className="text-sm text-gray-400 transition-colors hover:text-neonYellow"
           >
-            문의하기
+            {tHeader('contact')}
           </Link>
         </nav>
 
         {/* Disclaimer */}
         <p className="mx-auto mb-4 max-w-2xl text-center text-xs text-gray-500">
-          본 서비스에서 제공하는 스타일은 AI가 학습한 데이터를 기반으로 재창조된 것이며, 특정
-          브랜드나 작가와는 무관합니다.
+          {t('disclaimer')}
         </p>
 
-        <p className="text-center text-xs text-gray-600">© 2026 BanaToon. All rights reserved.</p>
+        <p className="text-center text-xs text-gray-600">© 2026 BanaToon. {t('copyright')}</p>
       </div>
     </footer>
   );

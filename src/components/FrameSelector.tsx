@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { CheckCircleFilled } from '@ant-design/icons';
+import { useTranslations } from 'next-intl';
 
 interface FrameSelectorProps {
   frames: string[];
@@ -17,6 +18,8 @@ export default function FrameSelector({
   maxSelection = 10,
   onToggleSelection,
 }: FrameSelectorProps) {
+  const t = useTranslations('FrameSelector');
+
   if (frames.length === 0) return null;
 
   return (
@@ -28,7 +31,7 @@ export default function FrameSelector({
           marginBottom: '12px',
         }}
       >
-        장면 선택 ({selectedIndices.length}/{maxSelection})
+        {t('title', { current: selectedIndices.length, max: maxSelection })}
       </p>
       <div
         style={{

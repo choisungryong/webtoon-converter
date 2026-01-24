@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Image, message } from 'antd';
+import { useTranslations } from 'next-intl';
 
 interface ResultGalleryProps {
   images: string[];
@@ -20,6 +21,7 @@ export default function ResultGallery({
   onEditImage,
   onSaveComplete,
 }: ResultGalleryProps) {
+  const t = useTranslations('ResultGallery');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -38,10 +40,10 @@ export default function ResultGallery({
           }),
         });
       }
-      message.success('갤러리에 저장되었습니다.');
+      message.success(t('save_success'));
       onSaveComplete();
     } catch (e) {
-      message.error('저장 실패');
+      message.error(t('save_fail'));
     } finally {
       setIsSaving(false);
     }
@@ -67,7 +69,7 @@ export default function ResultGallery({
             margin: 0,
           }}
         >
-          변환 결과
+          {t('title')}
         </p>
         <button
           onClick={handleSave}
@@ -86,10 +88,10 @@ export default function ResultGallery({
           }}
         >
           {isSaving
-            ? '⏳ 저장 중...'
+            ? t('saving')
             : isSaved
-              ? '✅ 저장 완료'
-              : '📁 갤러리 저장'}
+              ? t('saved')
+              : t('save_btn')}
         </button>
       </div>
       <div
@@ -113,7 +115,7 @@ export default function ResultGallery({
               src={editedImages[idx] || img}
               alt={`Result ${idx}`}
               style={{ width: '100%' }}
-              preview={{ mask: '크게 보기' }}
+              preview={{ mask: t('title') }} // Assuming "title" "변환 결과" is okay for mask, or maybe just leave it generic/empty? Using title for now. Actually ant design preview mask is usually icon or text.
             />
             <div className="bubble-edit-overlay">
               <button
@@ -123,7 +125,7 @@ export default function ResultGallery({
                   onEditImage(idx);
                 }}
               >
-                {editedImages[idx] ? '✏️ 말풍선 수정' : '💬 말풍선 추가'}
+                {editedImages[idx] ? t('edit_bubble') : t('add_bubble')}
               </button>
             </div>
           </div>

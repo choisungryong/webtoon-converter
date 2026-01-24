@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Spin, Modal, message } from 'antd';
+import { useTranslations } from 'next-intl';
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -16,12 +17,12 @@ import {
 
 import Link from 'next/link';
 import Image from 'next/image';
-import GlassCard from '../../components/GlassCard';
-import WebtoonViewer from '../../components/WebtoonViewer';
-import type { PanelLayout, KakaoSDK } from '../../types';
-import { formatToKoreanDate, getRelativeDateLabel } from '../../utils/dateUtils';
-import { downloadFile, generateTimestampedFilename } from '../../utils/fileUtils';
-import { generateUUID, delay } from '../../utils/commonUtils';
+import GlassCard from '../../../components/GlassCard';
+import WebtoonViewer from '../../../components/WebtoonViewer';
+import type { PanelLayout, KakaoSDK } from '../../../types';
+import { formatToKoreanDate, getRelativeDateLabel } from '../../../utils/dateUtils';
+import { downloadFile, generateTimestampedFilename } from '../../../utils/fileUtils';
+import { generateUUID, delay } from '../../../utils/commonUtils';
 
 // Extend Window interface for Kakao SDK
 declare global {
@@ -58,6 +59,7 @@ const groupImagesByDate = (images: GalleryImage[]): Map<string, GalleryImage[]> 
 };
 
 function GalleryContent() {
+  const t = useTranslations('Gallery');
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -194,20 +196,20 @@ function GalleryContent() {
     // Fallback: Copy to clipboard if Web Share fails or not supported (Desktop)
     try {
       await navigator.clipboard.writeText(imageUrl);
-      message.success('이미지 주소가 복사되었습니다!');
+      message.success(t('share_success'));
     } catch (err) {
-      message.error('공유하기를 지원하지 않는 환경입니다.');
+      message.error(t('share_fail'));
     }
   };
 
   const handleKakaoShare = (imageUrl: string) => {
     if (typeof window === 'undefined' || !window.Kakao) {
-      message.error('카카오 SDK가 로드되지 않았습니다.');
+      message.error(t('kakao_error_sdk'));
       return;
     }
 
     if (!window.Kakao.isInitialized()) {
-      message.error('카카오 키 설정이 필요합니다.');
+      message.error(t('kakao_error_init'));
       return;
     }
 
@@ -230,8 +232,8 @@ function GalleryContent() {
     window.Kakao.Share.sendDefault({
       objectType: 'feed',
       content: {
-        title: 'BanaToon 웹툰 변환',
-        description: '친구가 만든 웹툰 스타일 이미지를 확인해보세요!',
+        title: t('kakao_share_title'),
+        description: t('kakao_share_desc'),
         imageUrl: absoluteImageUrl,
         link: {
           mobileWebUrl: shareLink,
@@ -240,7 +242,7 @@ function GalleryContent() {
       },
       buttons: [
         {
-          title: '이미지 보기',
+          title: t('kakao_btn_view'),
           link: {
             mobileWebUrl: shareLink,
             webUrl: shareLink,
@@ -281,7 +283,7 @@ function GalleryContent() {
       setSelectedImages([]); // Reset selection on tab change
     } catch (err) {
       console.error('Fetch Error:', err);
-      const errorMessage = err instanceof Error ? err.message : '갤러리를 불러오는데 실패했습니다.';
+      const errorMessage = err instanceof Error ? err.message : t('fetch_error');
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -353,13 +355,13 @@ function GalleryContent() {
         throw new Error(data.message || data.error || 'Conversion failed');
       }
 
-      message.success('프리미엄 변환 완료! 프리미엄 탭에서 확인하세요.');
+      message.success(t('premium_convert_success'));
       setWebtoonPreviewImage(null);
       setActiveTab('premium');
       fetchPremiumImages();
     } catch (err) {
       console.error('Premium conversion error:', err);
-      const errorMessage = err instanceof Error ? err.message : '프리미엄 변환에 실패했습니다.';
+      const errorMessage = err instanceof Error ? err.message : t('premium_convert_fail');
       message.error(errorMessage);
     } finally {
       setConvertingPremium(false);
@@ -368,7 +370,7 @@ function GalleryContent() {
 
   // Delete Premium Image
   const handlePremiumDelete = async (imageId: string) => {
-    if (!window.confirm('이 프리미엄 이미지를 삭제하시겠습니까?')) return;
+    if (!window.confirm(t('premium_delete_confirm'))) return;
 
     try {
       const res = await fetch(`/api/premium/gallery?id=${imageId}`, {
@@ -378,9 +380,9 @@ function GalleryContent() {
       if (!res.ok) throw new Error('Delete failed');
 
       setPremiumImages((prev) => prev.filter((img) => img.id !== imageId));
-      message.success('삭제되었습니다.');
+      message.success(t('delete_success'));
     } catch (err) {
-      message.error('삭제에 실패했습니다.');
+      message.error(t('delete_fail'));
     }
   };
 
@@ -443,7 +445,7 @@ function GalleryContent() {
 
       // Mobile memory safety check
       if (totalHeight > 8000) {
-        throw new Error('이미지가 너무 깁니다. 선택한 이미지 수를 줄여주세요.');
+        throw new Error(t('image_too_long'));
       }
 
       // 3. Phase 2: Create canvas and draw images sequentially
@@ -474,7 +476,7 @@ function GalleryContent() {
 
       // Validate result
       if (!webtoonDataUrl || webtoonDataUrl === 'data:,' || webtoonDataUrl.length < 1000) {
-        throw new Error('이미지 생성에 실패했습니다. 메모리가 부족할 수 있습니다.');
+        throw new Error(t('canvas_error'));
       }
 
       // 5. Save to Server
@@ -487,10 +489,10 @@ function GalleryContent() {
         });
 
         if (!res.ok) {
-          throw new Error('서버 저장에 실패했습니다.');
+          throw new Error(t('save_server_fail'));
         }
 
-        message.success('마이웹툰에 저장되었습니다!');
+        message.success(t('save_mywebtoon_success'));
         setActiveTab('webtoon');
         setWebtoonViewOpen(false);
         setSelectedImages([]);
@@ -498,7 +500,7 @@ function GalleryContent() {
       }
     } catch (err) {
       console.error(err);
-      const errorMessage = err instanceof Error ? err.message : '웹툰 저장에 실패했습니다.';
+      const errorMessage = err instanceof Error ? err.message : t('save_mywebtoon_fail');
       message.error(errorMessage);
     } finally {
       // Explicitly release canvas memory
@@ -512,7 +514,7 @@ function GalleryContent() {
   };
 
   const handleDelete = async (imageId: string) => {
-    if (!window.confirm('이 이미지를 삭제하시겠습니까?')) {
+    if (!window.confirm(t('delete_confirm'))) {
       return;
     }
 
@@ -528,12 +530,12 @@ function GalleryContent() {
       }
 
       setImages((prev) => prev.filter((img) => img.id !== imageId));
-      message.success('이미지가 삭제되었습니다.');
+      message.success(t('delete_success'));
       // If deleting via modal, close it
       if (previewImage) setPreviewImage(null);
     } catch (err: any) {
       console.error(err);
-      message.error(err.message || '삭제에 실패했습니다.');
+      message.error(err.message || t('delete_fail'));
     } finally {
       setDeleting(null);
     }
@@ -543,14 +545,14 @@ function GalleryContent() {
     try {
       await downloadFile(url, filename);
     } catch (err) {
-      message.error('다운로드에 실패했습니다.');
+      message.error(t('download_fail'));
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedImages.length === 0) return;
 
-    if (!window.confirm(`선택한 ${selectedImages.length}장의 이미지를 삭제하시겠습니까?`)) {
+    if (!window.confirm(t('bulk_delete_confirm', { count: selectedImages.length }))) {
       return;
     }
 
@@ -567,7 +569,7 @@ function GalleryContent() {
       const failed = results.filter((r) => !r.ok);
       if (failed.length > 0) {
         console.error('Failed to delete some images:', failed);
-        message.warning(`${failed.length}장의 이미지를 삭제하지 못했습니다.`);
+        message.warning(t('bulk_delete_partial_fail', { count: failed.length }));
       }
 
       const successfulIds = results.filter((r) => r.ok).map((r) => r.id);
@@ -575,11 +577,11 @@ function GalleryContent() {
       setSelectedImages((prev) => prev.filter((id) => !successfulIds.includes(id)));
 
       if (failed.length === 0) {
-        message.success('삭제되었습니다.');
+        message.success(t('delete_success'));
       }
     } catch (err) {
       console.error(err);
-      message.error('삭제 중 오류가 발생했습니다.');
+      message.error(t('bulk_delete_error'));
     } finally {
       setDeleting(null);
       setIsSelectionMode(false);
@@ -593,10 +595,10 @@ function GalleryContent() {
         <div className="animate-fade-in flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/" className="text-gray-400 transition-colors hover:text-white">
-              ← 홈
+              {t('home_link')}
             </Link>
             <h1 className="text-2xl font-bold text-white">
-              My <span className="text-neonYellow">Gallery</span>
+              {t('title_prefix')} <span className="text-neonYellow">{t('title_suffix')}</span>
             </h1>
           </div>
 
@@ -604,33 +606,30 @@ function GalleryContent() {
           <div className="order-last flex w-full justify-center rounded-lg bg-white/10 p-1 md:order-none md:w-auto">
             <button
               onClick={() => setActiveTab('image')}
-              className={`rounded-md px-3 py-2 text-sm transition-all ${
-                activeTab === 'image'
-                  ? 'bg-neonYellow font-bold text-black shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`rounded-md px-3 py-2 text-sm transition-all ${activeTab === 'image'
+                ? 'bg-neonYellow font-bold text-black shadow-lg'
+                : 'text-gray-400 hover:text-white'
+                }`}
             >
-              🖼️ 마이스냅
+              {t('tab_mysnap')}
             </button>
             <button
               onClick={() => setActiveTab('webtoon')}
-              className={`rounded-md px-3 py-2 text-sm transition-all ${
-                activeTab === 'webtoon'
-                  ? 'bg-neonYellow font-bold text-black shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`rounded-md px-3 py-2 text-sm transition-all ${activeTab === 'webtoon'
+                ? 'bg-neonYellow font-bold text-black shadow-lg'
+                : 'text-gray-400 hover:text-white'
+                }`}
             >
-              📖 마이웹툰
+              {t('tab_mywebtoon')}
             </button>
             <button
               onClick={() => setActiveTab('premium')}
-              className={`rounded-md px-3 py-2 text-sm transition-all ${
-                activeTab === 'premium'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`rounded-md px-3 py-2 text-sm transition-all ${activeTab === 'premium'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white shadow-lg'
+                : 'text-gray-400 hover:text-white'
+                }`}
             >
-              ✨ 프리미엄
+              {t('tab_premium')}
             </button>
           </div>
 
@@ -641,7 +640,7 @@ function GalleryContent() {
               className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-white transition-colors hover:bg-white/20 disabled:opacity-50"
             >
               <ReloadOutlined spin={loading} />
-              새로고침
+              {t('refresh_btn')}
             </button>
           </div>
         </div>
@@ -649,33 +648,11 @@ function GalleryContent() {
         {/* Help Text */}
         <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
           {activeTab === 'image' ? (
-            <p className="text-sm text-gray-400">
-              💡 <strong className="text-white">마이스냅:</strong> 변환된 이미지가 여기에
-              저장됩니다.
-              <br />
-              <span className="text-gray-500">
-                • 이미지를 길게 눌러 선택 → <strong className="text-neonYellow">웹툰 보기</strong>로
-                합쳐보세요!
-                <br />• 클릭하면 크게 보고 다운로드/공유할 수 있습니다.
-              </span>
-            </p>
+            <p className="text-sm text-gray-400" dangerouslySetInnerHTML={{ __html: t.raw('help_mysnap') }} />
           ) : activeTab === 'webtoon' ? (
-            <p className="text-sm text-gray-400">
-              💡 <strong className="text-white">마이웹툰:</strong> 여러 이미지를 합쳐 만든 웹툰이
-              저장됩니다.
-              <br />
-              <span className="text-gray-500">
-                • 웹툰 이미지를 클릭 → <strong className="text-purple-400">프리미엄 변환</strong>
-                으로 고퀄리티 업그레이드!
-              </span>
-            </p>
+            <p className="text-sm text-gray-400" dangerouslySetInnerHTML={{ __html: t.raw('help_mywebtoon') }} />
           ) : (
-            <p className="text-sm text-gray-400">
-              ✨ <strong className="text-white">프리미엄:</strong> AI로 고퀄리티 변환된 웹툰이
-              저장됩니다.
-              <br />
-              <span className="text-gray-500">• 800×1280px 시네마틱 프리미엄 웹툰 형식</span>
-            </p>
+            <p className="text-sm text-gray-400" dangerouslySetInnerHTML={{ __html: t.raw('help_premium') }} />
           )}
         </div>
 
@@ -709,7 +686,7 @@ function GalleryContent() {
                   <div className="webtoon-preview-blur" />
                   {/* Premium Badge */}
                   <div className="premium-badge rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    ✨ PRO
+                    {t('pro_badge')}
                   </div>
                   {/* Delete Button */}
                   <button
@@ -726,15 +703,15 @@ function GalleryContent() {
             </div>
           ) : (
             <GlassCard className="py-16 text-center">
-              <p className="mb-4 text-lg text-gray-400">아직 프리미엄 변환된 웹툰이 없습니다.</p>
+              <p className="mb-4 text-lg text-gray-400">{t('no_premium')}</p>
               <p className="mb-4 text-sm text-gray-500">
-                마이웹툰에서 이미지를 선택하고 &quot;프리미엄 변환&quot; 버튼을 눌러보세요!
+                {t('no_premium_desc')}
               </p>
               <button
                 onClick={() => setActiveTab('webtoon')}
                 className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 font-bold text-white"
               >
-                📖 마이웹툰으로 이동
+                {t('go_to_mywebtoon')}
               </button>
             </GlassCard>
           )
@@ -779,11 +756,10 @@ function GalleryContent() {
                       onTouchEnd={handleTouchEnd}
                       onTouchMove={handleTouchEnd}
                       onContextMenu={(e) => e.preventDefault()}
-                      className={`${activeTab === 'webtoon' ? 'webtoon-preview-card' : 'gallery-item'} no-touch-callout group ${selectedImages.includes(img.id) ? 'ring-2 ring-neonYellow' : ''} ${
-                        highlightLatest && images[0]?.id === img.id
-                          ? 'animate-pulse shadow-lg shadow-[#CCFF00]/30 ring-2 ring-neonYellow'
-                          : ''
-                      }`}
+                      className={`${activeTab === 'webtoon' ? 'webtoon-preview-card' : 'gallery-item'} no-touch-callout group ${selectedImages.includes(img.id) ? 'ring-2 ring-neonYellow' : ''} ${highlightLatest && images[0]?.id === img.id
+                        ? 'animate-pulse shadow-lg shadow-[#CCFF00]/30 ring-2 ring-neonYellow'
+                        : ''
+                        }`}
                     >
                       {activeTab === 'webtoon' ? (
                         <Image
@@ -807,13 +783,12 @@ function GalleryContent() {
 
                       {activeTab === 'image' && (
                         <div
-                          className={`absolute right-2 top-2 z-10 flex size-7 cursor-pointer items-center justify-center rounded-full border-2 transition-all ${
-                            selectedImages.includes(img.id)
-                              ? 'scale-100 border-neonYellow bg-neonYellow opacity-100'
-                              : isSelectionMode
-                                ? 'scale-100 border-white/60 bg-black/40 opacity-100'
-                                : 'scale-95 border-white/60 bg-black/40 opacity-0 hover:border-white hover:bg-black/60 group-hover:opacity-100'
-                          }`}
+                          className={`absolute right-2 top-2 z-10 flex size-7 cursor-pointer items-center justify-center rounded-full border-2 transition-all ${selectedImages.includes(img.id)
+                            ? 'scale-100 border-neonYellow bg-neonYellow opacity-100'
+                            : isSelectionMode
+                              ? 'scale-100 border-white/60 bg-black/40 opacity-100'
+                              : 'scale-95 border-white/60 bg-black/40 opacity-0 hover:border-white hover:bg-black/60 group-hover:opacity-100'
+                            }`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedImages((prev) =>
@@ -824,7 +799,7 @@ function GalleryContent() {
                           }}
                         >
                           {selectedImages.includes(img.id) && (
-                            <CheckCircleFilled className="text-sm text-black" />
+                            <CheckCircleFilled className="text-black" />
                           )}
                         </div>
                       )}
@@ -835,14 +810,16 @@ function GalleryContent() {
             ))}
           </div>
         ) : (
-          <GlassCard className="py-16 text-center">
-            <p className="mb-4 text-lg text-gray-400">
-              {activeTab === 'image' ? '아직 변환된 이미지가 없습니다.' : '저장된 웹툰이 없습니다.'}
+          <GlassCard className="py-20 text-center">
+            <p className="mb-6 text-xl text-gray-400">
+              {activeTab === 'webtoon' ? t('no_webtoons') : t('no_images')}
             </p>
-            <Link href="/">
-              <button className="accent-btn">✨ 작품 만들러 가기</button>
+            <Link
+              href="/"
+              className="inline-block rounded-xl bg-neonYellow px-8 py-4 text-lg font-bold text-black shadow-lg shadow-neonYellow/20 transition-all hover:scale-105 hover:bg-[#bbe600]"
+            >
+              {t('go_create')}
             </Link>
-            <p className="mt-4 text-xs text-gray-600">User ID: {userId?.slice(0, 8)}...</p>
           </GlassCard>
         )}
 
@@ -910,21 +887,19 @@ function GalleryContent() {
                   <div className="flex rounded-lg bg-black/40 p-1">
                     <button
                       onClick={() => setViewMode('processed')}
-                      className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                        viewMode === 'processed'
-                          ? 'bg-white text-black shadow'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
+                      className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${viewMode === 'processed'
+                        ? 'bg-white text-black shadow'
+                        : 'text-gray-400 hover:text-white'
+                        }`}
                     >
                       ✨ 변환본
                     </button>
                     <button
                       onClick={() => setViewMode('original')}
-                      className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                        viewMode === 'original'
-                          ? 'bg-white text-black shadow'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
+                      className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${viewMode === 'original'
+                        ? 'bg-white text-black shadow'
+                        : 'text-gray-400 hover:text-white'
+                        }`}
                     >
                       📷 원본
                     </button>
@@ -989,7 +964,7 @@ function GalleryContent() {
                         handleDownload(
                           viewMode === 'original'
                             ? images.find((i) => i.url === previewImage)?.original_url ||
-                                previewImage
+                            previewImage
                             : previewImage,
                           generateTimestampedFilename('toonsnap', 'png')
                         )
@@ -1003,7 +978,7 @@ function GalleryContent() {
                         handleKakaoShare(
                           viewMode === 'original'
                             ? images.find((i) => i.url === previewImage)?.original_url ||
-                                previewImage
+                            previewImage
                             : previewImage
                         )
                       }
@@ -1384,11 +1359,10 @@ function GalleryContent() {
                 }
               }}
               disabled={analyzingLayout}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                smartLayoutEnabled
-                  ? 'bg-neonYellow text-black'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${smartLayoutEnabled
+                ? 'bg-neonYellow text-black'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {analyzingLayout ? (
                 <>
@@ -1496,16 +1470,16 @@ function GalleryContent() {
             {/* Preview of latest image */}
             {((activeTab === 'webtoon' && images.length > 0) ||
               (activeTab === 'image' && images.length > 0)) && (
-              <div className="mb-6 overflow-hidden rounded-xl border border-white/10 shadow-lg">
-                <Image
-                  src={images[0]?.url}
-                  alt="변환 결과"
-                  width={500}
-                  height={300}
-                  className="max-h-48 w-full object-cover"
-                />
-              </div>
-            )}
+                <div className="mb-6 overflow-hidden rounded-xl border border-white/10 shadow-lg">
+                  <Image
+                    src={images[0]?.url}
+                    alt="변환 결과"
+                    width={500}
+                    height={300}
+                    className="max-h-48 w-full object-cover"
+                  />
+                </div>
+              )}
 
             {/* Premium 유도 (웹툰 탭일 때만) */}
             {activeTab === 'webtoon' && (
