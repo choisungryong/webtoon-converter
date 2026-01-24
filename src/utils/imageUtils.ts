@@ -92,7 +92,7 @@ export const calculateImageDifference = (
 export const stitchImagesVertically = async (
   imageUrls: string[],
   targetWidth: number = 800,
-  maxHeight: number = 8000
+  maxHeight: number = 20000
 ): Promise<string> => {
   let canvas: HTMLCanvasElement | null = null;
 
@@ -130,7 +130,9 @@ export const stitchImagesVertically = async (
 
     // Mobile memory limit check (lower threshold for safety)
     if (totalHeight > maxHeight) {
-      throw new Error('이미지가 너무 깁니다. 선택한 장면 수를 줄여주세요.');
+      throw new Error(
+        `생성된 웹툰이 너무 깁니다 (${totalHeight}px). 선택한 장면 수를 줄여주세요 (최대 ${maxHeight}px).`
+      );
     }
 
     // Phase 2: Create canvas and draw images sequentially
