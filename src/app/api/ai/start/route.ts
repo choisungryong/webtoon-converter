@@ -12,12 +12,6 @@ export async function GET(request: NextRequest) {
   });
 }
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-import { generateUUID } from '../../../../utils/commonUtils';
-
-export const runtime = 'edge';
-
 export async function POST(request: NextRequest) {
   try {
     console.log('[API/Start] POST Request received');
