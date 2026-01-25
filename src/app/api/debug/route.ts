@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
-import { generateUUID } from '../../../../utils/commonUtils';
+import { generateUUID } from '../../../utils/commonUtils';
 
 export const runtime = 'edge';
 
