@@ -29,14 +29,14 @@ export async function POST(request: NextRequest) {
     console.log('[API/Start] POST Request received');
     // Anatomical Rules & Prompts
     const ANATOMICAL_RULES = `
-🚫 ABSOLUTE ANATOMICAL RULES(NEVER VIOLATE):
+[STRICT] ABSOLUTE ANATOMICAL RULES(NEVER VIOLATE):
 - EXACTLY 2 arms per person, EXACTLY 2 legs per person
   - EXACTLY 2 hands with 5 fingers each, EXACTLY 2 feet per person
     - NORMAL human body proportions(no elongated torso, limbs, or distorted parts)
       - NO extra limbs, NO missing limbs, NO merged body parts
         - If body part is hidden in original, keep it hidden - do NOT invent wrong anatomy
 
-🚫 ANTI - CROPPING RULES:
+        [STRICT] ANTI - CROPPING RULES:
 - EVERY character must fit FULLY within the frame(head to toe visible)
   - NO cutting off heads at top or feet at bottom
     - Maintain the SAME framing as original - do NOT add incorrect body parts`;
