@@ -160,7 +160,7 @@ DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold 
         }],
         generationConfig: {
           responseModalities: ['IMAGE', 'TEXT'],
-          temperature: 1.2,
+          temperature: 0.85,
           topP: 0.99,
           topK: 40,
         },
