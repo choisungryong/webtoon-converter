@@ -327,17 +327,34 @@ export default function Home() {
         const compressedDataUrl = await compressImage(photoPreviews[i]);
 
         // 1. Start Job
-        const startRes = await fetch('/api/ai/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: compressedDataUrl,
-            styleId: selectedStyle.id,
-            userId: userId,
-          }),
-        });
+        let startData;
+        try {
+          const startRes = await fetch('/api/ai/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: compressedDataUrl,
+              styleId: selectedStyle.id,
+              userId: userId,
+            }),
+          });
 
-        const startData = await startRes.json();
+          if (!startRes.ok) {
+            const errorText = await startRes.text();
+            // Check if it's JSON error or HTML error
+            try {
+              const errorJson = JSON.parse(errorText);
+              throw new Error(errorJson.error || errorJson.message || `Server Error: ${startRes.status}`);
+            } catch (e) {
+              throw new Error(`Server connection failed (${startRes.status}). Please try again.`);
+            }
+          }
+
+          startData = await startRes.json();
+        } catch (fetchError) {
+          console.error('Fetch start error:', fetchError);
+          throw new Error((fetchError as Error).message || 'Failed to start conversion');
+        }
 
         if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
           message.warning({ content: startData.message, duration: 6 });
@@ -430,17 +447,42 @@ export default function Home() {
         if (i > 0) await new Promise((r) => setTimeout(r, 2000));
 
         const compressedDataUrl = await compressImage(imagesToConvert[i]);
-        const startRes = await fetch('/api/ai/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: compressedDataUrl,
-            styleId: selectedStyle.id,
-            userId: userId,
-          }),
-        });
 
-        const startData = await startRes.json();
+        let startData;
+        try {
+          const startRes = await fetch('/api/ai/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: compressedDataUrl,
+              styleId: selectedStyle.id,
+              userId: userId,
+            }),
+          });
+
+          if (!startRes.ok) {
+            const errorText = await startRes.text();
+            try {
+              const errorJson = JSON.parse(errorText);
+              // Check specific quota limits
+              if (errorJson.error === 'DAILY_LIMIT_EXCEEDED' || errorJson.error === 'QUOTA_EXCEEDED') {
+                message.warning({
+                  content: errorJson.message || 'API 한도 초과',
+                  key: 'episode',
+                });
+                return; // Exit function on limit
+              }
+              throw new Error(errorJson.error || `Server Error: ${startRes.status}`);
+            } catch (e) {
+              if ((e as Error).message.includes('DAILY_LIMIT')) throw e;
+              throw new Error(`Server error (${startRes.status}). The service might be temporarily unavailable.`);
+            }
+          }
+          startData = await startRes.json();
+        } catch (fetchError) {
+          console.error('Video fetch start error:', fetchError);
+          throw fetchError;
+        }
 
         if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
           message.warning({
