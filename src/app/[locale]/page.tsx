@@ -366,18 +366,13 @@ export default function Home() {
           break;
         }
         if (startData.error) throw new Error(startData.error);
-        if (!startData.jobId) throw new Error('No Job ID returned');
 
-        // 2. Poll Status
-        // Save Job ID to local storage for potential recovery (simple version)
-        localStorage.setItem('current_conversion_job', startData.jobId);
-
-        const resultUrl = await pollJobStatus(startData.jobId);
-
-        if (resultUrl) {
-          generatedImages.push(resultUrl);
+        // Synchronous Response Handling
+        if (startData.success && startData.result_url) {
+          generatedImages.push(startData.result_url);
           setProgress(Math.round(((i + 1) / photoPreviews.length) * 80));
-          localStorage.removeItem('current_conversion_job');
+        } else {
+          throw new Error('No result returned from server');
         }
       }
 

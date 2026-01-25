@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
     await env.R2.put(r2Key, bytes, { httpMetadata: { contentType: mimeType } });
 
     await env.DB.prepare(
-      `INSERT INTO generated_images (id, r2_key, type, prompt, user_id) VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO generated_images (id, r2_key, type, prompt, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`
     )
-      .bind(imageId, r2Key, 'image', 'User Edited Image', userId)
+      .bind(imageId, r2Key, 'image', 'User Edited Image', userId, Date.now())
       .run();
 
     return NextResponse.json({ success: true, imageId });
