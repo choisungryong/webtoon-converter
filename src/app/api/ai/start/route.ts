@@ -171,7 +171,7 @@ DRAW EVERY PERSON as cartoon characters.REDRAW THE ENTIRE BACKGROUND with bold o
           const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
           if (!base64Match) throw new Error('Invalid image format');
 
-          const mimeType = `image / ${base64Match[1]} `;
+          const mimeType = `image/${base64Match[1]}`;
           const base64Data = base64Match[2];
 
           const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
