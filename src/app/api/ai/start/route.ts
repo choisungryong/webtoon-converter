@@ -34,85 +34,82 @@ export async function POST(request: NextRequest) {
 - Maintain the SAME framing as original - do NOT add incorrect body parts`;
 
     const STYLE_PROMPTS: Record<string, string> = {
-      watercolor: `Transform this ENTIRE photo into a Studio Ghibli anime illustration.
+      watercolor: `TRANSFORM THIS IMAGE INTO A PURE 2D GHIBLI-STYLE ILLUSTRATION.
 ${ANATOMICAL_RULES}
 
-CRITICAL REQUIREMENTS:
-1. TRANSFORM EVERY SINGLE PERSON in the image into anime characters. If there are 2 people, draw 2 anime characters. If there are 5 people, draw 5 anime characters. Do NOT skip anyone.
-2. TRANSFORM THE ENTIRE BACKGROUND - every wall, floor, sky, tree, furniture, and object must be redrawn in Ghibli watercolor style.
-3. Maintain the EXACT positions and poses of all people and objects.
-4. VERIFY anatomical correctness: 2 arms, 2 legs, proper proportions per character.
-
-STYLE: Hand-painted watercolor, soft pastel colors, visible brushstrokes, dreamy Miyazaki aesthetic, warm lighting, lush organic textures. Large expressive anime eyes on all characters.
-
-OUTPUT: A complete Ghibli-style illustration where NOTHING looks photorealistic. Every pixel must be transformed.
-
-DO NOT: Add text, speech bubbles, leave photorealistic elements, or create anatomical errors.`,
-
-      'cinematic-noir': `Transform this ENTIRE photo into a Korean thriller webtoon illustration with cinematic noir atmosphere.
-${ANATOMICAL_RULES}
-
-CRITICAL REQUIREMENTS:
-1. DRAW EVERY SINGLE PERSON as stylized manhwa characters with sharp, intense features. If multiple people exist, ALL must be drawn.
-2. TRANSFORM THE ENTIRE BACKGROUND into a moody, atmospheric urban scene with dramatic lighting.
-3. Maintain exact positions and add tension/mystery to the scene.
-4. VERIFY anatomical correctness: 2 arms, 2 legs, proper proportions per character.
+CRITICAL "HIGH DENOISING" INSTRUCTIONS:
+1.  **REMOVE ALL PHOTOREALISM**: The output must look like a HAND-DRAWN PAINTING, not a filtered photo.
+2.  **FLATTEN SHADING**: Use cel-shading and watercolor washes. NO realistic gradients or skin textures.
+3.  **SIMPLIFY DETAILS**: Reduce complex photo details into clean, stylized shapes.
+4.  **RE-IMAGINE THE BACKGROUND**: Redraw the background freely in a lush, Miyazaki-esque style. Do not just trace the photo.
 
 STYLE GUIDE:
-- Lighting: Dramatic chiaroscuro with deep shadows and stark highlights, like a film noir scene
-- Colors: Muted palette with desaturated blues, grays, and occasional warm accent (orange/red)
-- Atmosphere: Rain, fog, or haze effects to add mystery
-- Lines: Bold black outlines with crosshatching for shadows
-- Mood: Tense, mysterious, like a scene from 괴담출근 or 픽미업
+-   **Line Art**: Soft pencil-like outlines.
+-   **Colors**: Pastel, vibrant, "Studio Ghibli" palette.
+-   **Eyes**: Large, expressive anime eyes.
+-   **Hair**: Clumped, stylized hair strands, not individual realistic hairs.
 
-OUTPUT: A complete manhwa panel that looks like a thriller webtoon. The scene should feel cinematic and ominous.
+Output is a DRAWING, not a photo.`,
 
-DO NOT: Add text, speech bubbles, leave photorealistic elements, or create anatomical errors.`,
-
-      'dark-fantasy': `Transform this ENTIRE photo into a dark fantasy Korean manhwa illustration.
+      'cinematic-noir': `TRANSFORM THIS IMAGE INTO A GRITTY KOREAN THRILLER WEBTOON PANEL.
 ${ANATOMICAL_RULES}
 
-CRITICAL REQUIREMENTS:
-1. DRAW EVERY SINGLE PERSON as manhwa characters with sharp features. If multiple people exist, ALL of them must be drawn.
-2. REDRAW THE ENTIRE BACKGROUND with dramatic shadowing and manhwa-style environments.
-3. Maintain exact positions but add dramatic flair to poses.
-4. VERIFY anatomical correctness: 2 arms, 2 legs, proper proportions per character.
+CRITICAL "HIGH DENOISING" INSTRUCTIONS:
+1.  **REMOVE REALISTIC TEXTURES**: Skin should be smooth flat color, clothes should be solid blocks of shadow/light.
+2.  **INKING**: Apply heavy, bold black ink lines (Manhwa style). No soft photo edges.
+3.  **DRAMATIC RE-LIGHTING**: Change the lighting to be harsh and cinematic (Chiaroscuro). Ignore the original photo's flat lighting if necessary.
+4.  **ATMOSPHERE**: Add film grain, rain, or fog effects that are DRAWN, not realistic.
 
-STYLE: Solo Leveling aesthetic, bold black ink outlines on EVERYTHING, high contrast lighting, deep shadows, blue/purple energy effects, sharp angular linework, intense expressions.
+STYLE GUIDE:
+-   **Vibe**: Dark, tense, "files of the deceased" or "Signal" webtoon style.
+-   **Shadows**: Pitch black shadows.
 
-OUTPUT: A complete manhwa panel. EVERY element (people, clothes, background, objects) must have visible drawn outlines.
+Output is a WEBTOON PANEL, not a processed photo.`,
 
-DO NOT: Add text, speech bubbles, leave photorealistic elements, or create anatomical errors.`,
-
-      'elegant-fantasy': `Transform this ENTIRE photo into an elegant Korean romance fantasy webtoon illustration.
+      'dark-fantasy': `TRANSFORM THIS IMAGE INTO A SOLO LEVELING STYLE MANHWA PANEL.
 ${ANATOMICAL_RULES}
 
-CRITICAL REQUIREMENTS:
-1. DRAW EVERY SINGLE PERSON as beautiful manhwa characters. If there are couples or groups, draw ALL of them.
-2. TRANSFORM THE ENTIRE BACKGROUND into a dreamy illustrated scene.
-3. Maintain exact positions and add romantic atmosphere.
-4. VERIFY anatomical correctness: 2 arms, 2 legs, proper proportions per character.
+CRITICAL "HIGH DENOISING" INSTRUCTIONS:
+1.  **COMPLETE RE-DRAW**: The character must look like a hunter/awakener from a manhwa.
+2.  **EFFECTS OVER REALISM**: Add magical auras (blue/purple glow) and speed lines.
+3.  **SHARP ANGLES**: Jawlines, armor, and clothes should be sharp and angular, not soft/realistic.
+4.  **EYES**: Glowing eyes or intense sharp anime eyes.
 
-STYLE: Premium romance webtoon aesthetic, delicate linework, detailed sparkling eyes, flowing hair with highlights, soft gradient shading, subtle sparkle effects, pastel and jewel-tone colors.
+STYLE GUIDE:
+-   **Line Work**: Razor-sharp digital inking.
+-   **Color**: High contrast, cool tones, neon accents.
 
-OUTPUT: A complete webtoon panel suitable for a romance series. EVERYTHING must be illustrated.
+Output is an ACTION MANHWA SCENE, not a photo.`,
 
-DO NOT: Add text, speech bubbles, leave photorealistic elements, or create anatomical errors.`,
-
-      'classic-webtoon': `Transform this ENTIRE photo into a Korean webtoon comic panel.
+      'elegant-fantasy': `TRANSFORM THIS IMAGE INTO A ROMANCE FANTASY (ROFAN) WEBTOON PANEL.
 ${ANATOMICAL_RULES}
 
-CRITICAL REQUIREMENTS:
-1. DRAW EVERY SINGLE PERSON as webtoon characters with expressive faces. Count them - ALL must be converted.
-2. DRAW THE ENTIRE BACKGROUND with bold outlines and flat colors - every object, wall, and surface.
-3. Maintain exact positions and expressions.
-4. VERIFY anatomical correctness: 2 arms, 2 legs, proper proportions per character.
+CRITICAL "HIGH DENOISING" INSTRUCTIONS:
+1.  **IDEALIZE EVERYTHING**: Make characters incredibly beautiful (shoujo manga style). Remove all realistic skin imperfections.
+2.  **SHINY AESTHETIC**: Hair and eyes should sparkle (jewel eyes). Add "shalala" effects.
+3.  **COSTUME UPGRADE**: Simplify messy clothes into elegant, flowing fabrics.
+4.  **BACKGROUND**: Turn the background into a soft, floral or palace-like illustration.
 
-STYLE: Classic Korean webtoon, bold black outlines on EVERYTHING, flat cell-shaded colors, simplified details, clean comic art, expressive cartoon faces, minimal gradients.
+STYLE GUIDE:
+-   **Colors**: Pink, gold, pastel purple, soft whites.
+-   **Lines**: Delicate, thin, brownish lines.
 
-OUTPUT: A complete webtoon panel. EVERY element must have clear black outlines and flat coloring.
+Output is a ROMANCE COMIC, not a photo.`,
 
-DO NOT: Add text, speech bubbles, leave photorealistic elements, or create anatomical errors.`,
+      'classic-webtoon': `TRANSFORM THIS IMAGE INTO A STANDARD KOREAN WEBTOON EPISODE PANEL.
+${ANATOMICAL_RULES}
+
+CRITICAL "HIGH DENOISING" INSTRUCTIONS:
+1.  **FLAT COLORS**: Use simple, flat distinct colors (Cell Shading). No complex gradients.
+2.  **BOLD OUTLINES**: Every object and person must have a clear BLACK outline.
+3.  **CARTOON PROPORTIONS**: Slightly exaggerate expressions for readability.
+4.  **CLEAN LOOK**: Remove all visual noise from the photo.
+
+STYLE GUIDE:
+-   **Simplicity**: Optimize for mobile readability.
+-   **Faces**: Standard webtoon anime faces.
+
+Output is a COMIC STRIP PANEL, not a photo.`,
     };
 
     const DEFAULT_PROMPT = `Transform this ENTIRE photo into a Korean webtoon comic illustration. 

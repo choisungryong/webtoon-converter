@@ -51,6 +51,13 @@ export async function POST(request: NextRequest) {
 **Input Scenes to Visualize:**
 \`[SCENE DESCRIPTIONS: 여기에 변환할 이야기의 장면들을 순서대로 상세히 묘사하세요. 예: "1. 검은 후드를 쓴 남자가 비 오는 골목길을 걸어간다. 2. 그가 멈춰 서서 뒤를 돌아본다. 3. 놀란 표정의 여자 주인공과 마주친다."]\`
 
+**🚫 ABSOLUTE ANATOMICAL & STRUCTURAL RULES (CRITICAL):**
+*   **NO FLOATING HEADS**: Every head must be securely attached to a neck and body.
+*   **NO DETACHED LIMBS**: Hands and feet must be connected to arms and legs.
+*   **CORRECT PROPORTIONS**: Arms should not be longer than legs. Heads should be proportional to bodies.
+*   **FINGER COUNT**: Exactly 5 fingers per hand. No morphed blobs.
+*   **GRAVITY**: Characters must stand ON the ground, not float (unless flying).
+
 **🎨 Art Style & Mood (Premium Quality):**
 * **Style:** Modern premium Korean webtoon. Utilize sharp, clean digital line art, professional cel-shading, and vibrant, cinematic lighting (e.g., dramatic shadows, glowing effects).
 * **Vibe:** Epic, emotional, and dynamic. Apply sophisticated color grading to match the scene's tone.
