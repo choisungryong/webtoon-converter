@@ -5,7 +5,7 @@ export const runtime = 'edge';
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Spin, Modal, message } from 'antd';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -62,6 +62,7 @@ const groupImagesByDate = (images: GalleryImage[]): Map<string, GalleryImage[]> 
 
 function GalleryContent() {
   const t = useTranslations('Gallery');
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -157,7 +158,7 @@ function GalleryContent() {
     if (showResult === 'true') {
       setShowResultModal(true);
       // URL에서 쿼리 파라미터 제거 (히스토리 정리)
-      router.replace('/gallery' + (tab ? `?tab=${tab}` : ''), {
+      router.replace(`/${locale}/gallery` + (tab ? `?tab=${tab}` : ''), {
         scroll: false,
       });
     }
@@ -596,7 +597,7 @@ function GalleryContent() {
         {/* Header */}
         <div className="animate-fade-in flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-gray-400 transition-colors hover:text-white">
+            <Link href={`/${locale}`} className="text-gray-400 transition-colors hover:text-white">
               {t('home_link')}
             </Link>
             <h1 className="text-2xl font-bold text-white">

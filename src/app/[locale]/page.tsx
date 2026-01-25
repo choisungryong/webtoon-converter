@@ -5,7 +5,7 @@ export const runtime = 'edge';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { message, Spin } from 'antd';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 // Components
 import Header, { AppMode, ThemeMode } from '../../components/Header';
@@ -39,6 +39,7 @@ const DIFF_THRESHOLD = 30;
 
 export default function Home() {
   const t = useTranslations('Home');
+  const locale = useLocale();
   const router = useRouter();
   const userId = useUserId();
 
@@ -323,7 +324,7 @@ export default function Home() {
         content: t('convert_complete', { count: generatedImages.length }),
         key: 'photo-save',
       });
-      router.push('/gallery?tab=image&showResult=true');
+      router.push(`/${locale}/gallery?tab=image&showResult=true`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
       message.error(`오류: ${errorMessage}`);
@@ -432,7 +433,7 @@ export default function Home() {
       });
 
       await new Promise((r) => setTimeout(r, 500));
-      router.push('/gallery?tab=webtoon&showResult=true');
+      router.push(`/${locale}/gallery?tab=webtoon&showResult=true`);
     } catch (e) {
       console.error('Video convert error:', e);
       const errorMessage = e instanceof Error ? e.message : t('unknown_error');
@@ -460,7 +461,7 @@ export default function Home() {
 
   const handleModeChange = (m: AppMode) => {
     if (m === 'gallery') {
-      router.push('/gallery');
+      router.push(`/${locale}/gallery`);
     } else {
       setMode(m);
       handleReset();
