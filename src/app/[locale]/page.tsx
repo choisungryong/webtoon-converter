@@ -274,9 +274,18 @@ export default function Home() {
 
       try {
         const res = await fetch(`/api/ai/status?jobId=${jobId}`);
-        if (!res.ok) continue; // Retry on network error
+        if (!res.ok) {
+          console.warn(`Polling retry: ${res.status}`);
+          continue;
+        }
 
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (jsonError) {
+          console.error('Invalid JSON response:', jsonError);
+          continue;
+        }
 
         if (data.status === 'completed') {
           return data.result_url;
