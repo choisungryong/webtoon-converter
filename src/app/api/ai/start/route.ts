@@ -1,4 +1,4 @@
-```
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     - Maintain the SAME framing as original - do NOT add incorrect body parts`;
     const STYLE_PROMPTS: Record<string, string> = {
       watercolor: `TRANSFORM THIS IMAGE INTO A PURE 2D GHIBLI - STYLE ILLUSTRATION.
-  ${ ANATOMICAL_RULES }
+  ${ANATOMICAL_RULES}
 
 CRITICAL "HIGH DENOISING" INSTRUCTIONS:
 1. ** REMOVE ALL PHOTOREALISM **: The output must look like a HAND - DRAWN PAINTING, not a filtered photo.
@@ -59,7 +59,7 @@ STYLE GUIDE:
 Output is a DRAWING, not a photo.`,
 
       'cinematic-noir': `TRANSFORM THIS IMAGE INTO A GRITTY KOREAN THRILLER WEBTOON PANEL.
-  ${ ANATOMICAL_RULES }
+  ${ANATOMICAL_RULES}
 
 CRITICAL "HIGH DENOISING" INSTRUCTIONS:
 1. ** REMOVE REALISTIC TEXTURES **: Skin should be smooth flat color, clothes should be solid blocks of shadow / light.
@@ -74,7 +74,7 @@ STYLE GUIDE:
 Output is a WEBTOON PANEL, not a processed photo.`,
 
       'dark-fantasy': `TRANSFORM THIS IMAGE INTO A SOLO LEVELING STYLE MANHWA PANEL.
-  ${ ANATOMICAL_RULES }
+  ${ANATOMICAL_RULES}
 
 CRITICAL "HIGH DENOISING" INSTRUCTIONS:
 1. ** COMPLETE RE - DRAW **: The character must look like a hunter / awakener from a manhwa.
@@ -89,7 +89,7 @@ STYLE GUIDE:
 Output is an ACTION MANHWA SCENE, not a photo.`,
 
       'elegant-fantasy': `TRANSFORM THIS IMAGE INTO A ROMANCE FANTASY(ROFAN) WEBTOON PANEL.
-  ${ ANATOMICAL_RULES }
+  ${ANATOMICAL_RULES}
 
 CRITICAL "HIGH DENOISING" INSTRUCTIONS:
 1. ** IDEALIZE EVERYTHING **: Make characters incredibly beautiful(shoujo manga style).Remove all realistic skin imperfections.
@@ -104,7 +104,7 @@ STYLE GUIDE:
 Output is a ROMANCE COMIC, not a photo.`,
 
       'classic-webtoon': `TRANSFORM THIS IMAGE INTO A STANDARD KOREAN WEBTOON EPISODE PANEL.
-  ${ ANATOMICAL_RULES }
+  ${ANATOMICAL_RULES}
 
 CRITICAL "HIGH DENOISING" INSTRUCTIONS:
 1. ** FLAT COLORS **: Use simple, flat distinct colors(Cell Shading).No complex gradients.
@@ -120,21 +120,21 @@ Output is a COMIC STRIP PANEL, not a photo.`,
     };
 
     const DEFAULT_PROMPT = `Transform this ENTIRE photo into a Korean webtoon comic illustration.
-  ${ ANATOMICAL_RULES }
+  ${ANATOMICAL_RULES}
 DRAW EVERY PERSON as cartoon characters.REDRAW THE ENTIRE BACKGROUND with bold outlines.EVERY element must be illustrated.DO NOT add text or speech bubbles.DO NOT create anatomical errors.`;
 
     // 1. Parse Request (Safe Mode)
     let body;
     try {
-        body = (await request.json()) as {
-            image: string;
-            styleId?: string;
-            prompt?: string;
-            userId?: string;
-        };
+      body = (await request.json()) as {
+        image: string;
+        styleId?: string;
+        prompt?: string;
+        userId?: string;
+      };
     } catch (parseErr) {
-        console.error('JSON Parse Fail:', parseErr);
-        return NextResponse.json({ error: 'Invalid JSON Body' }, { status: 400 });
+      console.error('JSON Parse Fail:', parseErr);
+      return NextResponse.json({ error: 'Invalid JSON Body' }, { status: 400 });
     }
 
     const { image, styleId = 'classic-webtoon', userId = 'anonymous' } = body;
@@ -145,7 +145,7 @@ DRAW EVERY PERSON as cartoon characters.REDRAW THE ENTIRE BACKGROUND with bold o
 
     const { env, ctx } = getRequestContext();
     if (!env || !env.DB) return NextResponse.json({ error: 'DB Binding Missing' }, { status: 500 });
-    
+
     const apiKey = env.GEMINI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'API Key Missing' }, { status: 500 });
 
@@ -171,102 +171,102 @@ DRAW EVERY PERSON as cartoon characters.REDRAW THE ENTIRE BACKGROUND with bold o
           const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
           if (!base64Match) throw new Error('Invalid image format');
 
-          const mimeType = `image / ${ base64Match[1] } `;
+          const mimeType = `image / ${base64Match[1]} `;
           const base64Data = base64Match[2];
 
           const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
 
-const geminiRes = await fetch(geminiEndpoint, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    contents: [{
-      parts: [
-        { inlineData: { mimeType: mimeType, data: base64Data } },
-        { text: `[GENERATE NEW IMAGE] ${prompt}` },
-      ]
-    }],
-    generationConfig: {
-      responseModalities: ['IMAGE', 'TEXT'],
-      temperature: 1.2,
-      topP: 0.99,
-      topK: 40,
-    },
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-    ]
-  })
-});
+          const geminiRes = await fetch(geminiEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { inlineData: { mimeType: mimeType, data: base64Data } },
+                  { text: `[GENERATE NEW IMAGE] ${prompt}` },
+                ]
+              }],
+              generationConfig: {
+                responseModalities: ['IMAGE', 'TEXT'],
+                temperature: 1.2,
+                topP: 0.99,
+                topK: 40,
+              },
+              safetySettings: [
+                { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+              ]
+            })
+          });
 
-if (!geminiRes.ok) {
-  const errorText = await geminiRes.text();
-  throw new Error(`Gemini API Error: ${geminiRes.status} ${errorText}`);
-}
+          if (!geminiRes.ok) {
+            const errorText = await geminiRes.text();
+            throw new Error(`Gemini API Error: ${geminiRes.status} ${errorText}`);
+          }
 
-const geminiData = await geminiRes.json();
-const candidates = geminiData.candidates;
-if (!candidates || candidates.length === 0) throw new Error('No image generated');
+          const geminiData = await geminiRes.json();
+          const candidates = geminiData.candidates;
+          if (!candidates || candidates.length === 0) throw new Error('No image generated');
 
-const parts = candidates[0]?.content?.parts || [];
-let generatedImageBase64 = null;
-let generatedMimeType = 'image/png';
+          const parts = candidates[0]?.content?.parts || [];
+          let generatedImageBase64 = null;
+          let generatedMimeType = 'image/png';
 
-for (const part of parts) {
-  if (part.inlineData) {
-    generatedImageBase64 = part.inlineData.data;
-    generatedMimeType = part.inlineData.mimeType || 'image/png';
-    break;
-  }
-}
+          for (const part of parts) {
+            if (part.inlineData) {
+              generatedImageBase64 = part.inlineData.data;
+              generatedMimeType = part.inlineData.mimeType || 'image/png';
+              break;
+            }
+          }
 
-if (!generatedImageBase64) throw new Error('Gemini returned no image data');
+          if (!generatedImageBase64) throw new Error('Gemini returned no image data');
 
-const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
-// --- Gemini Logic End ---
+          const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
+          // --- Gemini Logic End ---
 
-// 4. Update Job with Success
-await env.DB.prepare(
-  'UPDATE conversion_jobs SET status = ?, result_url = ?, updated_at = ? WHERE id = ?'
-)
-  .bind('completed', outputDataUri, Date.now(), jobId)
-  .run();
+          // 4. Update Job with Success
+          await env.DB.prepare(
+            'UPDATE conversion_jobs SET status = ?, result_url = ?, updated_at = ? WHERE id = ?'
+          )
+            .bind('completed', outputDataUri, Date.now(), jobId)
+            .run();
 
-// Log usage
-if (userId !== 'anonymous') {
-  await env.DB.prepare(
-    `INSERT INTO usage_logs (id, user_id, action) VALUES (?, ?, 'convert')`
-  )
-    .bind(generateUUID(), userId)
-    .run().catch(() => { });
-}
+          // Log usage
+          if (userId !== 'anonymous') {
+            await env.DB.prepare(
+              `INSERT INTO usage_logs (id, user_id, action) VALUES (?, ?, 'convert')`
+            )
+              .bind(generateUUID(), userId)
+              .run().catch(() => { });
+          }
 
         } catch (error) {
-  console.error(`[Background] Job ${jobId} failed:`, error);
-  await env.DB.prepare(
-    'UPDATE conversion_jobs SET status = ?, error = ?, updated_at = ? WHERE id = ?'
-  )
-    .bind('failed', (error as Error).message, Date.now(), jobId)
-    .run();
-}
-      }) ()
+          console.error(`[Background] Job ${jobId} failed:`, error);
+          await env.DB.prepare(
+            'UPDATE conversion_jobs SET status = ?, error = ?, updated_at = ? WHERE id = ?'
+          )
+            .bind('failed', (error as Error).message, Date.now(), jobId)
+            .run();
+        }
+      })()
     );
 
-// 5. Return Job ID immediately
-return NextResponse.json({
-  success: true,
-  jobId: jobId,
-  status: 'pending',
-  message: 'Conversion started in background',
-});
+    // 5. Return Job ID immediately
+    return NextResponse.json({
+      success: true,
+      jobId: jobId,
+      status: 'pending',
+      message: 'Conversion started in background',
+    });
 
   } catch (error) {
-  console.error('API Start Error:', error);
-  return NextResponse.json(
-    { error: (error as Error).message },
-    { status: 500 }
-  );
-}
+    console.error('API Start Error:', error);
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 500 }
+    );
+  }
 }
