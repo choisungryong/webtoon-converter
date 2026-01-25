@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('[API/Start] POST Request received');
-    // Anatomical Rules & Prompts (Same as before)
+    // Anatomical Rules & Prompts
     const ANATOMICAL_RULES = `
 🚫 ABSOLUTE ANATOMICAL RULES(NEVER VIOLATE):
 - EXACTLY 2 arms per person, EXACTLY 2 legs per person
@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
 - EVERY character must fit FULLY within the frame(head to toe visible)
   - NO cutting off heads at top or feet at bottom
     - Maintain the SAME framing as original - do NOT add incorrect body parts`;
-
     const STYLE_PROMPTS: Record<string, string> = {
       watercolor: `TRANSFORM THIS IMAGE INTO A PURE 2D GHIBLI - STYLE ILLUSTRATION.
   ${ ANATOMICAL_RULES }
