@@ -263,6 +263,38 @@ export default function Home() {
     });
   };
 
+  // ============ Utils ============
+  const pollJobStatus = async (jobId: string): Promise<string> => {
+    const maxAttempts = 60; // 3 minutes timeout (3s * 60)
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 3000));
+      attempts++;
+
+      try {
+        const res = await fetch(`/api/ai/status?jobId=${jobId}`);
+        if (!res.ok) continue; // Retry on network error
+
+        const data = await res.json();
+
+        if (data.status === 'completed') {
+          return data.result_url;
+        }
+
+        if (data.status === 'failed') {
+          throw new Error(data.error || 'Conversion failed');
+        }
+
+        // If pending or processing, continue polling
+      } catch (e) {
+        console.warn('Polling error:', e);
+        // Continue polling despite temporary network errors
+      }
+    }
+    throw new Error('Conversion timed out');
+  };
+
   // ============ Conversion Handlers ============
   const handlePhotoConvert = async () => {
     if (photoPreviews.length === 0) {
@@ -280,10 +312,13 @@ export default function Home() {
     try {
       for (let i = 0; i < photoPreviews.length; i++) {
         setCurrentImageIndex(i + 1);
-        if (i > 0) await new Promise((r) => setTimeout(r, 10000));
+        // Start delay for subsequent images to prevent rate limiting
+        if (i > 0) await new Promise((r) => setTimeout(r, 5000));
 
         const compressedDataUrl = await compressImage(photoPreviews[i]);
-        const res = await fetch('/api/ai/start', {
+
+        // 1. Start Job
+        const startRes = await fetch('/api/ai/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -292,17 +327,26 @@ export default function Home() {
             userId: userId,
           }),
         });
-        const data = await res.json();
 
-        if (data.error === 'DAILY_LIMIT_EXCEEDED' || data.error === 'QUOTA_EXCEEDED') {
-          message.warning({ content: data.message, duration: 6 });
+        const startData = await startRes.json();
+
+        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
+          message.warning({ content: startData.message, duration: 6 });
           break;
         }
-        if (data.error) throw new Error(data.error);
+        if (startData.error) throw new Error(startData.error);
+        if (!startData.jobId) throw new Error('No Job ID returned');
 
-        if (data.success && data.image) {
-          generatedImages.push(data.image);
+        // 2. Poll Status
+        // Save Job ID to local storage for potential recovery (simple version)
+        localStorage.setItem('current_conversion_job', startData.jobId);
+
+        const resultUrl = await pollJobStatus(startData.jobId);
+
+        if (resultUrl) {
+          generatedImages.push(resultUrl);
           setProgress(Math.round(((i + 1) / photoPreviews.length) * 80));
+          localStorage.removeItem('current_conversion_job');
         }
       }
 
@@ -330,6 +374,7 @@ export default function Home() {
       message.error(`오류: ${errorMessage}`);
     } finally {
       setConverting(false);
+      localStorage.removeItem('current_conversion_job');
     }
   };
 
@@ -373,10 +418,10 @@ export default function Home() {
           key: 'episode',
         });
 
-        if (i > 0) await new Promise((r) => setTimeout(r, 3000));
+        if (i > 0) await new Promise((r) => setTimeout(r, 2000));
 
         const compressedDataUrl = await compressImage(imagesToConvert[i]);
-        const res = await fetch('/api/ai/start', {
+        const startRes = await fetch('/api/ai/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -386,19 +431,23 @@ export default function Home() {
           }),
         });
 
-        const data = await res.json();
+        const startData = await startRes.json();
 
-        if (data.error === 'DAILY_LIMIT_EXCEEDED' || data.error === 'QUOTA_EXCEEDED') {
+        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
           message.warning({
-            content: data.message || 'API 한도 초과', // Fallback
+            content: startData.message || 'API 한도 초과',
             key: 'episode',
           });
           break;
         }
-        if (data.error) throw new Error(data.error);
+        if (startData.error) throw new Error(startData.error);
 
-        if (data.success && data.image) {
-          convertedImages.push(data.image);
+        // Poll Status for Video Frames
+        localStorage.setItem('current_video_job', startData.jobId);
+        const resultUrl = await pollJobStatus(startData.jobId);
+
+        if (resultUrl) {
+          convertedImages.push(resultUrl);
         }
 
         setProgress(Math.round(((i + 1) / imagesToConvert.length) * 70));
@@ -444,6 +493,7 @@ export default function Home() {
       });
     } finally {
       setConverting(false);
+      localStorage.removeItem('current_video_job');
     }
   };
 

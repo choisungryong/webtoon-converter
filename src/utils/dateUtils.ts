@@ -16,12 +16,14 @@ export const formatToKoreanDate = (
     day: 'numeric',
   }
 ): string => {
+  if (!date) return '날짜 정보 없음';
+
   let dateObj: Date;
 
   if (date instanceof Date) {
     dateObj = date;
   } else if (typeof date === 'number') {
-    // 10자리 타임스탬프(초)인 경우 1000을 곱함 (대략 1973년 이전 데이터는 없을 것으로 가정)
+    // 10자리 타임스탬프(초)인 경우 1000을 곱함
     if (date < 10000000000) {
       dateObj = new Date(date * 1000);
     } else {
@@ -29,6 +31,10 @@ export const formatToKoreanDate = (
     }
   } else {
     dateObj = new Date(date);
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    return '날짜 정보 없음';
   }
 
   return dateObj.toLocaleDateString('ko-KR', options);
