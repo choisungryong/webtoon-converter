@@ -43,6 +43,11 @@ export default function Home() {
   const router = useRouter();
   const userId = useUserId();
 
+  // Version Check Log
+  useEffect(() => {
+    console.log('Webtoon Converter v1.1.2 Loaded - Error Handling Patched');
+  }, []);
+
   // Mode & Theme State
   const [mode, setMode] = useState<AppMode>('video');
   const [theme, setTheme] = useState<ThemeMode>('dark');
