@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('[API/Start] POST Request received');
-
     // Anatomical Rules & Prompts (Same as before)
     const ANATOMICAL_RULES = `
 🚫 ABSOLUTE ANATOMICAL RULES (NEVER VIOLATE):

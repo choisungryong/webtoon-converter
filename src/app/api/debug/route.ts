@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
+import { generateUUID } from '../../../../utils/commonUtils';
 
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
     try {
         const { env } = getRequestContext();
+        const uuid = generateUUID(); // Test function call
 
         // Safely check bindings without exposing secrets
         const status = {
             timestamp: new Date().toISOString(),
+            uuidTest: uuid,
             env: {
                 hasDB: !!env?.DB,
                 hasR2: !!(env as any)?.R2, // Cast to any if type definition is strict
@@ -23,9 +26,19 @@ export async function GET(request: NextRequest) {
         if (env?.DB) {
             try {
                 await env.DB.prepare('SELECT 1').first();
-                dbStatus = 'OK';
+                dbStatus = 'Read OK';
+
+                // Test Write
+                try {
+                    await env.DB.prepare("INSERT INTO usage_logs (id, user_id, action) VALUES (?, ?, 'debug_test')")
+                        .bind(crypto.randomUUID(), 'debug_user')
+                        .run();
+                    dbStatus = 'Read/Write OK';
+                } catch (writeErr) {
+                    dbStatus = `Read OK, Write Failed: ${(writeErr as Error).message}`;
+                }
             } catch (e) {
-                dbStatus = `ERROR: ${(e as Error).message}`;
+                dbStatus = `Connection Failed: ${(e as Error).message}`;
             }
         }
 
