@@ -493,12 +493,17 @@ export default function Home() {
         }
         if (startData.error) throw new Error(startData.error);
 
-        // Poll Status for Video Frames
-        localStorage.setItem('current_video_job', startData.jobId);
-        const resultUrl = await pollJobStatus(startData.jobId);
-
-        if (resultUrl) {
-          convertedImages.push(resultUrl);
+        if (startData.result_url) {
+          convertedImages.push(startData.result_url);
+        } else if (startData.jobId) {
+          // Poll Status for Video Frames
+          localStorage.setItem('current_video_job', startData.jobId);
+          const resultUrl = await pollJobStatus(startData.jobId);
+          if (resultUrl) {
+            convertedImages.push(resultUrl);
+          }
+        } else {
+          throw new Error('No result returned from server');
         }
 
         setProgress(Math.round(((i + 1) / imagesToConvert.length) * 70));
