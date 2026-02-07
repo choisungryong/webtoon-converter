@@ -121,6 +121,7 @@ const jsonLd = {
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 export default async function LocaleLayout({
   children,
@@ -193,7 +194,9 @@ export default async function LocaleLayout({
           </Script>
           <AntdRegistry>
             <KakaoRedirect />
-            <main className="flex-1">{children}</main>
+            <ErrorBoundary>
+              <main className="flex-1">{children}</main>
+            </ErrorBoundary>
 
             {/* Footer with Navigation and Disclaimer */}
             <Footer />

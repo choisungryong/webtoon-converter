@@ -35,6 +35,7 @@ export default function MasonryGallery({ images }: Props) {
               width={0}
               height={0}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              loading="lazy"
               className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-110"
               style={{ width: '100%', height: 'auto' }}
             />

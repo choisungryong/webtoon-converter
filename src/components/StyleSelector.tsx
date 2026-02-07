@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { STYLE_OPTIONS, StyleOption } from '../data/styles';
 import { CheckCircleFilled, FireFilled } from '@ant-design/icons';
@@ -11,21 +11,16 @@ interface StyleSelectorProps {
   onStyleSelect: (style: StyleOption) => void;
 }
 
-export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleSelectorProps) {
+export default React.memo(function StyleSelector({ selectedStyleId, onStyleSelect }: StyleSelectorProps) {
   const t = useTranslations('StyleSelector');
   const tStyles = useTranslations('Styles');
-  const [hoveredStyle, setHoveredStyle] = useState<string | null>(null);
 
   // Bento Grid layout - first item is featured (larger)
   const featuredStyle = STYLE_OPTIONS[0]; // watercolor as featured (인기)
-  const otherStyles = STYLE_OPTIONS.filter((s) => s.id !== featuredStyle.id);
+  const otherStyles = useMemo(() => STYLE_OPTIONS.filter((s) => s.id !== featuredStyle.id), [featuredStyle.id]);
 
-  const handleSelect = (style: StyleOption) => {
-    onStyleSelect(style);
-  };
-
-  const getStyleName = (id: string) => tStyles(`${id.replace(/-/g, '_')}_name` as any);
-  const getStyleDesc = (id: string) => tStyles(`${id.replace(/-/g, '_')}_desc` as any);
+  const getStyleName = useCallback((id: string) => tStyles(`${id.replace(/-/g, '_')}_name` as any), [tStyles]);
+  const getStyleDesc = useCallback((id: string) => tStyles(`${id.replace(/-/g, '_')}_desc` as any), [tStyles]);
 
   return (
     <div className="bento-style-selector">
@@ -39,9 +34,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
         {/* Featured Large Card */}
         <div
           className={`bento-card featured ${selectedStyleId === featuredStyle.id ? 'selected' : ''}`}
-          onClick={() => handleSelect(featuredStyle)}
-          onMouseEnter={() => setHoveredStyle(featuredStyle.id)}
-          onMouseLeave={() => setHoveredStyle(null)}
+          onClick={() => onStyleSelect(featuredStyle)}
         >
           <div className="card-image">
             <Image
@@ -74,9 +67,7 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
           <div
             key={style.id}
             className={`bento-card ${selectedStyleId === style.id ? 'selected' : ''}`}
-            onClick={() => handleSelect(style)}
-            onMouseEnter={() => setHoveredStyle(style.id)}
-            onMouseLeave={() => setHoveredStyle(null)}
+            onClick={() => onStyleSelect(style)}
           >
             <div className="card-image">
               <Image
@@ -292,4 +283,4 @@ export default function StyleSelector({ selectedStyleId, onStyleSelect }: StyleS
       `}</style>
     </div>
   );
-}
+});

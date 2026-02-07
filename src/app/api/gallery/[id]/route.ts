@@ -26,9 +26,9 @@ export async function DELETE(
       );
     }
 
-    // Get image info from DB
+    // Get only needed columns for ownership check and R2 cleanup
     const stmt = await env.DB.prepare(
-      `SELECT * FROM generated_images WHERE id = ?`
+      `SELECT r2_key, original_r2_key, user_id FROM generated_images WHERE id = ?`
     ).bind(id);
     const result = await stmt.first();
 

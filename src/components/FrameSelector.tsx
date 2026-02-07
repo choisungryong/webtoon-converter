@@ -12,7 +12,7 @@ interface FrameSelectorProps {
   onToggleSelection: (index: number) => void;
 }
 
-export default function FrameSelector({
+export default React.memo(function FrameSelector({
   frames,
   selectedIndices,
   maxSelection = 10,
@@ -83,4 +83,4 @@ export default function FrameSelector({
       </div>
     </div>
   );
-}
+});

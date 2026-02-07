@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS generated_images (
 
 CREATE INDEX IF NOT EXISTS idx_images_created_at ON generated_images(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_images_type ON generated_images(type);
+CREATE INDEX IF NOT EXISTS idx_images_user_id ON generated_images(user_id, created_at DESC);
 
 -- Q&A Board
 CREATE TABLE IF NOT EXISTS qna_posts (

@@ -41,17 +41,18 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Clean up expired original photos (older than 3 days)
+    // Timestamp format: app code uses Date.now() (milliseconds),
+    // schema default uses strftime('%s') (seconds).
+    // Detect format: values > 9999999999 (~Nov 2286 in seconds) are milliseconds.
     const cutoffMs = Date.now() - ORIGINAL_PHOTO_TTL_DAYS * 24 * 60 * 60 * 1000;
-    // created_at is stored as unix seconds in some rows, milliseconds in others
-    // Use both thresholds to handle both formats
     const cutoffSec = Math.floor(cutoffMs / 1000);
 
     const { results: expiredOriginals } = await env.DB.prepare(
       `SELECT id, original_r2_key FROM generated_images
        WHERE original_r2_key IS NOT NULL
        AND (
-         (created_at < ? AND created_at > 9999999999)
-         OR (created_at < ? AND created_at <= 9999999999)
+         (created_at > 9999999999 AND created_at < ?)
+         OR (created_at <= 9999999999 AND created_at < ?)
        )`
     ).bind(cutoffMs, cutoffSec).all();
 

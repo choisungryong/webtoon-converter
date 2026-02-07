@@ -4,6 +4,32 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 export const runtime = 'edge';
 
 const MAX_RETRIES = 2;
+const GEMINI_TIMEOUT_MS = 60_000; // 60 seconds
+const RATE_LIMIT_PER_MINUTE = 10;
+
+/** Simple per-user rate limiting using usage_logs table */
+async function checkRateLimit(db: any, userId: string): Promise<boolean> {
+  if (!db || !userId) return true; // Skip if no DB or user
+  try {
+    const oneMinuteAgo = Date.now() - 60_000;
+    const result = await db.prepare(
+      `SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND created_at > ?`
+    ).bind(userId, oneMinuteAgo).first() as any;
+    return (result?.count || 0) < RATE_LIMIT_PER_MINUTE;
+  } catch {
+    return true; // Fail open — don't block if DB check fails
+  }
+}
+
+async function logUsage(db: any, userId: string): Promise<void> {
+  if (!db || !userId) return;
+  try {
+    const { generateUUID } = await import('../../../../utils/commonUtils');
+    await db.prepare(
+      `INSERT INTO usage_logs (id, user_id, action, created_at) VALUES (?, ?, 'convert', ?)`
+    ).bind(generateUUID(), userId, Date.now()).run();
+  } catch { /* best effort */ }
+}
 
 export async function GET(request: NextRequest) {
   return NextResponse.json({
@@ -114,25 +140,40 @@ async function callGemini(
   parts.push({ inlineData: { mimeType, data: base64Data } });
   parts.push({ text: prompt });
 
-  const geminiRes = await fetch(geminiEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: {
-        responseModalities: ['IMAGE'],
-        temperature,
-        topP: 0.8,
-        topK: 40,
-      },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      ]
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+
+  let geminiRes: Response;
+  try {
+    geminiRes = await fetch(geminiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+          temperature,
+          topP: 0.8,
+          topK: 40,
+        },
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        ]
+      })
+    });
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    if ((fetchError as Error).name === 'AbortError') {
+      console.error('Gemini API timeout after', GEMINI_TIMEOUT_MS, 'ms');
+    }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!geminiRes.ok) {
     const errorText = await geminiRes.text();
@@ -192,6 +233,15 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json({ error: 'Server Config Error: API Key missing' }, { status: 500 });
+    }
+
+    // 1b. Rate limit check
+    const allowed = await checkRateLimit(env.DB, body.userId || '');
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
     }
 
     // 2. Validate and parse base64 image
@@ -257,6 +307,9 @@ export async function POST(request: NextRequest) {
     if (!result || !result.imageBase64) {
       return NextResponse.json({ error: 'Image generation failed after retries. Please try again.' }, { status: 502 });
     }
+
+    // Log successful usage for rate limiting
+    await logUsage(env.DB, body.userId || '');
 
     const outputDataUri = `data:${result.mimeType};base64,${result.imageBase64}`;
 

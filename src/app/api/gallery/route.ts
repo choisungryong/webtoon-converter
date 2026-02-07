@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
 
     // const url = new URL(request.url); // Removed duplicate declaration
     const type = url.searchParams.get('type') || 'image';
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 100);
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
 
     let results;
 
@@ -29,8 +31,8 @@ export async function GET(request: NextRequest) {
         type === 'image' ? '(type = ? OR type IS NULL)' : 'type = ?';
 
       const stmt = await env.DB.prepare(
-        `SELECT * FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
-      ).bind(userId, type);
+        `SELECT id, r2_key, original_r2_key, type, prompt, created_at FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+      ).bind(userId, type, limit, offset);
       results = (await stmt.all()).results;
     } else {
       // Anonymous/Public fallback - Show ONLY anonymous (public) images
@@ -39,8 +41,8 @@ export async function GET(request: NextRequest) {
 
       // Modified to strict anonymous check only
       const stmt = await env.DB.prepare(
-        `SELECT * FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT 50`
-      ).bind(type);
+        `SELECT id, r2_key, original_r2_key, type, prompt, created_at FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+      ).bind(type, limit, offset);
       results = (await stmt.all()).results;
     }
 
@@ -102,8 +104,12 @@ export async function POST(request: NextRequest) {
     await env.R2.put(r2Key, bytes, { httpMetadata: { contentType: mimeType } });
 
     // Save original photo to R2 if provided (for future premium re-conversion)
+    const MAX_ORIGINAL_BASE64 = 10 * 1024 * 1024; // ~7.5MB decoded
     let originalR2Key: string | null = null;
     if (originalImage) {
+      if (typeof originalImage !== 'string' || originalImage.length > MAX_ORIGINAL_BASE64) {
+        return NextResponse.json({ error: 'Original image too large' }, { status: 413 });
+      }
       const origMatch = originalImage.match(/^data:image\/(\w+);base64,(.+)$/);
       if (origMatch) {
         const origMimeType = `image/${origMatch[1]}`;
