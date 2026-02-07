@@ -35,7 +35,9 @@ import { StyleOption, DEFAULT_STYLE } from '../../data/styles';
 const MAX_PHOTOS = 5;
 const MAX_FRAMES = 10;
 const MAX_VIDEO_SIZE_MB = 50;
-const DIFF_THRESHOLD = 30;
+const DIFF_THRESHOLD = 0.15; // Histogram-based: 0~1 range, 0.15 = meaningful scene change
+const MAX_FRAME_DIMENSION = 1920; // Cap captured frame resolution
+const COMPARE_SIZE = 480; // Resolution for scene comparison
 
 export default function Home() {
   const t = useTranslations('Home');
@@ -174,25 +176,62 @@ export default function Home() {
       return;
     }
 
-    const analyzeCount = 20;
+    // Adaptive sample count: short videos get fewer samples, long videos get more
+    const analyzeCount = Math.min(60, Math.max(20, Math.round(duration * 2)));
     const interval = duration / (analyzeCount + 1);
     const timestamps = Array.from({ length: analyzeCount }, (_, i) => interval * (i + 1));
     const frames: string[] = [];
     let previousImageData: ImageData | null = null;
 
+    // Calculate capped capture dimensions (max 1920px on longest side)
+    let captureW = video.videoWidth;
+    let captureH = video.videoHeight;
+    if (captureW > MAX_FRAME_DIMENSION || captureH > MAX_FRAME_DIMENSION) {
+      if (captureW > captureH) {
+        captureH = Math.round(captureH * (MAX_FRAME_DIMENSION / captureW));
+        captureW = MAX_FRAME_DIMENSION;
+      } else {
+        captureW = Math.round(captureW * (MAX_FRAME_DIMENSION / captureH));
+        captureH = MAX_FRAME_DIMENSION;
+      }
+    }
+
+    // Seek helper with reliable waiting
+    const seekTo = (time: number): Promise<void> => {
+      return new Promise((resolve) => {
+        let resolved = false;
+        const onSeeked = () => {
+          if (!resolved) {
+            resolved = true;
+            video.removeEventListener('seeked', onSeeked);
+            resolve();
+          }
+        };
+        video.addEventListener('seeked', onSeeked);
+        video.currentTime = time;
+        // Fallback timeout: 2 seconds for slow devices/large files
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            video.removeEventListener('seeked', onSeeked);
+            resolve();
+          }
+        }, 2000);
+      });
+    };
+
     try {
       message.loading({ content: t('analyzing'), key: 'analyze' });
 
+      const compareH = Math.round((COMPARE_SIZE * video.videoHeight) / video.videoWidth);
+
       for (const time of timestamps) {
-        video.currentTime = time;
-        await new Promise((resolve) => {
-          video.onseeked = () => resolve(true);
-          setTimeout(resolve, 300);
-        });
+        await seekTo(time);
 
         if (ctx) {
-          canvas.width = 320;
-          canvas.height = (320 * video.videoHeight) / video.videoWidth;
+          // Draw at comparison resolution for scene detection
+          canvas.width = COMPARE_SIZE;
+          canvas.height = compareH;
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           const currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -200,14 +239,16 @@ export default function Home() {
           if (previousImageData) {
             const diff = calculateImageDifference(previousImageData, currentImageData);
             if (diff > DIFF_THRESHOLD) {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
+              // Capture at capped resolution
+              canvas.width = captureW;
+              canvas.height = captureH;
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               frames.push(canvas.toDataURL('image/jpeg', 0.8));
             }
           } else {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            // Always capture first frame
+            canvas.width = captureW;
+            canvas.height = captureH;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             frames.push(canvas.toDataURL('image/jpeg', 0.8));
           }
@@ -280,7 +321,8 @@ export default function Home() {
     setTotalImagesToConvert(photoPreviews.length);
     setCurrentImageIndex(0);
 
-    const generatedImages: string[] = [];
+    const generatedImages: { result: string; original: string }[] = [];
+    let styleReference: string | undefined; // First result used as style anchor
 
     try {
       for (let i = 0; i < photoPreviews.length; i++) {
@@ -290,7 +332,7 @@ export default function Home() {
 
         const compressedDataUrl = await compressImage(photoPreviews[i]);
 
-        // 1. Start Job
+        // 1. Start Job (pass styleReference from first result for consistency)
         let startData;
         try {
           const startRes = await fetch('/api/ai/start', {
@@ -300,6 +342,7 @@ export default function Home() {
               image: compressedDataUrl,
               styleId: selectedStyle.id,
               userId: userId,
+              ...(styleReference && { styleReference }),
             }),
           });
 
@@ -328,7 +371,14 @@ export default function Home() {
 
         // Synchronous Response Handling
         if (startData.success && startData.result_url) {
-          generatedImages.push(startData.result_url);
+          generatedImages.push({ result: startData.result_url, original: compressedDataUrl });
+          // Save first result as style anchor for subsequent images
+          if (i === 0) {
+            styleReference = startData.result_url;
+          }
+          if (startData.retried) {
+            message.info(t('ai_retried'));
+          }
           setProgress(Math.round(((i + 1) / photoPreviews.length) * 80));
         } else {
           throw new Error('No result returned from server');
@@ -344,7 +394,11 @@ export default function Home() {
         await fetch('/api/gallery', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: img, userId: userId }),
+          body: JSON.stringify({
+            image: img.result,
+            userId: userId,
+            originalImage: img.original,
+          }),
         });
       }
 
@@ -389,6 +443,7 @@ export default function Home() {
     setCurrentImageIndex(0);
 
     const convertedImages: string[] = [];
+    let styleReference: string | undefined; // First result used as style anchor
 
     try {
       message.loading({
@@ -416,6 +471,7 @@ export default function Home() {
               image: compressedDataUrl,
               styleId: selectedStyle.id,
               userId: userId,
+              ...(styleReference && { styleReference }),
             }),
           });
 
@@ -454,6 +510,13 @@ export default function Home() {
 
         if (startData.success && startData.result_url) {
           convertedImages.push(startData.result_url);
+          // Save first result as style anchor for subsequent frames
+          if (i === 0) {
+            styleReference = startData.result_url;
+          }
+          if (startData.retried) {
+            message.info(t('ai_retried'));
+          }
         } else {
           throw new Error('No result returned from server');
         }

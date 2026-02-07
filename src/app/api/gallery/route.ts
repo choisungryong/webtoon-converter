@@ -72,10 +72,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { env } = getRequestContext();
-    const body = (await request.json()) as { image: string; userId: string };
-    const { image, userId } = body;
+    const body = (await request.json()) as {
+      image: string;
+      userId: string;
+      originalImage?: string; // Optional: original photo for premium re-conversion
+    };
+    const { image, userId, originalImage } = body;
 
-    // ... (validation checks omitted for brevity, logic remains same)
     if (!env.DB || !env.R2)
       return NextResponse.json(
         { error: 'System configuration error' },
@@ -84,7 +87,6 @@ export async function POST(request: NextRequest) {
     if (!image || !userId)
       return NextResponse.json({ error: 'Missing data' }, { status: 400 });
 
-    // ... (decoding logic omitted)
     const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!base64Match)
       return NextResponse.json({ error: 'Invalid image' }, { status: 400 });
@@ -99,15 +101,33 @@ export async function POST(request: NextRequest) {
 
     await env.R2.put(r2Key, bytes, { httpMetadata: { contentType: mimeType } });
 
+    // Save original photo to R2 if provided (for future premium re-conversion)
+    let originalR2Key: string | null = null;
+    if (originalImage) {
+      const origMatch = originalImage.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (origMatch) {
+        const origMimeType = `image/${origMatch[1]}`;
+        const origBinary = atob(origMatch[2]);
+        const origBytes = new Uint8Array(origBinary.length);
+        for (let i = 0; i < origBinary.length; i++)
+          origBytes[i] = origBinary.charCodeAt(i);
+        originalR2Key = `originals/${imageId}.${origMatch[1] === 'jpeg' ? 'jpg' : origMatch[1]}`;
+        await env.R2.put(originalR2Key, origBytes, { httpMetadata: { contentType: origMimeType } });
+      }
+    }
+
     try {
       await env.DB.prepare(
-        `INSERT INTO generated_images (id, r2_key, type, prompt, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO generated_images (id, r2_key, original_r2_key, type, prompt, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-        .bind(imageId, r2Key, 'image', 'User Edited Image', userId, Date.now())
+        .bind(imageId, r2Key, originalR2Key, 'image', 'User Edited Image', userId, Date.now())
         .run();
     } catch (dbError) {
       console.error('DB insert failed, rolling back R2:', dbError);
       try { await env.R2.delete(r2Key); } catch (_) { /* best effort */ }
+      if (originalR2Key) {
+        try { await env.R2.delete(originalR2Key); } catch (_) { /* best effort */ }
+      }
       return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
     }
 

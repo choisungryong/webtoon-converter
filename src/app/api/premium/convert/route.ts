@@ -4,6 +4,98 @@ import { generateUUID } from '../../../../utils/commonUtils';
 
 export const runtime = 'edge';
 
+const MAX_RETRIES = 2;
+
+const SAFETY_SETTINGS = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+];
+
+// Used when we have the original photo — best quality path
+const PREMIUM_FROM_ORIGINAL_PROMPT = `Completely redraw this photograph as a premium-quality Korean webtoon illustration with cinematic production values. Do not apply a filter — create an entirely new masterpiece illustration from scratch.
+
+STYLE: Premium modern Korean webtoon art (like Solo Leveling, Omniscient Reader, or True Beauty at their highest production quality). Razor-sharp clean digital linework with professional multi-layer cel-shading. Cinematic lighting with dramatic volumetric shadows, rim lighting, and glowing highlights. Rich cinematic color grading with depth and contrast. Highly detailed backgrounds with atmospheric perspective and depth of field. Character designs with complex detailed hair rendering, intricate clothing folds, expressive jewel-like eyes, and refined facial features.
+
+FORMAT: Output as a single image preserving the original photo's aspect ratio.
+
+OUTPUT REQUIREMENTS:
+- The result must be a PREMIUM ILLUSTRATED DRAWING with significantly more detail and polish than a standard webtoon conversion
+- Preserve the original composition, characters, poses, and expressions from the photograph
+- Do not add any text, speech bubbles, or watermarks
+- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each
+- Characters must be fully contained within the frame — do not crop heads or limbs`;
+
+// Fallback when no original photo exists — upgrade existing webtoon
+const PREMIUM_UPGRADE_PROMPT = `Enhance this webtoon illustration to premium quality with significantly improved detail, lighting, and artistic refinement. Preserve the exact composition, characters, and scene — only upgrade the visual quality.
+
+STYLE: Premium modern Korean webtoon art with sharper linework, richer cel-shading with multiple tonal layers, cinematic lighting with dramatic shadows and glowing highlights, and more detailed backgrounds with depth of field.
+
+OUTPUT REQUIREMENTS:
+- Preserve the exact same composition, characters, poses, and scene
+- Enhance: sharper lines, richer colors, better lighting, more background detail
+- Do not add any text, speech bubbles, or watermarks
+- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each`;
+
+/**
+ * Call Gemini and return generated image or null.
+ */
+async function callGeminiPremium(
+  apiKey: string,
+  base64Data: string,
+  mimeType: string,
+  prompt: string,
+  temperature: number,
+): Promise<{ imageBase64: string; mimeType: string } | null> {
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+
+  const res = await fetch(geminiEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inlineData: { mimeType, data: base64Data } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: {
+        responseModalities: ['IMAGE'],
+        temperature,
+        topP: 0.8,
+        topK: 40,
+      },
+      safetySettings: SAFETY_SETTINGS,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('[Premium/Convert] Gemini API Error:', res.status, errorText);
+    // Propagate 429 as a special case
+    if (res.status === 429) {
+      throw new Error('QUOTA_EXCEEDED');
+    }
+    return null;
+  }
+
+  const data = await res.json() as any;
+  const candidates = data.candidates;
+  if (!candidates || candidates.length === 0) return null;
+
+  const responseParts = candidates[0]?.content?.parts || [];
+  for (const part of responseParts) {
+    if (part.inlineData) {
+      return {
+        imageBase64: part.inlineData.data,
+        mimeType: part.inlineData.mimeType || 'image/png',
+      };
+    }
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('[Premium/Convert] POST Request received');
@@ -32,7 +124,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract Base64 data from Data URI
+    // Extract Base64 data from the provided image (fallback)
     const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!base64Match) {
       return NextResponse.json(
@@ -40,176 +132,116 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const mimeType = `image/${base64Match[1]}`;
-    const base64Data = base64Match[2];
 
-    // Premium conversion prompt - Professional Korean Webtoon Episode Style
-    // Focuses on visual quality, narrative flow, and character consistency
-    const premiumPrompt = `
-**Role & Goal:** Act as a master Korean webtoon artist. Your sole task is to transform the provided scene descriptions into a single, high-quality, vertical scroll webtoon episode strip.
+    // Try to fetch original photo from R2 for best quality
+    let inputBase64 = base64Match[2];
+    let inputMimeType = `image/${base64Match[1]}`;
+    let premiumPrompt = PREMIUM_UPGRADE_PROMPT;
+    let usedOriginal = false;
 
-**Input Scenes to Visualize:**
-\`[SCENE DESCRIPTIONS: 여기에 변환할 이야기의 장면들을 순서대로 상세히 묘사하세요. 예: "1. 검은 후드를 쓴 남자가 비 오는 골목길을 걸어간다. 2. 그가 멈춰 서서 뒤를 돌아본다. 3. 놀란 표정의 여자 주인공과 마주친다."]\`
+    if (sourceWebtoonId && env.DB && env.R2) {
+      try {
+        const row = await env.DB.prepare(
+          `SELECT original_r2_key FROM generated_images WHERE id = ?`
+        ).bind(sourceWebtoonId).first() as any;
 
-**🚫 ABSOLUTE ANATOMICAL & STRUCTURAL RULES (CRITICAL):**
-*   **NO FLOATING HEADS**: Every head must be securely attached to a neck and body.
-*   **NO DETACHED LIMBS**: Hands and feet must be connected to arms and legs.
-*   **CORRECT PROPORTIONS**: Arms should not be longer than legs. Heads should be proportional to bodies.
-*   **FINGER COUNT**: Exactly 5 fingers per hand. No morphed blobs.
-*   **GRAVITY**: Characters must stand ON the ground, not float (unless flying).
-
-**🎨 Art Style & Mood (Premium Quality):**
-* **Style:** Modern premium Korean webtoon. Utilize sharp, clean digital line art, professional cel-shading, and vibrant, cinematic lighting (e.g., dramatic shadows, glowing effects).
-* **Vibe:** Epic, emotional, and dynamic. Apply sophisticated color grading to match the scene's tone.
-* **Detail:** High-resolution backgrounds with depth of field, complex character designs, and rich textures.
-
-**📐 Layout & Composition (CRITICAL CONSTRAINTS):**
-* **Format:** The final output MUST be a continuous sequence of **long vertical rectangular panels (approx. 800x1280 aspect ratio each)**, stacked strictly from top to bottom.
-* **Direction:** **NEVER use horizontal or square panels.** Never place panels side-by-side. The flow is strictly vertical.
-* **Spacing:** Use clean, plain WHITE gutters (margins) between panels. No black backgrounds.
-* **Framing (Anti-Cropping):** Ensure characters are fully contained within their frames. **DO NOT CROP heads, hands, or feet at the panel edges.** Leave comfortable breathing room around the subjects.
-
-**🚫 Quality & Consistency Rules:**
-* **Consistency:** Maintain perfect continuity of character designs (hair, eyes, outfit, gender) across all panels.
-* **Anatomy:** Render anatomically accurate figures (2 arms, 2 legs, 5 fingers per hand, etc.). No distortions.
-* **Cleanliness:** absolutely NO text, speech bubbles, watermarks, or UI elements. Just pure visuals.
-* **Volume:** Expand the input into a rich, multi-panel sequence, creating more panels than described to ensure a full, flowing episode feel.
-`.trim();
-
-    // Call Gemini 2.5 Flash Image - Premium quality with enhanced settings
-    // Note: gemini-3-pro-image is not yet available in v1beta API
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
-
-    console.log('[Premium/Convert] Calling Gemini API...');
-
-    const geminiRes = await fetch(geminiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { inlineData: { mimeType, data: base64Data } },
-              { text: premiumPrompt },
-            ],
-          },
-        ],
-        generationConfig: {
-          responseModalities: ['IMAGE', 'TEXT'],
-          temperature: 1.0,
-        },
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          {
-            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-            threshold: 'BLOCK_NONE',
-          },
-          {
-            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-            threshold: 'BLOCK_NONE',
-          },
-        ],
-      }),
-    });
-
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      console.error(
-        '[Premium/Convert] Gemini API Error:',
-        geminiRes.status,
-        errorText
-      );
-
-      if (geminiRes.status === 429) {
-        return NextResponse.json(
-          {
-            error: 'QUOTA_EXCEEDED',
-            message: 'API 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
-          },
-          { status: 429 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: `Gemini Error: ${errorText}` },
-        { status: 500 }
-      );
-    }
-
-    const geminiData = await geminiRes.json();
-    const candidates = geminiData.candidates;
-
-    if (!candidates || candidates.length === 0) {
-      return NextResponse.json(
-        { error: 'No image generated' },
-        { status: 500 }
-      );
-    }
-
-    const parts = candidates[0]?.content?.parts || [];
-    let generatedImageBase64 = null;
-    let generatedMimeType = 'image/png';
-
-    for (const part of parts) {
-      if (part.inlineData) {
-        generatedImageBase64 = part.inlineData.data;
-        generatedMimeType = part.inlineData.mimeType || 'image/png';
-        break;
+        if (row?.original_r2_key) {
+          const r2Object = await env.R2.get(row.original_r2_key);
+          if (r2Object) {
+            const arrayBuffer = await r2Object.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            inputBase64 = btoa(binary);
+            inputMimeType = r2Object.httpMetadata?.contentType || 'image/jpeg';
+            premiumPrompt = PREMIUM_FROM_ORIGINAL_PROMPT;
+            usedOriginal = true;
+            console.log('[Premium/Convert] Using original photo from R2:', row.original_r2_key);
+          }
+        }
+      } catch (lookupError) {
+        console.warn('[Premium/Convert] Original lookup failed, using provided image:', lookupError);
       }
     }
 
-    if (!generatedImageBase64) {
+    // Call Gemini with retry logic
+    let result: { imageBase64: string; mimeType: string } | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        console.log(`[Premium/Convert] Retry attempt ${attempt}/${MAX_RETRIES}`);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      const attemptPrompt = attempt > 0
+        ? `IMPORTANT: You MUST generate a new premium-quality illustrated image. Do NOT return the original or a photo-like result.\n\n${premiumPrompt}`
+        : premiumPrompt;
+      const attemptTemp = attempt > 0 ? 1.2 : 1.0;
+
+      try {
+        result = await callGeminiPremium(apiKey, inputBase64, inputMimeType, attemptPrompt, attemptTemp);
+      } catch (e) {
+        if ((e as Error).message === 'QUOTA_EXCEEDED') {
+          return NextResponse.json(
+            { error: 'QUOTA_EXCEEDED', message: 'API quota reached. Please try again later.' },
+            { status: 429 }
+          );
+        }
+        // Other errors: continue to retry
+      }
+
+      if (result && result.imageBase64) break;
+    }
+
+    if (!result || !result.imageBase64) {
       return NextResponse.json(
-        { error: 'Gemini did not return an image' },
-        { status: 500 }
+        { error: 'Premium conversion failed after retries. Please try again.' },
+        { status: 502 }
       );
     }
 
     // Save to R2 and DB
     const imageId = generateUUID();
     const r2Key = `premium/${imageId}.png`;
+    let saved = false;
 
     if (env.R2 && env.DB) {
       try {
-        // Save to R2
-        const binaryString = atob(generatedImageBase64);
+        const binaryString = atob(result.imageBase64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
 
         await env.R2.put(r2Key, bytes, {
-          httpMetadata: { contentType: generatedMimeType },
+          httpMetadata: { contentType: result.mimeType },
         });
 
-        // Save to DB
         await env.DB.prepare(
           `INSERT INTO premium_webtoons (id, user_id, source_webtoon_id, r2_key, prompt) VALUES (?, ?, ?, ?, ?)`
         )
-          .bind(
-            imageId,
-            userId,
-            sourceWebtoonId || null,
-            r2Key,
-            'premium-conversion'
-          )
+          .bind(imageId, userId, sourceWebtoonId || null, r2Key, 'premium-conversion')
           .run();
 
+        saved = true;
         console.log('[Premium/Convert] Saved to R2 and DB:', imageId);
       } catch (saveError) {
         console.error('[Premium/Convert] Save error:', saveError);
+        // Attempt R2 rollback if DB save failed
+        try { await env.R2.delete(r2Key); } catch { /* best effort */ }
       }
     }
 
-    // Return generated image
-    const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
+    const outputDataUri = `data:${result.mimeType};base64,${result.imageBase64}`;
 
     return NextResponse.json({
       success: true,
       image: outputDataUri,
       imageId: imageId,
-      saved: !!(env.R2 && env.DB),
+      saved,
+      usedOriginal,
     });
   } catch (error) {
     console.error('[Premium/Convert] Error:', error);

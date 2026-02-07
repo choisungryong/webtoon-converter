@@ -4,13 +4,94 @@ import { generateUUID } from '../../../../utils/commonUtils';
 
 export const runtime = 'edge';
 
+const MAX_RETRIES = 2;
+
+const SAFETY_SETTINGS = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+];
+
+function buildEpisodePrompt(imageCount: number, panelCount: number): string {
+  return `Completely redraw these ${imageCount} reference photographs as a single continuous Korean webtoon episode page. Do not apply filters to the photos — illustrate everything from scratch as hand-drawn manhwa art.
+
+STYLE: Premium Korean webtoon illustration in the style of Solo Leveling, True Beauty, or Lookism. Sharp clean digital linework with smooth cel-shading. Characters redrawn as manhwa characters with anime-style expressive eyes, defined jawlines, and stylized proportions. Vibrant colors with gradient shading and cinematic lighting. Rich detailed backgrounds with depth of field.
+
+CHARACTER RULES: Study each person in the reference photos carefully. Redraw them as illustrated manhwa characters while preserving their gender, hair color, outfit colors, and distinguishing features. Maintain perfect character consistency across all panels — the same character must look identical in every panel they appear in.
+
+LAYOUT: Create a single tall vertical image (800 x 2400 pixels). Arrange ${panelCount} panels vertically for webtoon scroll format. Use dynamic panel shapes with a mix of 2-3 large dramatic panels and smaller reaction panels. Clean white gutters between panels.
+
+STORYTELLING: Each panel shows a different moment from the reference scenes. Use varied camera angles — close-ups for emotion, medium shots for dialogue, wide shots for establishing scenes. Add speed lines, emotion effects, and screen tones where they enhance the narrative.
+
+OUTPUT REQUIREMENTS:
+- The result must be 100% ILLUSTRATED MANHWA ART, not photographs with effects
+- Preserve the original scenes, characters, and narrative flow from the references
+- Do not add any text, speech bubbles, or watermarks
+- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each
+- Characters fully contained within frames — do not crop heads or limbs at panel edges`;
+}
+
+/**
+ * Call Gemini with multi-image input and return generated image or null.
+ */
+async function callGeminiEpisode(
+  apiKey: string,
+  imageParts: { inlineData: { mimeType: string; data: string } }[],
+  prompt: string,
+  temperature: number,
+): Promise<{ imageBase64: string; mimeType: string } | null> {
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+
+  const parts: any[] = [...imageParts, { text: prompt }];
+
+  const res = await fetch(geminiEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        responseModalities: ['IMAGE'],
+        temperature,
+        topP: 0.8,
+        topK: 40,
+      },
+      safetySettings: SAFETY_SETTINGS,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('[Premium/Episode] Gemini API Error:', res.status, errorText);
+    if (res.status === 429) {
+      throw new Error('QUOTA_EXCEEDED');
+    }
+    return null;
+  }
+
+  const data = await res.json() as any;
+  const candidates = data.candidates;
+  if (!candidates || candidates.length === 0) return null;
+
+  const responseParts = candidates[0]?.content?.parts || [];
+  for (const part of responseParts) {
+    if (part.inlineData) {
+      return {
+        imageBase64: part.inlineData.data,
+        mimeType: part.inlineData.mimeType || 'image/png',
+      };
+    }
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('[Premium/Episode] POST Request received');
 
     const { env } = getRequestContext();
     const body = (await request.json()) as {
-      images: string[]; // Array of base64 images
+      images: string[];
       userId: string;
     };
 
@@ -55,190 +136,83 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const panelCount = Math.max(imageParts.length, 10); // At least 10 panels or number of images
+    const panelCount = Math.max(imageParts.length, 10);
+    const basePrompt = buildEpisodePrompt(imageParts.length, panelCount);
 
-    // Multi-image Episode Generation Prompt - STRONG ART STYLE CONVERSION
-    const episodePrompt = `[CRITICAL: DRAW AS ILLUSTRATED WEBTOON - NOT PHOTOS]
+    // Call Gemini with retry logic
+    let result: { imageBase64: string; mimeType: string } | null = null;
 
-You are an expert Korean webtoon artist. I am giving you ${imageParts.length} REFERENCE PHOTOS. 
-You MUST REDRAW these as HAND-DRAWN ILLUSTRATIONS in Korean webtoon/manhwa art style.
-
-⚠️ MOST IMPORTANT - DO NOT USE THE ORIGINAL PHOTOS:
-- DO NOT paste or composite the original photos
-- DO NOT apply filters to the photos
-- You MUST DRAW/ILLUSTRATE everything from scratch
-- The output must look like a HAND-DRAWN COMIC, not photographs
-
-🎨 ART STYLE REQUIREMENTS (MANDATORY):
-- Korean webtoon/manhwa illustration style (like Solo Leveling, True Beauty, Lookism)
-- Clean lineart with smooth cel-shading
-- Anime-style eyes and facial features
-- Stylized proportions (larger eyes, defined jawlines)
-- Vibrant colors with gradient shading
-- The result should look like a DRAWING, not a photo
-
-👤 CHARACTER CONVERSION:
-- Study each person in the reference photos
-- REDRAW them as illustrated manhwa characters
-- Keep their gender, hair color, outfit colors the same
-- But convert to illustrated/drawn appearance
-- Make them look like anime/webtoon characters
-
-📐 LAYOUT (${panelCount} PANELS):
-- Create a SINGLE TALL VERTICAL IMAGE (800 x 2400 pixels)
-- Arrange ${panelCount} panels vertically for webtoon scroll format
-- Use dynamic panel shapes (diagonal cuts, overlapping)
-- Mix: 2-3 large dramatic panels + smaller reaction panels
-
-📖 STORYTELLING:
-- Each panel shows a different moment from the reference scenes
-- Use varied camera angles: close-ups, medium shots, wide shots
-- Add speed lines, emotion effects, screen tones where appropriate
-- Create visual flow like reading a professional webtoon
-
-OUTPUT: Single 800x2400 pixel illustrated webtoon episode page.
-
-STRICT RULES:
-- ILLUSTRATED DRAWING STYLE ONLY - NO PHOTOGRAPHS
-- NO text, speech bubbles, or watermarks
-- Consistent character appearance across all panels
-- Must look like professional Korean webtoon art`;
-
-    // Build request parts: all images + prompt
-    const parts: any[] = [...imageParts, { text: episodePrompt }];
-
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
-
-    console.log(
-      `[Premium/Episode] Calling Gemini API with ${imageParts.length} images...`
-    );
-
-    const geminiRes = await fetch(geminiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: parts,
-          },
-        ],
-        generationConfig: {
-          responseModalities: ['IMAGE', 'TEXT'],
-          temperature: 1.0,
-        },
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          {
-            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-            threshold: 'BLOCK_NONE',
-          },
-          {
-            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-            threshold: 'BLOCK_NONE',
-          },
-        ],
-      }),
-    });
-
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      console.error(
-        '[Premium/Episode] Gemini API Error:',
-        geminiRes.status,
-        errorText
-      );
-
-      if (geminiRes.status === 429) {
-        return NextResponse.json(
-          {
-            error: 'QUOTA_EXCEEDED',
-            message: 'API 한도에 도달했습니다. 잠시 후 다시 시도해주세요.',
-          },
-          { status: 429 }
-        );
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        console.log(`[Premium/Episode] Retry attempt ${attempt}/${MAX_RETRIES}`);
+        await new Promise(r => setTimeout(r, 1000));
       }
 
-      return NextResponse.json(
-        { error: `Gemini Error: ${errorText}` },
-        { status: 500 }
-      );
-    }
+      const attemptPrompt = attempt > 0
+        ? `IMPORTANT: You MUST generate a new illustrated webtoon episode image. Do NOT return photos or photo-like results.\n\n${basePrompt}`
+        : basePrompt;
+      const attemptTemp = attempt > 0 ? 1.2 : 1.0;
 
-    const geminiData = await geminiRes.json();
-    const candidates = geminiData.candidates;
-
-    if (!candidates || candidates.length === 0) {
-      return NextResponse.json(
-        { error: 'No image generated' },
-        { status: 500 }
-      );
-    }
-
-    const responseParts = candidates[0]?.content?.parts || [];
-    let generatedImageBase64 = null;
-    let generatedMimeType = 'image/png';
-
-    for (const part of responseParts) {
-      if (part.inlineData) {
-        generatedImageBase64 = part.inlineData.data;
-        generatedMimeType = part.inlineData.mimeType || 'image/png';
-        break;
+      try {
+        result = await callGeminiEpisode(apiKey, imageParts, attemptPrompt, attemptTemp);
+      } catch (e) {
+        if ((e as Error).message === 'QUOTA_EXCEEDED') {
+          return NextResponse.json(
+            { error: 'QUOTA_EXCEEDED', message: 'API quota reached. Please try again later.' },
+            { status: 429 }
+          );
+        }
       }
+
+      if (result && result.imageBase64) break;
     }
 
-    if (!generatedImageBase64) {
+    if (!result || !result.imageBase64) {
       return NextResponse.json(
-        { error: 'Gemini did not return an image' },
-        { status: 500 }
+        { error: 'Episode generation failed after retries. Please try again.' },
+        { status: 502 }
       );
     }
 
     // Save to R2 and DB
     const imageId = generateUUID();
     const r2Key = `premium/${imageId}.png`;
+    let saved = false;
 
     if (env.R2 && env.DB) {
       try {
-        // Save to R2
-        const binaryString = atob(generatedImageBase64);
+        const binaryString = atob(result.imageBase64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
 
         await env.R2.put(r2Key, bytes, {
-          httpMetadata: { contentType: generatedMimeType },
+          httpMetadata: { contentType: result.mimeType },
         });
 
-        // Save to DB
         await env.DB.prepare(
           `INSERT INTO premium_webtoons (id, user_id, source_webtoon_id, r2_key, prompt) VALUES (?, ?, ?, ?, ?)`
         )
-          .bind(
-            imageId,
-            userId,
-            null,
-            r2Key,
-            `episode-${imageParts.length}-images`
-          )
+          .bind(imageId, userId, null, r2Key, `episode-${imageParts.length}-images`)
           .run();
 
+        saved = true;
         console.log('[Premium/Episode] Saved to R2 and DB:', imageId);
       } catch (saveError) {
         console.error('[Premium/Episode] Save error:', saveError);
+        try { await env.R2.delete(r2Key); } catch { /* best effort */ }
       }
     }
 
-    // Return generated image
-    const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
+    const outputDataUri = `data:${result.mimeType};base64,${result.imageBase64}`;
 
     return NextResponse.json({
       success: true,
       image: outputDataUri,
       imageId: imageId,
       panelCount: panelCount,
-      saved: !!(env.R2 && env.DB),
+      saved,
     });
   } catch (error) {
     console.error('[Premium/Episode] Error:', error);

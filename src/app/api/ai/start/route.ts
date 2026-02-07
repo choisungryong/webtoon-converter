@@ -3,6 +3,8 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 
 export const runtime = 'edge';
 
+const MAX_RETRIES = 2;
+
 export async function GET(request: NextRequest) {
   return NextResponse.json({
     status: 'alive',
@@ -11,106 +13,153 @@ export async function GET(request: NextRequest) {
   });
 }
 
+/**
+ * Build the style prompt for the given styleId.
+ * Prompts are structured following Google's recommendation:
+ *   1. Core instruction (what to do) at the top
+ *   2. Detailed style description (narrative, descriptive)
+ *   3. Anatomy/quality guardrails at the bottom
+ */
+function buildPrompt(styleId: string, customPrompt?: string): string {
+  const ANATOMY_GUARDRAILS = `
+ANATOMY & FRAMING RULES:
+- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each
+- Normal proportions, no extra or missing limbs
+- Keep hidden body parts hidden — do not invent anatomy
+- Maintain the same framing as the original photo`;
+
+  const STYLE_PROMPTS: Record<string, string> = {
+    watercolor: `Completely redraw this photograph as a hand-painted Studio Ghibli-style illustration. Do not apply a filter — create an entirely new illustrated image from scratch.
+
+STYLE: Soft watercolor washes with warm pastel colors reminiscent of Hayao Miyazaki films. Gentle pencil-like outlines define each shape. Characters have large expressive anime eyes and clumped stylized hair strands. Shading is flat cel-shading with no realistic skin texture or photographic gradients. The background should be reimagined as a lush, dreamy Ghibli-esque landscape with simplified illustrated shapes.
+
+OUTPUT REQUIREMENTS:
+- The result must be a 100% ILLUSTRATED PAINTING, not a photo with effects
+- Preserve the original composition, character poses, and expressions
+- Do not add any text, speech bubbles, or watermarks
+${ANATOMY_GUARDRAILS}`,
+
+    'cinematic-noir': `Completely redraw this photograph as a gritty Korean thriller manhwa panel in the style of webtoons like "Bastard" or "Sweet Home". Do not apply a filter — illustrate everything from scratch.
+
+STYLE: Heavy bold black ink lines with dramatic chiaroscuro lighting. Skin rendered as smooth flat color blocks, clothes as solid shadow/light shapes. Pitch-black shadows dominate the composition. The atmosphere is dark and tense with drawn film grain or rain effects. The overall mood evokes a Korean crime thriller webtoon.
+
+OUTPUT REQUIREMENTS:
+- The result must be a hand-inked WEBTOON PANEL, not a processed photograph
+- Preserve the original composition, character poses, and expressions
+- Do not add any text, speech bubbles, or watermarks
+${ANATOMY_GUARDRAILS}`,
+
+    'dark-fantasy': `Completely redraw this photograph as an action manhwa panel in the style of "Solo Leveling" or "Tower of God". Do not apply a filter — illustrate everything from scratch.
+
+STYLE: Razor-sharp digital inking with high contrast between cool-toned darks and neon accent highlights (blue, purple glow). Characters should look like powerful manhwa protagonists with sharp angular jawlines and intense glowing eyes. Add dynamic energy auras and speed line effects. The color palette is dominated by deep blues, blacks, and electric purple accents.
+
+OUTPUT REQUIREMENTS:
+- The result must be a dynamic ACTION MANHWA ILLUSTRATION, not a photo with effects
+- Preserve the original composition, character poses, and expressions
+- Do not add any text, speech bubbles, or watermarks
+${ANATOMY_GUARDRAILS}`,
+
+    'elegant-fantasy': `Completely redraw this photograph as a romance fantasy (rofan) webtoon panel in the style of "Remarried Empress" or "Who Made Me a Princess". Do not apply a filter — illustrate everything from scratch.
+
+STYLE: Delicate thin brownish outlines with idealized beautiful character designs in the shoujo manga tradition. Hair and eyes sparkle like jewels with soft highlights. The color palette centers on pink, gold, pastel purple, and soft whites. Clothing is rendered as elegant flowing fabrics. The background is transformed into a soft floral or palace-like illustrated scene with dreamy bokeh effects.
+
+OUTPUT REQUIREMENTS:
+- The result must be a beautiful ROMANCE WEBTOON ILLUSTRATION, not a photo with effects
+- Preserve the original composition, character poses, and expressions
+- Do not add any text, speech bubbles, or watermarks
+${ANATOMY_GUARDRAILS}`,
+
+    'classic-webtoon': `Completely redraw this photograph as a standard Korean webtoon episode panel. Do not apply a filter — illustrate everything from scratch.
+
+STYLE: Clean digital art with bold uniform black outlines around every object and character. Flat cel-shading with simple distinct colors and no complex gradients. Character faces drawn in typical Korean webtoon anime style with slightly exaggerated expressions for readability. The background is simplified into clean illustrated shapes optimized for vertical-scroll mobile reading.
+
+OUTPUT REQUIREMENTS:
+- The result must be a 100% ILLUSTRATED COMIC PANEL, not a photo with effects
+- Preserve the original composition, character poses, and expressions
+- Do not add any text, speech bubbles, or watermarks
+${ANATOMY_GUARDRAILS}`,
+  };
+
+  return STYLE_PROMPTS[styleId] || customPrompt || `Completely redraw this photograph as a Korean webtoon comic illustration. Do not apply a filter — illustrate everything from scratch.
+
+STYLE: Clean bold black outlines, flat cel-shading colors, Korean webtoon anime-style character faces. Background redrawn as a simplified illustrated scene.
+
+OUTPUT REQUIREMENTS:
+- The result must be a 100% ILLUSTRATED DRAWING, not a photo with effects
+- Preserve the original composition, character poses, and expressions
+- Do not add any text, speech bubbles, or watermarks
+${ANATOMY_GUARDRAILS}`;
+}
+
+/**
+ * Call Gemini API and extract generated image from response.
+ * Optionally accepts a style reference image for multi-image consistency.
+ * Returns { imageBase64, mimeType } or null if no image was generated.
+ */
+async function callGemini(
+  apiKey: string,
+  base64Data: string,
+  mimeType: string,
+  prompt: string,
+  temperature: number,
+  styleRef?: { data: string; mimeType: string } | null,
+): Promise<{ imageBase64: string; mimeType: string } | null> {
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+
+  // Build parts: [style reference (optional)] + [source photo] + [prompt]
+  const parts: any[] = [];
+  if (styleRef) {
+    parts.push({ inlineData: { mimeType: styleRef.mimeType, data: styleRef.data } });
+  }
+  parts.push({ inlineData: { mimeType, data: base64Data } });
+  parts.push({ text: prompt });
+
+  const geminiRes = await fetch(geminiEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        responseModalities: ['IMAGE'],
+        temperature,
+        topP: 0.8,
+        topK: 40,
+      },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      ]
+    })
+  });
+
+  if (!geminiRes.ok) {
+    const errorText = await geminiRes.text();
+    console.error('Gemini API Error:', errorText);
+    return null;
+  }
+
+  const geminiData = await geminiRes.json() as any;
+  const candidates = geminiData.candidates;
+  if (!candidates || candidates.length === 0) return null;
+
+  const responseParts = candidates[0]?.content?.parts || [];
+  for (const part of responseParts) {
+    if (part.inlineData) {
+      return {
+        imageBase64: part.inlineData.data,
+        mimeType: part.inlineData.mimeType || 'image/png',
+      };
+    }
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('[API/Start] POST Request received');
-
-    // Anatomical Rules & Prompts
-    const ANATOMICAL_RULES = `
-[STRICT] ABSOLUTE ANATOMICAL RULES (NEVER VIOLATE):
-- EXACTLY 2 arms per person, EXACTLY 2 legs per person
-- EXACTLY 2 hands with 5 fingers each, EXACTLY 2 feet per person
-- NORMAL human body proportions (no elongated torso, limbs, or distorted parts)
-- NO extra limbs, NO missing limbs, NO merged body parts
-- If body part is hidden in original, keep it hidden - do NOT invent wrong anatomy
-
-[STRICT] ANTI-CROPPING RULES:
-- EVERY character must fit FULLY within the frame (head to toe visible)
-- NO cutting off heads at top or feet at bottom
-- Maintain the SAME framing as original - do NOT add incorrect body parts`;
-
-    const STYLE_PROMPTS: Record<string, string> = {
-      watercolor: `TRANSFORM THIS IMAGE INTO A PURE 2D GHIBLI-STYLE ILLUSTRATION.
-${ANATOMICAL_RULES}
-
-CRITICAL "HIGH DENOISING" INSTRUCTIONS:
-1. **REMOVE ALL PHOTOREALISM**: The output must look like a HAND-DRAWN PAINTING, not a filtered photo.
-2. **FLATTEN SHADING**: Use cel-shading and watercolor washes. NO realistic gradients or skin textures.
-3. **SIMPLIFY DETAILS**: Reduce complex photo details into clean, stylized shapes.
-4. **RE-IMAGINE THE BACKGROUND**: Redraw the background freely in a lush, Miyazaki-esque style. Do not just trace the photo.
-
-STYLE GUIDE:
--   **Line Art**: Soft pencil-like outlines.
--   **Colors**: Pastel, vibrant, "Studio Ghibli" palette.
--   **Eyes**: Large, expressive anime eyes.
--   **Hair**: Clumped, stylized hair strands, not individual realistic hairs.
-
-Output is a DRAWING, not a photo.`,
-
-      'cinematic-noir': `TRANSFORM THIS IMAGE INTO A GRITTY KOREAN THRILLER WEBTOON PANEL.
-${ANATOMICAL_RULES}
-
-CRITICAL "HIGH DENOISING" INSTRUCTIONS:
-1. **REMOVE REALISTIC TEXTURES**: Skin should be smooth flat color, clothes should be solid blocks of shadow/light.
-2. **INKING**: Apply heavy, bold black ink lines (Manhwa style). No soft photo edges.
-3. **DRAMATIC RE-LIGHTING**: Change the lighting to be harsh and cinematic (Chiaroscuro). Ignore the original photo's flat lighting if necessary.
-4. **ATMOSPHERE**: Add film grain, rain, or fog effects that are DRAWN, not realistic.
-
-STYLE GUIDE:
--   **Vibe**: Dark, tense, "files of the deceased" or "Signal" webtoon style.
--   **Shadows**: Pitch black shadows.
-
-Output is a WEBTOON PANEL, not a processed photo.`,
-
-      'dark-fantasy': `TRANSFORM THIS IMAGE INTO A SOLO LEVELING STYLE MANHWA PANEL.
-${ANATOMICAL_RULES}
-
-CRITICAL "HIGH DENOISING" INSTRUCTIONS:
-1. **COMPLETE RE-DRAW**: The character must look like a hunter/awakener from a manhwa.
-2. **EFFECTS OVER REALISM**: Add magical auras (blue/purple glow) and speed lines.
-3. **SHARP ANGLES**: Jawlines, armor, and clothes should be sharp and angular, not soft/realistic.
-4. **EYES**: Glowing eyes or intense sharp anime eyes.
-
-STYLE GUIDE:
--   **Line Work**: Razor-sharp digital inking.
--   **Color**: High contrast, cool tones, neon accents.
-
-Output is an ACTION MANHWA SCENE, not a photo.`,
-
-      'elegant-fantasy': `TRANSFORM THIS IMAGE INTO A ROMANCE FANTASY (ROFAN) WEBTOON PANEL.
-${ANATOMICAL_RULES}
-
-CRITICAL "HIGH DENOISING" INSTRUCTIONS:
-1. **IDEALIZE EVERYTHING**: Make characters incredibly beautiful (shoujo manga style). Remove all realistic skin imperfections.
-2. **SHINY AESTHETIC**: Hair and eyes should sparkle (jewel eyes). Add "shalala" effects.
-3. **COSTUME UPGRADE**: Simplify messy clothes into elegant, flowing fabrics.
-4. **BACKGROUND**: Turn the background into a soft, floral or palace-like illustration.
-
-STYLE GUIDE:
--   **Colors**: Pink, gold, pastel purple, soft whites.
--   **Lines**: Delicate, thin, brownish lines.
-
-Output is a ROMANCE COMIC, not a photo.`,
-
-      'classic-webtoon': `TRANSFORM THIS IMAGE INTO A STANDARD KOREAN WEBTOON EPISODE PANEL.
-${ANATOMICAL_RULES}
-
-CRITICAL "HIGH DENOISING" INSTRUCTIONS:
-1. **FLAT COLORS**: Use simple, flat distinct colors (Cell Shading). No complex gradients.
-2. **BOLD OUTLINES**: Every object and person must have a clear BLACK outline.
-3. **CARTOON PROPORTIONS**: Slightly exaggerate expressions for readability.
-4. **CLEAN LOOK**: Remove all visual noise from the photo.
-
-STYLE GUIDE:
--   **Simplicity**: Optimize for mobile readability.
--   **Faces**: Standard webtoon anime faces.
-
-Output is a COMIC STRIP PANEL, not a photo.`,
-    };
-
-    const DEFAULT_PROMPT = `Transform this ENTIRE photo into a Korean webtoon comic illustration. 
-${ANATOMICAL_RULES}
-DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold outlines. EVERY element must be illustrated. DO NOT add text or speech bubbles. DO NOT create anatomical errors.`;
 
     // 1. Parse Request
     let body;
@@ -120,13 +169,19 @@ DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold 
         styleId?: string;
         prompt?: string;
         userId?: string;
+        styleReference?: string; // base64 data URI of first converted result for consistency
       };
     } catch (e) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    const { image, styleId = 'classic-webtoon' } = body;
-    const prompt = STYLE_PROMPTS[styleId] || body.prompt || DEFAULT_PROMPT;
+    const { image, styleId = 'classic-webtoon', styleReference } = body;
+    let prompt = buildPrompt(styleId, body.prompt);
+
+    // If a style reference is provided, prepend consistency instruction
+    if (styleReference) {
+      prompt = `STYLE CONSISTENCY: The first image provided is a style reference — a previously converted illustration. You MUST match its exact art style, line weight, color palette, and shading technique when redrawing the second image (the photograph). The result should look like it belongs in the same webtoon episode as the reference.\n\n${prompt}`;
+    }
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -158,63 +213,58 @@ DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold 
 
     const mimeType = `image/${imageType}`;
 
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
-
-    const geminiRes = await fetch(geminiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inlineData: { mimeType: mimeType, data: base64Data } },
-            { text: `[GENERATE NEW IMAGE] ${prompt}` },
-          ]
-        }],
-        generationConfig: {
-          responseModalities: ['IMAGE', 'TEXT'],
-          temperature: 0.85,
-          topP: 0.99,
-          topK: 40,
-        },
-        safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-        ]
-      })
-    });
-
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      console.error('Gemini API Error:', errorText);
-      return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 502 });
-    }
-
-    const geminiData = await geminiRes.json() as any;
-    const candidates = geminiData.candidates;
-    if (!candidates || candidates.length === 0) return NextResponse.json({ error: 'No image generated' }, { status: 500 });
-
-    const parts = candidates[0]?.content?.parts || [];
-    let generatedImageBase64 = null;
-    let generatedMimeType = 'image/png';
-
-    for (const part of parts) {
-      if (part.inlineData) {
-        generatedImageBase64 = part.inlineData.data;
-        generatedMimeType = part.inlineData.mimeType || 'image/png';
-        break;
+    // 2b. Parse style reference if provided (for multi-image consistency)
+    let styleRef: { data: string; mimeType: string } | null = null;
+    if (styleReference) {
+      const refMatch = styleReference.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (refMatch) {
+        styleRef = {
+          mimeType: `image/${refMatch[1].toLowerCase()}`,
+          data: refMatch[2],
+        };
       }
     }
 
-    if (!generatedImageBase64) return NextResponse.json({ error: 'Gemini returned no image data' }, { status: 500 });
+    // 3. Call Gemini with retry logic
+    let result: { imageBase64: string; mimeType: string } | null = null;
+    let retried = false;
 
-    const outputDataUri = `data:${generatedMimeType};base64,${generatedImageBase64}`;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const isRetry = attempt > 0;
+      if (isRetry) {
+        retried = true;
+        console.log(`[API/Start] Retry attempt ${attempt}/${MAX_RETRIES}`);
+      }
 
-    // 3. Return Success Directly
+      // On retry: prepend emphasis and increase temperature for variation
+      const attemptPrompt = isRetry
+        ? `IMPORTANT: You MUST generate a completely new illustrated image. Do NOT return the original photo or a photo-like result.\n\n${prompt}`
+        : prompt;
+      const attemptTemperature = isRetry ? 1.2 : 1.0;
+
+      result = await callGemini(apiKey, base64Data, mimeType, attemptPrompt, attemptTemperature, styleRef);
+
+      if (result && result.imageBase64) {
+        break;
+      }
+
+      // Small delay before retry
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    if (!result || !result.imageBase64) {
+      return NextResponse.json({ error: 'Image generation failed after retries. Please try again.' }, { status: 502 });
+    }
+
+    const outputDataUri = `data:${result.mimeType};base64,${result.imageBase64}`;
+
+    // 4. Return Success
     return NextResponse.json({
       success: true,
-      result_url: outputDataUri
+      result_url: outputDataUri,
+      ...(retried && { retried: true }),
     });
 
   } catch (error) {

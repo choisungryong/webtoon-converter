@@ -12,7 +12,7 @@ import { delay } from './commonUtils';
  */
 export const compressImage = (
   src: string,
-  maxSize: number = 512,
+  maxSize: number = 1024,
   quality: number = 0.9
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -57,29 +57,58 @@ export const compressImage = (
 };
 
 /**
- * 두 이미지 데이터 간의 차이를 계산 (장면 전환 감지용)
+ * 이미지 데이터에서 색상 히스토그램 생성 (32구간)
+ * RGB 각 채널을 8단계로 양자화하여 총 32bin 히스토그램 생성
+ */
+const buildHistogram = (data: Uint8ClampedArray): Float32Array => {
+  const BINS = 32;
+  const hist = new Float32Array(BINS * 3); // R(32) + G(32) + B(32)
+  const binSize = 256 / BINS;
+  let pixelCount = 0;
+
+  // Sample every 4th pixel for speed
+  for (let i = 0; i < data.length; i += 16) {
+    const rBin = Math.min(BINS - 1, Math.floor(data[i] / binSize));
+    const gBin = Math.min(BINS - 1, Math.floor(data[i + 1] / binSize));
+    const bBin = Math.min(BINS - 1, Math.floor(data[i + 2] / binSize));
+    hist[rBin]++;
+    hist[BINS + gBin]++;
+    hist[BINS * 2 + bBin]++;
+    pixelCount++;
+  }
+
+  // Normalize
+  if (pixelCount > 0) {
+    for (let i = 0; i < hist.length; i++) {
+      hist[i] /= pixelCount;
+    }
+  }
+  return hist;
+};
+
+/**
+ * 두 이미지 데이터 간의 차이를 히스토그램 기반으로 계산 (장면 전환 감지용)
+ * 히스토그램 비교는 조명 변화에 강건하고 카메라 움직임에 덜 민감함
  * @param img1 - 첫 번째 이미지 데이터
  * @param img2 - 두 번째 이미지 데이터
- * @returns 차이 값 (0-255 범위)
+ * @returns 차이 값 (0~1 범위, 1에 가까울수록 완전히 다른 장면)
  */
 export const calculateImageDifference = (
   img1: ImageData,
   img2: ImageData
 ): number => {
-  const data1 = img1.data;
-  const data2 = img2.data;
-  let diff = 0;
-  let count = 0;
+  const hist1 = buildHistogram(img1.data);
+  const hist2 = buildHistogram(img2.data);
 
-  // Sampling for speed (check every 4th pixel)
-  for (let i = 0; i < data1.length; i += 16) {
-    const r = Math.abs(data1[i] - data2[i]);
-    const g = Math.abs(data1[i + 1] - data2[i + 1]);
-    const b = Math.abs(data1[i + 2] - data2[i + 2]);
-    diff += (r + g + b) / 3;
-    count++;
+  // Bhattacharyya distance: 1 - sum(sqrt(h1[i] * h2[i]))
+  // 0 = identical, 1 = completely different
+  let similarity = 0;
+  for (let i = 0; i < hist1.length; i++) {
+    similarity += Math.sqrt(hist1[i] * hist2[i]);
   }
-  return diff / count;
+  // Normalize by 3 channels
+  similarity /= 3;
+  return 1 - similarity;
 };
 
 /**

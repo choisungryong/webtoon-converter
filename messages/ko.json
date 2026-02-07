@@ -62,7 +62,9 @@
         "step3_style": "원하는 웹툰 스타일을 선택하고 변환 버튼을 누르세요",
         "convert_btn_video": "✨ 웹툰으로 변환",
         "step4_complete": "변환 완료! 💬 말풍선을 추가하고 갤러리에 저장하세요",
-        "save_failed": "저장 실패"
+        "save_failed": "저장 실패",
+        "ai_retried": "AI가 더 나은 결과를 위해 재시도했습니다",
+        "try_different_photo": "변환이 어려운 사진입니다. 다른 사진으로 시도해보세요."
     },
     "Metadata": {
         "title": "BanaToon - 일상의 바이브를 툰으로 담는다",
