@@ -12,6 +12,13 @@ export async function DELETE(
     const { env } = getRequestContext();
     const { id } = await params;
 
+    // Verify userId for ownership check
+    const url = new URL(request.url);
+    const userId = request.headers.get('x-user-id') || url.searchParams.get('userId');
+    if (!userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     if (!env.DB || !env.R2) {
       return NextResponse.json(
         { error: 'Bindings not available' },
@@ -29,6 +36,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
+    // Ownership check: only allow deletion of own images
+    if (result.user_id && result.user_id !== userId) {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
     // Delete from R2 (Attempt, but don't fail operation if file missing)
     try {
       if (result.r2_key) {
@@ -39,7 +51,6 @@ export async function DELETE(
       }
     } catch (r2Error) {
       console.error('R2 Delete Warning:', r2Error);
-      // Continue to delete from DB even if R2 fails (orphaned file is better than stuck record)
     }
 
     // Delete from D1
@@ -57,10 +68,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Delete Error:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to delete image',
-        details: (error as Error).message,
-      },
+      { error: 'Failed to delete image' },
       { status: 500 }
     );
   }

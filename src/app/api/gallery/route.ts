@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Gallery Fetch Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch gallery', message: (error as Error).message },
+      { error: 'Failed to fetch gallery' },
       { status: 500 }
     );
   }
@@ -99,17 +99,23 @@ export async function POST(request: NextRequest) {
 
     await env.R2.put(r2Key, bytes, { httpMetadata: { contentType: mimeType } });
 
-    await env.DB.prepare(
-      `INSERT INTO generated_images (id, r2_key, type, prompt, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`
-    )
-      .bind(imageId, r2Key, 'image', 'User Edited Image', userId, Date.now())
-      .run();
+    try {
+      await env.DB.prepare(
+        `INSERT INTO generated_images (id, r2_key, type, prompt, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+      )
+        .bind(imageId, r2Key, 'image', 'User Edited Image', userId, Date.now())
+        .run();
+    } catch (dbError) {
+      console.error('DB insert failed, rolling back R2:', dbError);
+      try { await env.R2.delete(r2Key); } catch (_) { /* best effort */ }
+      return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true, imageId });
   } catch (error) {
     console.error('Gallery Save Error:', error);
     return NextResponse.json(
-      { error: 'Failed to save', message: (error as Error).message },
+      { error: 'Failed to save' },
       { status: 500 }
     );
   }

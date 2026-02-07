@@ -2,6 +2,7 @@
 
 import React, { useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { message } from 'antd';
 import { isValidFileSize } from '../utils/fileUtils';
 
 export type UploadMode = 'photo' | 'video';
@@ -74,10 +75,12 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
       if (!onVideoSelect) return;
 
       if (!file.type.startsWith('video/')) {
+        message.error(t('invalid_video_format'));
         return;
       }
 
       if (!isValidFileSize(file.size, maxVideoSizeMB)) {
+        message.error(t('video_size_limit', { size: maxVideoSizeMB }));
         return;
       }
 

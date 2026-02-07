@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Premium/Convert] Error:', error);
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: 'Premium conversion failed' },
       { status: 500 }
     );
   }

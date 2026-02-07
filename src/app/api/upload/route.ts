@@ -28,6 +28,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (env.DB) {
+      // Verify the record exists and is in 'pending' state
+      const existing = await env.DB.prepare(
+        `SELECT status FROM videos WHERE id = ?`
+      ).bind(fileId).first();
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Invalid file ID' }, { status: 400 });
+      }
+      if (existing.status !== 'pending') {
+        return NextResponse.json({ error: 'File already uploaded' }, { status: 409 });
+      }
+
       await env.DB.prepare(`UPDATE videos SET status = ? WHERE id = ?`)
         .bind('uploaded', fileId)
         .run();
@@ -37,7 +49,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Upload Error:', error);
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: 'Upload failed' },
       { status: 500 }
     );
   }

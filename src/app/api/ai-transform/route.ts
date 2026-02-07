@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     console.error('SERVER ERROR:', error);
     return NextResponse.json(
       {
-        error: `서버 내부 오류: ${(error as Error).message}`,
+        error: 'Image transformation failed',
       },
       { status: 500 }
     );

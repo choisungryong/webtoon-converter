@@ -96,6 +96,9 @@ export default function Home() {
   };
 
   const handlePhotoRemove = (idx: number) => {
+    // Revoke the object URL being removed
+    const url = photoPreviews[idx];
+    if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
     setPhotoFiles((prev) => prev.filter((_, i) => i !== idx));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
@@ -120,8 +123,8 @@ export default function Home() {
     if (videoRef.current) {
       const video = videoRef.current;
       const objectUrl = URL.createObjectURL(file);
-      video.src = objectUrl;
 
+      // Set callbacks BEFORE setting src/load to prevent race condition
       video.onloadedmetadata = () => {
         console.log('Video metadata loaded:', video.duration, video.videoWidth, video.videoHeight);
       };
@@ -132,9 +135,10 @@ export default function Home() {
           duration: 5,
         });
         setAnalyzing(false);
-        // setVideoFile(null); // Keep the file selected so user sees the error
+        URL.revokeObjectURL(objectUrl);
       };
 
+      video.src = objectUrl;
       video.load();
       setAnalyzing(true);
     }
@@ -142,7 +146,7 @@ export default function Home() {
 
   const handleVideoLoaded = async () => {
     if (!videoRef.current || !canvasRef.current) {
-      message.error('영상 로드 실패: 비디오 요소를 찾을 수 없습니다.'); // This works for dev, maybe extract later
+      message.error(t('video_load_error'));
       setAnalyzing(false);
       return;
     }
@@ -158,8 +162,6 @@ export default function Home() {
         duration: 5,
       });
       setAnalyzing(false);
-      // setVideoFile(null); // Keep file to show error
-      setAnalyzing(false);
       return;
     }
 
@@ -169,8 +171,6 @@ export default function Home() {
         duration: 5,
       });
       setAnalyzing(false);
-      setAnalyzing(false);
-      // setVideoFile(null); 
       return;
     }
 
@@ -268,47 +268,6 @@ export default function Home() {
     });
   };
 
-  // ============ Utils ============
-  const pollJobStatus = async (jobId: string): Promise<string> => {
-    const maxAttempts = 60; // 3 minutes timeout (3s * 60)
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      await new Promise((r) => setTimeout(r, 3000));
-      attempts++;
-
-      try {
-        const res = await fetch(`/api/ai/status?jobId=${jobId}`);
-        if (!res.ok) {
-          console.warn(`Polling retry: ${res.status}`);
-          continue;
-        }
-
-        let data;
-        try {
-          data = await res.json();
-        } catch (jsonError) {
-          console.error('Invalid JSON response:', jsonError);
-          continue;
-        }
-
-        if (data.status === 'completed') {
-          return data.result_url;
-        }
-
-        if (data.status === 'failed') {
-          throw new Error(data.error || 'Conversion failed');
-        }
-
-        // If pending or processing, continue polling
-      } catch (e) {
-        console.warn('Polling error:', e);
-        // Continue polling despite temporary network errors
-      }
-    }
-    throw new Error('Conversion timed out');
-  };
-
   // ============ Conversion Handlers ============
   const handlePhotoConvert = async () => {
     if (photoPreviews.length === 0) {
@@ -397,10 +356,10 @@ export default function Home() {
       router.push(`/${locale}/gallery?tab=image&showResult=true`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      message.error(`오류: ${errorMessage}`);
+      message.error(t('convert_error', { message: errorMessage }));
     } finally {
       setConverting(false);
-      localStorage.removeItem('current_conversion_job');
+      // cleanup complete
     }
   };
 
@@ -493,15 +452,8 @@ export default function Home() {
         }
         if (startData.error) throw new Error(startData.error);
 
-        if (startData.result_url) {
+        if (startData.success && startData.result_url) {
           convertedImages.push(startData.result_url);
-        } else if (startData.jobId) {
-          // Poll Status for Video Frames
-          localStorage.setItem('current_video_job', startData.jobId);
-          const resultUrl = await pollJobStatus(startData.jobId);
-          if (resultUrl) {
-            convertedImages.push(resultUrl);
-          }
         } else {
           throw new Error('No result returned from server');
         }
@@ -549,12 +501,16 @@ export default function Home() {
       });
     } finally {
       setConverting(false);
-      localStorage.removeItem('current_video_job');
+      // cleanup complete
     }
   };
 
   // ============ Common Handlers ============
   const handleReset = () => {
+    // Revoke object URLs to prevent memory leaks
+    photoPreviews.forEach((url) => {
+      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
     setPhotoFiles([]);
     setPhotoPreviews([]);
     setVideoFile(null);

@@ -21,7 +21,9 @@
         "record_video": "Record Video",
         "video_format_guide": "MP4, MOV, WebM (Max {size}MB)",
         "cloud_warning": "Google Drive or cloud files are not supported.",
-        "local_file_only": "Please select a video saved on your device."
+        "local_file_only": "Please select a video saved on your device.",
+        "invalid_video_format": "Only video files are allowed.",
+        "video_size_limit": "Video size must be under {size}MB."
     },
     "Home": {
         "help_video": "💡 Usage: Upload a video, and AI will automatically find key scenes. Select your favorite scenes and style to convert them into a webtoon! (Max {maxFrames})",
@@ -113,6 +115,23 @@
         "go_create": "✨ Create Now",
         "no_webtoons": "No saved webtoons.",
         "delete_failed_some": "Failed to delete {count} images."
+    },
+    "PhotoPreviewGrid": {
+        "selected_photos": "Selected photos ({count}/{max})",
+        "remove_all": "Remove All"
+    },
+    "SpeechBubbleEditor": {
+        "analyzing": "✨ Analyzing...",
+        "add_bubble": "💬 Add Bubble",
+        "placeholder": "Enter text here",
+        "ai_suggestion": "✨ AI Suggestion",
+        "complete": "✨ Done",
+        "style_normal": "Normal",
+        "style_thought": "Thought",
+        "style_shout": "Shout",
+        "fallback_1": "Nice!",
+        "fallback_2": "Awesome!",
+        "fallback_3": "Amazing!"
     },
     "ResultGallery": {
         "title": "Results",

@@ -139,12 +139,24 @@ DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold 
       return NextResponse.json({ error: 'Server Config Error: API Key missing' }, { status: 500 });
     }
 
-    // 2. Call Gemini API Directly
+    // 2. Validate and parse base64 image
+    const ALLOWED_MIME_TYPES = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
+    const MAX_BASE64_LENGTH = 10 * 1024 * 1024; // ~7.5MB decoded
+
     const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!base64Match) throw new Error('Invalid image format');
 
-    const mimeType = `image/${base64Match[1]}`;
+    const imageType = base64Match[1].toLowerCase();
+    if (!ALLOWED_MIME_TYPES.includes(imageType)) {
+      return NextResponse.json({ error: 'Unsupported image type' }, { status: 400 });
+    }
+
     const base64Data = base64Match[2];
+    if (base64Data.length > MAX_BASE64_LENGTH) {
+      return NextResponse.json({ error: 'Image too large. Please use a smaller image.' }, { status: 413 });
+    }
+
+    const mimeType = `image/${imageType}`;
 
     const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
 
@@ -165,17 +177,18 @@ DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold 
           topK: 40,
         },
         safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
         ]
       })
     });
 
     if (!geminiRes.ok) {
       const errorText = await geminiRes.text();
-      return NextResponse.json({ error: `Gemini API Error: ${errorText}` }, { status: geminiRes.status });
+      console.error('Gemini API Error:', errorText);
+      return NextResponse.json({ error: 'Image generation failed. Please try again.' }, { status: 502 });
     }
 
     const geminiData = await geminiRes.json() as any;
@@ -206,8 +219,10 @@ DRAW EVERY PERSON as cartoon characters. REDRAW THE ENTIRE BACKGROUND with bold 
 
   } catch (error) {
     console.error('API Start Error:', error);
+    const msg = (error as Error).message;
+    const safeMsg = msg.includes('Invalid image format') ? msg : 'Internal server error';
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: safeMsg },
       { status: 500 }
     );
   }

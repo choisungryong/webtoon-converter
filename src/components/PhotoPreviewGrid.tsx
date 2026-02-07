@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface PhotoPreviewGridProps {
   previews: string[];
@@ -16,6 +17,8 @@ export default function PhotoPreviewGrid({
   onRemove,
   onRemoveAll,
 }: PhotoPreviewGridProps) {
+  const t = useTranslations('PhotoPreviewGrid');
+
   if (previews.length === 0) return null;
 
   return (
@@ -35,7 +38,7 @@ export default function PhotoPreviewGrid({
             fontSize: '14px',
           }}
         >
-          선택된 사진 ({previews.length}/{maxPhotos})
+          {t('selected_photos', { count: previews.length, max: maxPhotos })}
         </p>
         <button
           onClick={onRemoveAll}
@@ -47,7 +50,7 @@ export default function PhotoPreviewGrid({
             cursor: 'pointer',
           }}
         >
-          전체 삭제
+          {t('remove_all')}
         </button>
       </div>
       <div className="flex flex-wrap justify-center gap-2">

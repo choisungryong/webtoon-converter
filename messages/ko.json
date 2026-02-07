@@ -21,7 +21,9 @@
         "record_video": "영상 촬영",
         "video_format_guide": "MP4, MOV, WebM (최대 {size}MB)",
         "cloud_warning": "구글 드라이브, 클라우드 파일은 지원되지 않습니다.",
-        "local_file_only": "휴대폰에 저장된 영상만 선택해주세요."
+        "local_file_only": "휴대폰에 저장된 영상만 선택해주세요.",
+        "invalid_video_format": "동영상 파일만 업로드할 수 있습니다.",
+        "video_size_limit": "동영상 용량은 {size}MB 이하여야 합니다."
     },
     "Home": {
         "help_video": "💡 사용법: 영상을 업로드하면 AI가 주요 장면을 자동으로 찾아줍니다. 원하는 장면을 선택하고 스타일을 골라 웹툰으로 변환해보세요! (최대 {maxFrames}장)",
@@ -113,6 +115,23 @@
         "go_create": "✨ 작품 만들러 가기",
         "no_webtoons": "저장된 웹툰이 없습니다.",
         "delete_failed_some": "{count}장의 이미지를 삭제하지 못했습니다."
+    },
+    "PhotoPreviewGrid": {
+        "selected_photos": "선택된 사진 ({count}/{max})",
+        "remove_all": "전체 삭제"
+    },
+    "SpeechBubbleEditor": {
+        "analyzing": "✨ AI 분석중...",
+        "add_bubble": "💬 말풍선 추가",
+        "placeholder": "대사를 입력하세요",
+        "ai_suggestion": "✨ AI 추천",
+        "complete": "✨ 완료",
+        "style_normal": "일반",
+        "style_thought": "생각",
+        "style_shout": "외침",
+        "fallback_1": "여기 좋다!",
+        "fallback_2": "최고야!",
+        "fallback_3": "대박!"
     },
     "ResultGallery": {
         "title": "변환 결과",

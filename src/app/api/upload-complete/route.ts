@@ -13,6 +13,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (env.DB) {
+      // Verify the record is in 'uploaded' state before completing
+      const existing = await env.DB.prepare(
+        `SELECT status FROM videos WHERE id = ?`
+      ).bind(fileId).first();
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Invalid file ID' }, { status: 400 });
+      }
+      if (existing.status !== 'uploaded') {
+        return NextResponse.json({ error: 'Invalid state transition' }, { status: 409 });
+      }
+
       await env.DB.prepare(`UPDATE videos SET status = ? WHERE id = ?`)
         .bind('completed', fileId)
         .run();
@@ -22,7 +34,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Upload Complete Error:', error);
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: 'Failed to complete upload' },
       { status: 500 }
     );
   }

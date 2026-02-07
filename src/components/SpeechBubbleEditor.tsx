@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import NextImage from 'next/image';
+import { useTranslations } from 'next-intl';
 import { generateUUID } from '../utils/commonUtils';
 
 export type BubbleStyle = 'normal' | 'thought' | 'shout';
@@ -23,10 +24,10 @@ interface SpeechBubbleEditorProps {
   suggestedText?: string;
 }
 
-const BUBBLE_STYLES: { id: BubbleStyle; label: string; icon: string }[] = [
-  { id: 'normal', label: '일반', icon: '💬' },
-  { id: 'thought', label: '생각', icon: '💭' },
-  { id: 'shout', label: '외침', icon: '📢' },
+const BUBBLE_STYLE_IDS: { id: BubbleStyle; icon: string }[] = [
+  { id: 'normal', icon: '💬' },
+  { id: 'thought', icon: '💭' },
+  { id: 'shout', icon: '📢' },
 ];
 
 const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
@@ -35,6 +36,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
   onCancel,
   suggestedText = '',
 }) => {
+  const t = useTranslations('SpeechBubbleEditor');
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +89,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         }
       } catch (err) {
         console.error('Failed to fetch suggestions:', err);
-        setAiSuggestions(['여기 좋다!', '최고야!', '대박!']);
+        setAiSuggestions([t('fallback_1'), t('fallback_2'), t('fallback_3')]);
       } finally {
         setLoadingSuggestions(false);
       }
@@ -96,11 +98,11 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
     if (imageSrc) {
       fetchSuggestions();
     }
-  }, [imageSrc]);
+  }, [imageSrc, t]);
 
   // Add bubble handler with AI suggested text
   const handleAddBubble = () => {
-    const defaultText = aiSuggestions[suggestionIndex] || suggestedText || '대사를 입력하세요';
+    const defaultText = aiSuggestions[suggestionIndex] || suggestedText || t('placeholder');
     const newBubble: BubbleData = {
       id: generateUUID(),
       x: imageSize.width / 2 - 80,
@@ -464,16 +466,16 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
               gap: '6px',
             }}
           >
-            {loadingSuggestions ? '✨ AI 분석중...' : '💬 말풍선 추가'}
+            {loadingSuggestions ? t('analyzing') : t('add_bubble')}
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: '4px' }}>
-          {BUBBLE_STYLES.map((s) => (
+          {BUBBLE_STYLE_IDS.map((s) => (
             <button
               key={s.id}
               onClick={() => handleStyleChange(s.id)}
-              title={s.label}
+              title={t(`style_${s.id}`)}
               style={{
                 padding: '8px 10px',
                 background: currentStyle === s.id ? 'var(--accent-color)' : 'transparent',
@@ -797,7 +799,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                   marginRight: '4px',
                 }}
               >
-                ✨ AI 추천
+                {t('ai_suggestion')}
               </span>
               {aiSuggestions.map((suggestion, idx) => (
                 <button
@@ -921,7 +923,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
             fontSize: '14px',
           }}
         >
-          ✨ 완료
+          {t('complete')}
         </button>
       </div>
     </div>

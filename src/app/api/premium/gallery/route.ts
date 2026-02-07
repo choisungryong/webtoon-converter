@@ -66,24 +66,36 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const imageId = searchParams.get('id');
+    const userId = searchParams.get('userId');
 
     if (!imageId) {
       return NextResponse.json({ error: 'Missing image ID' }, { status: 400 });
     }
+    if (!userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
 
-    // Get the R2 key first
+    // Get the record and verify ownership
     const row = (await env.DB.prepare(
-      `SELECT r2_key FROM premium_webtoons WHERE id = ?`
+      `SELECT r2_key, user_id FROM premium_webtoons WHERE id = ?`
     )
       .bind(imageId)
-      .first()) as { r2_key: string } | null;
+      .first()) as { r2_key: string; user_id: string } | null;
 
     if (!row) {
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
+    if (row.user_id !== userId) {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
     // Delete from R2
-    await env.R2.delete(row.r2_key);
+    try {
+      await env.R2.delete(row.r2_key);
+    } catch (r2Error) {
+      console.error('R2 Delete Warning:', r2Error);
+    }
 
     // Delete from DB
     await env.DB.prepare(`DELETE FROM premium_webtoons WHERE id = ?`)

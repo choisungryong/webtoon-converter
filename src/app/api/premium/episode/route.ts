@@ -243,7 +243,7 @@ STRICT RULES:
   } catch (error) {
     console.error('[Premium/Episode] Error:', error);
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: 'Episode generation failed' },
       { status: 500 }
     );
   }

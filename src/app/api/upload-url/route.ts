@@ -11,14 +11,14 @@ export async function POST(request: NextRequest) {
 
     if (!filename || !fileType) {
       return NextResponse.json(
-        { error: '파일명과 타입이 필요합니다.' },
+        { error: 'Filename and file type are required' },
         { status: 400 }
       );
     }
 
     if (!env.DB) {
       return NextResponse.json(
-        { error: 'DB 설정이 누락되었습니다.' },
+        { error: 'Server configuration error' },
         { status: 500 }
       );
     }
@@ -42,9 +42,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Upload URL Error:', error);
     return NextResponse.json(
-      {
-        error: `준비 실패: ${(error as Error).message}`,
-      },
+      { error: 'Upload preparation failed' },
       { status: 500 }
     );
   }

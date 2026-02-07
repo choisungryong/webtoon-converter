@@ -128,11 +128,14 @@ export const stitchImagesVertically = async (
       img.onerror = null;
     }
 
-    // Mobile memory limit check (lower threshold for safety)
-    if (totalHeight > maxHeight) {
-      throw new Error(
-        `생성된 웹툰이 너무 깁니다 (${totalHeight}px). 선택한 장면 수를 줄여주세요 (최대 ${maxHeight}px).`
-      );
+    // Memory safety check: canvas pixel count limit
+    // Most mobile browsers limit canvas to ~16M pixels (4096x4096)
+    // Desktop browsers typically support up to ~268M pixels
+    const MAX_CANVAS_PIXELS = 16_000_000; // conservative mobile limit
+    const pixelCount = targetWidth * totalHeight;
+
+    if (totalHeight > maxHeight || pixelCount > MAX_CANVAS_PIXELS) {
+      throw new Error('STITCH_TOO_LARGE');
     }
 
     // Phase 2: Create canvas and draw images sequentially
@@ -141,7 +144,7 @@ export const stitchImagesVertically = async (
     canvas.height = totalHeight;
     const ctx = canvas.getContext('2d', { willReadFrequently: false });
 
-    if (!ctx) throw new Error('Canvas를 생성할 수 없습니다.');
+    if (!ctx) throw new Error('CANVAS_CREATION_FAILED');
 
     let currentY = 0;
     for (let i = 0; i < imageUrls.length; i++) {
@@ -166,14 +169,16 @@ export const stitchImagesVertically = async (
 
     // Validate result
     if (!result || result === 'data:,' || result.length < 1000) {
-      throw new Error(
-        '이미지 생성에 실패했습니다. 메모리가 부족할 수 있습니다.'
-      );
+      throw new Error('CANVAS_RENDER_FAILED');
     }
 
     return result;
   } catch (e: any) {
-    throw new Error(`이미지 합치기 실패: ${e.message}`);
+    // Re-throw known error codes as-is for i18n handling upstream
+    if (['STITCH_TOO_LARGE', 'CANVAS_CREATION_FAILED', 'CANVAS_RENDER_FAILED'].includes(e.message)) {
+      throw e;
+    }
+    throw new Error(`Image stitching failed: ${e.message}`);
   } finally {
     // Explicitly release canvas memory
     if (canvas) {
