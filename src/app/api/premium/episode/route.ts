@@ -23,6 +23,16 @@ RULES:
 - emotion: the dominant emotion of the panel (e.g. "happy", "surprised", "melancholic", "determined")
 - sceneDescription: brief visual description of what the panel should emphasize
 
+BUBBLE POSITION (CRITICAL):
+- For each panel, analyze the photo to find the main character/person's face position
+- Set "bubbleX" and "bubbleY" as percentages (0-100) indicating WHERE the speech bubble should appear
+- The bubble should be placed NEAR the character's head but NOT covering the face
+- If the character is on the left side, place the bubble slightly to the right and above the head (e.g. bubbleX: 35, bubbleY: 10)
+- If the character is on the right side, place the bubble slightly to the left and above the head (e.g. bubbleX: 65, bubbleY: 10)
+- If the character is centered, offset the bubble to either side above the head
+- bubbleY should typically be 5-25 (above the character's head area)
+- If no person is found in the photo, use bubbleX: 50, bubbleY: 10
+
 OUTPUT FORMAT (JSON only, no markdown):
 {
   "title": "Episode title",
@@ -33,6 +43,8 @@ OUTPUT FORMAT (JSON only, no markdown):
       "dialogue": "short dialogue or null",
       "narration": "narration text or null",
       "bubbleStyle": "normal",
+      "bubbleX": 30,
+      "bubbleY": 10,
       "cameraDirection": "close-up",
       "emotion": "happy",
       "sceneDescription": "description of scene"

@@ -22,12 +22,16 @@ interface EpisodeViewerProps {
 function BubbleOverlay({
   dialogue,
   bubbleStyle,
+  bubbleX,
+  bubbleY,
   editable,
   onEdit,
   panelIndex,
 }: {
   dialogue: string | null;
   bubbleStyle: 'normal' | 'thought' | 'shout';
+  bubbleX?: number;
+  bubbleY?: number;
   editable?: boolean;
   onEdit?: (text: string) => void;
   panelIndex: number;
@@ -37,15 +41,16 @@ function BubbleOverlay({
 
   if (!dialogue && !editable) return null;
 
-  // Alternate left/right per panel for natural webtoon look
-  const isLeft = panelIndex % 2 === 0;
-  const horizontalPos = isLeft ? 'left-[12%]' : 'right-[12%]';
-  // Slight vertical variation per panel
-  const topPercent = 8 + (panelIndex % 3) * 4; // 8%, 12%, 16%
+  // Use AI-provided coordinates if available, otherwise fallback
+  const hasAiPosition = typeof bubbleX === 'number' && typeof bubbleY === 'number';
+  const xPercent = hasAiPosition ? Math.max(5, Math.min(85, bubbleX)) : (panelIndex % 2 === 0 ? 12 : 60);
+  const yPercent = hasAiPosition ? Math.max(3, Math.min(40, bubbleY)) : 8 + (panelIndex % 3) * 4;
+  // Tail direction: bubble on left half → tail points right-down, on right → left-down
+  const tailOnLeft = xPercent < 50;
 
   if (editing && editable) {
     return (
-      <div className={`absolute ${horizontalPos} z-20`} style={{ top: `${topPercent}%` }}>
+      <div className="absolute z-20" style={{ left: `${xPercent}%`, top: `${yPercent}%` }}>
         <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-xl">
           <input
             type="text"
@@ -74,15 +79,15 @@ function BubbleOverlay({
   if (bubbleStyle === 'shout') {
     return (
       <div
-        className={`absolute ${horizontalPos} z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
-        style={{ top: `${topPercent}%` }}
+        className={`absolute z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
+        style={{ left: `${xPercent}%`, top: `${yPercent}%` }}
         onClick={() => editable && setEditing(true)}
       >
         <div className="rounded-md bg-black px-4 py-1.5 text-center text-sm font-black tracking-wide text-white shadow-lg">
           {displayText}
         </div>
-        {/* Tail */}
-        <svg width="20" height="14" viewBox="0 0 20 14" className={`${isLeft ? 'ml-4' : 'ml-auto mr-4'} -mt-px`}>
+        {/* Tail pointing toward character */}
+        <svg width="20" height="14" viewBox="0 0 20 14" className={`${tailOnLeft ? 'ml-2' : 'ml-auto mr-2'} -mt-px`}>
           <path d="M0,0 Q10,14 8,14 Q6,10 0,0" fill="black" />
         </svg>
       </div>
@@ -93,8 +98,8 @@ function BubbleOverlay({
 
   return (
     <div
-      className={`absolute ${horizontalPos} z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
-      style={{ top: `${topPercent}%` }}
+      className={`absolute z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
+      style={{ left: `${xPercent}%`, top: `${yPercent}%` }}
       onClick={() => editable && setEditing(true)}
     >
       {/* Bubble body */}
@@ -107,14 +112,14 @@ function BubbleOverlay({
       >
         {displayText}
       </div>
-      {/* Tail */}
+      {/* Tail pointing toward character */}
       {isThought ? (
-        <div className={`flex flex-col ${isLeft ? 'ml-5' : 'ml-auto mr-5'}`}>
+        <div className={`flex flex-col ${tailOnLeft ? 'ml-3' : 'ml-auto mr-3'}`}>
           <div className="mt-1 h-2 w-2 rounded-full border border-gray-400 bg-white/95" />
-          <div className="ml-1 mt-0.5 h-1.5 w-1.5 rounded-full border border-gray-400 bg-white/95" />
+          <div className={`${tailOnLeft ? 'ml-1' : 'mr-1 ml-auto'} mt-0.5 h-1.5 w-1.5 rounded-full border border-gray-400 bg-white/95`} />
         </div>
       ) : (
-        <svg width="16" height="12" viewBox="0 0 16 12" className={`${isLeft ? 'ml-5' : 'ml-auto mr-5'} -mt-px`}>
+        <svg width="16" height="12" viewBox="0 0 16 12" className={`${tailOnLeft ? 'ml-3' : 'ml-auto mr-3'} -mt-px`}>
           <path d="M0,0 C4,0 6,8 8,12 C4,8 2,4 0,0" fill="white" stroke="#1f2937" strokeWidth="1" />
         </svg>
       )}
@@ -166,6 +171,8 @@ export default function EpisodeViewer({
                 <BubbleOverlay
                   dialogue={panel.dialogue}
                   bubbleStyle={panel.bubbleStyle}
+                  bubbleX={panel.bubbleX}
+                  bubbleY={panel.bubbleY}
                   editable={editable}
                   onEdit={(text) => onUpdateDialogue?.(index, text || null)}
                   panelIndex={index}
