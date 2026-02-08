@@ -43,6 +43,26 @@ OUTPUT FORMAT (JSON only, no markdown):
 Return ONLY valid JSON. No explanation, no markdown code blocks.`;
 }
 
+async function ensureEpisodesTable(db: any): Promise<void> {
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS premium_episodes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT,
+        story_data TEXT NOT NULL,
+        source_webtoon_id TEXT,
+        panel_ids TEXT DEFAULT '[]',
+        status TEXT DEFAULT 'pending',
+        created_at INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_episodes_user ON premium_episodes(user_id);
+    `);
+  } catch {
+    // Table likely already exists
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { env } = getRequestContext();
@@ -76,38 +96,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Get webtoon record and source_image_ids
-    const webtoonRow = await env.DB.prepare(
-      `SELECT id, user_id, source_image_ids FROM generated_images WHERE id = ? AND type = 'webtoon'`
-    ).bind(webtoonId).first() as any;
+    // 1. Get webtoon record — query without source_image_ids for compatibility
+    let webtoonRow: any;
+    try {
+      webtoonRow = await env.DB.prepare(
+        `SELECT * FROM generated_images WHERE id = ?`
+      ).bind(webtoonId).first();
+    } catch (dbErr) {
+      console.error('[Episode] DB query error:', dbErr);
+      return NextResponse.json({ error: 'Database query failed' }, { status: 500 });
+    }
 
     if (!webtoonRow) {
-      return NextResponse.json(
-        { error: 'Webtoon not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Webtoon not found' }, { status: 404 });
     }
 
     if (webtoonRow.user_id !== userId) {
-      return NextResponse.json(
-        { error: 'Permission denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
-    if (!webtoonRow.source_image_ids) {
-      return NextResponse.json(
-        { error: 'NO_SOURCE_IMAGES' },
-        { status: 400 }
-      );
+    // Check for source images — may not exist on older webtoons
+    const sourceImageIdsRaw = webtoonRow.source_image_ids;
+    if (!sourceImageIdsRaw) {
+      return NextResponse.json({ error: 'NO_SOURCE_IMAGES' }, { status: 400 });
     }
 
-    const sourceImageIds: string[] = JSON.parse(webtoonRow.source_image_ids);
-    if (sourceImageIds.length === 0) {
-      return NextResponse.json(
-        { error: 'NO_SOURCE_IMAGES' },
-        { status: 400 }
-      );
+    let sourceImageIds: string[];
+    try {
+      sourceImageIds = JSON.parse(sourceImageIdsRaw);
+    } catch {
+      return NextResponse.json({ error: 'NO_SOURCE_IMAGES' }, { status: 400 });
+    }
+
+    if (!Array.isArray(sourceImageIds) || sourceImageIds.length === 0) {
+      return NextResponse.json({ error: 'NO_SOURCE_IMAGES' }, { status: 400 });
     }
 
     // Limit to max images
@@ -117,29 +139,33 @@ export async function POST(request: NextRequest) {
     const imageParts: { inlineData: { mimeType: string; data: string } }[] = [];
 
     for (const imgId of limitedIds) {
-      const imgRow = await env.DB.prepare(
-        `SELECT r2_key, original_r2_key FROM generated_images WHERE id = ?`
-      ).bind(imgId).first() as any;
+      try {
+        const imgRow = await env.DB.prepare(
+          `SELECT r2_key, original_r2_key FROM generated_images WHERE id = ?`
+        ).bind(imgId).first() as any;
 
-      if (!imgRow) continue;
+        if (!imgRow) continue;
 
-      // Prefer original photo, fall back to converted image
-      const r2Key = imgRow.original_r2_key || imgRow.r2_key;
-      const r2Object = await env.R2.get(r2Key);
-      if (!r2Object) continue;
+        const r2Key = imgRow.original_r2_key || imgRow.r2_key;
+        const r2Object = await env.R2.get(r2Key);
+        if (!r2Object) continue;
 
-      const arrayBuffer = await r2Object.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
+        const arrayBuffer = await r2Object.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+        const mimeType = r2Object.httpMetadata?.contentType || 'image/jpeg';
+
+        imageParts.push({
+          inlineData: { mimeType, data: base64 },
+        });
+      } catch (imgErr) {
+        console.error(`[Episode] Failed to load image ${imgId}:`, imgErr);
+        continue;
       }
-      const base64 = btoa(binary);
-      const mimeType = r2Object.httpMetadata?.contentType || 'image/jpeg';
-
-      imageParts.push({
-        inlineData: { mimeType, data: base64 },
-      });
     }
 
     if (imageParts.length === 0) {
@@ -171,15 +197,9 @@ export async function POST(request: NextRequest) {
       const errorText = await geminiRes.text();
       console.error('[Episode/Story] Gemini Error:', geminiRes.status, errorText);
       if (geminiRes.status === 429) {
-        return NextResponse.json(
-          { error: 'QUOTA_EXCEEDED' },
-          { status: 429 }
-        );
+        return NextResponse.json({ error: 'QUOTA_EXCEEDED' }, { status: 429 });
       }
-      return NextResponse.json(
-        { error: 'Story generation failed' },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: 'Story generation failed' }, { status: 502 });
     }
 
     const geminiData = await geminiRes.json() as any;
@@ -229,24 +249,36 @@ export async function POST(request: NextRequest) {
     if (storyData.panels.length > imageParts.length) {
       storyData.panels = storyData.panels.slice(0, imageParts.length);
     }
-    // Ensure panelIndex is correct
     storyData.panels = storyData.panels.map((panel, i) => ({
       ...panel,
       panelIndex: i,
     }));
 
-    // 4. Save episode to DB
+    // 4. Save episode to DB (ensure table exists first)
+    await ensureEpisodesTable(env.DB);
+
     const episodeId = generateUUID();
-    await env.DB.prepare(
-      `INSERT INTO premium_episodes (id, user_id, title, story_data, source_webtoon_id, status) VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(
-      episodeId,
-      userId,
-      storyData.title,
-      JSON.stringify(storyData),
-      webtoonId,
-      'pending'
-    ).run();
+    try {
+      await env.DB.prepare(
+        `INSERT INTO premium_episodes (id, user_id, title, story_data, source_webtoon_id, status) VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(
+        episodeId,
+        userId,
+        storyData.title,
+        JSON.stringify(storyData),
+        webtoonId,
+        'pending'
+      ).run();
+    } catch (dbErr) {
+      console.error('[Episode] DB insert error:', dbErr);
+      // Still return the story even if DB save fails
+      return NextResponse.json({
+        success: true,
+        episodeId: null,
+        story: storyData,
+        warning: 'Story generated but save failed',
+      });
+    }
 
     return NextResponse.json({
       success: true,
