@@ -17,7 +17,7 @@ import FrameSelector from '../../components/FrameSelector';
 import ConvertingProgress from '../../components/ConvertingProgress';
 import ResultGallery from '../../components/ResultGallery';
 import SpeechBubbleModal from '../../components/SpeechBubbleModal';
-import StepGuide from '../../components/StepGuide';
+import StepGuide, { StepProgressBar } from '../../components/StepGuide';
 import TechnicalGuide from '../../components/TechnicalGuide';
 
 // Hooks & Utils
@@ -482,7 +482,7 @@ export default function Home() {
               // Check specific quota limits
               if (errorJson.error === 'DAILY_LIMIT_EXCEEDED' || errorJson.error === 'QUOTA_EXCEEDED') {
                 message.warning({
-                  content: errorJson.message || 'API 한도 초과',
+                  content: errorJson.message || t('api_limit_exceeded'),
                   key: 'episode',
                 });
                 return; // Exit function on limit
@@ -501,7 +501,7 @@ export default function Home() {
 
         if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
           message.warning({
-            content: startData.message || 'API 한도 초과',
+            content: startData.message || t('api_limit_exceeded'),
             key: 'episode',
           });
           break;
@@ -622,8 +622,35 @@ export default function Home() {
     );
   };
 
+  // Step progress calculation
+  const getPhotoStep = () => {
+    if (aiImages.length > 0) return 2; // completed
+    if (photoPreviews.length > 0) return 1;
+    return 0;
+  };
+
+  const getVideoStep = () => {
+    if (aiImages.length > 0) return 3; // completed
+    if (extractedFrames.length > 0 && selectedFrameIndices.length > 0) return 2;
+    if (extractedFrames.length > 0) return 1;
+    return 0;
+  };
+
+  const photoSteps = [
+    { label: t('step_photo_short') },
+    { label: t('step_style_short') },
+  ];
+
+  const videoSteps = [
+    { label: t('step_video_short') },
+    { label: t('step_scenes_short') },
+    { label: t('step_style_short') },
+    { label: t('step_complete_short') },
+  ];
+
   const renderPhotoMode = () => (
     <>
+      <StepProgressBar steps={photoSteps} currentStep={getPhotoStep()} />
       {photoPreviews.length === 0 && (
         <StepGuide step={1} text={t('step1_photo')} variant="blue" />
       )}
@@ -684,6 +711,7 @@ export default function Home() {
 
   const renderVideoMode = () => (
     <>
+      <StepProgressBar steps={videoSteps} currentStep={getVideoStep()} />
       {!videoFile && <StepGuide step={1} text={t('step1_video')} variant="blue" />}
       <GlassCard padding="lg">
         {!videoFile ? (
@@ -817,8 +845,10 @@ export default function Home() {
 
         {renderHelpText()}
 
-        {mode === 'photo' && renderPhotoMode()}
-        {mode === 'video' && renderVideoMode()}
+        <div key={mode} className="section-enter">
+          {mode === 'photo' && renderPhotoMode()}
+          {mode === 'video' && renderVideoMode()}
+        </div>
 
         <TechnicalGuide />
       </div>

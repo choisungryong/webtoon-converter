@@ -9,6 +9,14 @@ export async function GET(request: NextRequest) {
   try {
     const { env } = getRequestContext();
 
+    // Require admin password for cleanup
+    const url = new URL(request.url);
+    const password = url.searchParams.get('key');
+    const adminPassword = env.QNA_ADMIN_PASSWORD;
+    if (!adminPassword || password !== adminPassword) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (!env.DB || !env.R2) {
       return NextResponse.json(
         { error: 'DB or R2 binding failed' },

@@ -5,6 +5,30 @@ import { generateUUID } from '../../../../utils/commonUtils';
 export const runtime = 'edge';
 
 const MAX_RETRIES = 2;
+const RATE_LIMIT_PER_MINUTE = 5;
+
+/** Simple per-user rate limiting using usage_logs table */
+async function checkRateLimit(db: any, userId: string): Promise<boolean> {
+  if (!db || !userId) return true;
+  try {
+    const oneMinuteAgo = Date.now() - 60_000;
+    const result = await db.prepare(
+      `SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND action = 'premium_convert' AND created_at > ?`
+    ).bind(userId, oneMinuteAgo).first() as any;
+    return (result?.count || 0) < RATE_LIMIT_PER_MINUTE;
+  } catch {
+    return true;
+  }
+}
+
+async function logPremiumUsage(db: any, userId: string): Promise<void> {
+  if (!db || !userId) return;
+  try {
+    await db.prepare(
+      `INSERT INTO usage_logs (id, user_id, action, created_at) VALUES (?, ?, 'premium_convert', ?)`
+    ).bind(generateUUID(), userId, Date.now()).run();
+  } catch { /* best effort */ }
+}
 
 const SAFETY_SETTINGS = [
   { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -124,6 +148,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Rate limit check
+    const allowed = await checkRateLimit(env.DB, userId);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
     // Extract Base64 data from the provided image (fallback)
     const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!base64Match) {
@@ -233,6 +266,9 @@ export async function POST(request: NextRequest) {
         try { await env.R2.delete(r2Key); } catch { /* best effort */ }
       }
     }
+
+    // Log successful usage for rate limiting
+    await logPremiumUsage(env.DB, userId);
 
     const outputDataUri = `data:${result.mimeType};base64,${result.imageBase64}`;
 

@@ -24,141 +24,65 @@ export default function Header({
   onThemeChange,
 }: HeaderProps) {
   const t = useTranslations('Header');
-  const accentColor = theme === 'dark' ? '#CCFF00' : '#7C3AED';
 
   return (
-    <header
-      style={{ width: '100%', marginBottom: '24px', position: 'relative' }}
-    >
+    <header className="relative mb-6 w-full">
       {/* Language Switcher - Left Top */}
-      <div style={{ position: 'absolute', left: 0, top: 0 }}>
+      <div className="absolute left-0 top-0">
         <LanguageSwitcher />
       </div>
 
       {/* Theme Toggle - Right Top */}
       <button
         onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-        style={{
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          border: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-        }}
+        className="absolute right-0 top-0 flex size-10 cursor-pointer items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-secondary)]"
       >
         {theme === 'dark' ? (
-          <SunOutlined style={{ color: '#CCFF00', fontSize: '18px' }} />
+          <SunOutlined className="text-lg text-[var(--accent-color)]" />
         ) : (
-          <MoonOutlined style={{ color: '#7C3AED', fontSize: '18px' }} />
+          <MoonOutlined className="text-lg text-[var(--accent-color)]" />
         )}
       </button>
 
       {/* Logo - Banana Icon + BanaToon Title */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          paddingTop: '8px',
-          paddingBottom: '24px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
+      <div className="flex flex-col items-center pb-6 pt-2">
+        <div className="flex items-center justify-center gap-2">
           {/* Banana Icon */}
           <Image
             src="/logo.png"
             alt="BanaToon"
             width={48}
             height={40}
-            style={{
-              objectFit: 'contain',
-              marginTop: '2px',
-            }}
+            className="mt-0.5 object-contain"
             priority
           />
           {/* Title Text */}
-          <span
-            style={{
-              fontSize: '36px',
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-              lineHeight: 1,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ color: theme === 'dark' ? '#FFD700' : '#F59E0B' }}>
-              Bana
-            </span>
-            <span style={{ color: theme === 'dark' ? '#FFFFFF' : '#1a1a1a' }}>
-              Toon
-            </span>
+          <span className="flex items-center text-4xl font-extrabold leading-none tracking-tight">
+            <span className="text-[var(--banana-color)]">Bana</span>
+            <span className="text-[var(--text-primary)]">Toon</span>
           </span>
         </div>
         {/* Slogan */}
-        <p
-          style={{
-            marginTop: '10px',
-            fontSize: '15px',
-            fontWeight: 500,
-            color: 'var(--text-secondary)',
-            opacity: 0.9,
-            letterSpacing: '0.05em',
-          }}
-        >
+        <p className="mt-2.5 text-[15px] font-medium tracking-wider text-[var(--text-secondary)] opacity-90">
           {t('slogan')}
         </p>
       </div>
 
       {/* Tab Switcher */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            background: 'var(--bg-secondary)',
-            borderRadius: '14px',
-            padding: '4px',
-            gap: '4px',
-            border: '1px solid var(--border-color)',
-          }}
-        >
+      <div className="flex justify-center">
+        <div className="inline-flex gap-1 rounded-btn border border-[var(--border-color)] bg-[var(--bg-secondary)] p-1">
           {(['video', 'photo', 'gallery'] as AppMode[]).map((m) => {
             const isActive = mode === m;
             return (
               <button
                 key={m}
                 onClick={() => onModeChange(m)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  fontWeight: isActive ? 600 : 500,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  border: 'none',
-                  background: isActive ? accentColor : 'transparent',
-                  color: isActive
-                    ? theme === 'dark'
-                      ? 'black'
-                      : 'white'
-                    : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease',
-                }}
+                className={`cursor-pointer rounded-[10px] border-none px-5 py-2.5 text-sm transition-all ${
+                  isActive
+                    ? 'bg-[var(--accent-color)] font-semibold text-[var(--accent-on-color)] shadow-accent'
+                    : 'bg-transparent font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
               >
-                {/* Simplified label mapping for i18n */}
                 {m === 'photo' && `📷 ${t('photo')}`}
                 {m === 'video' && `🎬 ${t('video')}`}
                 {m === 'gallery' && `🖼 ${t('gallery')}`}

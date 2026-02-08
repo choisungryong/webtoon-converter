@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import NextImage from 'next/image';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { generateUUID } from '../utils/commonUtils';
 
 export type BubbleStyle = 'normal' | 'thought' | 'shout';
@@ -37,6 +37,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
   suggestedText = '',
 }) => {
   const t = useTranslations('SpeechBubbleEditor');
+  const locale = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -81,7 +82,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         const res = await fetch('/api/suggest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: imageSrc }),
+          body: JSON.stringify({ image: imageSrc, locale }),
         });
         const data = await res.json();
         if (data.suggestions && data.suggestions.length > 0) {
@@ -98,7 +99,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
     if (imageSrc) {
       fetchSuggestions();
     }
-  }, [imageSrc, t]);
+  }, [imageSrc, t, locale]);
 
   // Add bubble handler with AI suggested text
   const handleAddBubble = () => {
@@ -309,7 +310,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
 
   // Export with bubbles
   const handleExport = async () => {
-    const canvas = document.createElement('canvas');
+    let canvas: HTMLCanvasElement | null = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
@@ -317,6 +318,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
     img.crossOrigin = 'anonymous';
 
     img.onload = () => {
+      if (!canvas) return;
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
@@ -423,7 +425,16 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
         ctx.fillText(bubble.text, scaledX + scaledWidth / 2, scaledY + scaledHeight / 2);
       });
 
-      const dataUrl = canvas.toDataURL('image/png');
+      const dataUrl = canvas!.toDataURL('image/png');
+
+      // Explicitly release canvas and image memory
+      canvas!.width = 0;
+      canvas!.height = 0;
+      canvas = null;
+      img.src = '';
+      img.onload = null;
+      img.onerror = null;
+
       onSave(dataUrl);
     };
 
@@ -721,7 +732,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
               pointerEvents: 'none',
             }}
           >
-            상단 &quot;말풍선 추가&quot; 버튼을 클릭하세요
+            {t('hint_add_bubble')}
           </div>
         )}
       </div>
@@ -750,7 +761,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
               type="text"
               value={selectedBubble.text}
               onChange={(e) => handleTextChange(e.target.value)}
-              placeholder="대사를 입력하세요"
+              placeholder={t('input_placeholder')}
               style={{
                 flex: 1,
                 padding: '12px 14px',
@@ -775,7 +786,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
-              title="삭제"
+              title={t('delete_bubble')}
             >
               🗑️
             </button>
@@ -855,7 +866,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
             }}
           >
             <span style={{ fontSize: '14px' }}>✨</span>
-            AI가 이미지를 분석해 대사를 추천했어요!
+            {t('ai_recommend_hint')}
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {aiSuggestions.slice(0, 3).map((suggestion, idx) => (
@@ -908,7 +919,7 @@ const SpeechBubbleEditor: React.FC<SpeechBubbleEditorProps> = ({
             fontSize: '14px',
           }}
         >
-          취소
+          {t('cancel')}
         </button>
         <button
           onClick={handleExport}

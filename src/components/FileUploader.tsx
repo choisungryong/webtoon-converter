@@ -131,11 +131,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
 
     const handleClick = () => {
       if (!disabled) {
-        if (mode === 'photo') {
-          fileInputRef.current?.click();
-        } else {
-          fileInputRef.current?.click();
-        }
+        fileInputRef.current?.click();
       }
     };
 

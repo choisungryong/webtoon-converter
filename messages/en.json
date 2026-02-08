@@ -53,6 +53,7 @@
         "saving_mywebtoon": "Saving to My Webtoon...",
         "episode_complete": "{count} scene episode created!",
         "unknown_error": "An unknown error occurred",
+        "api_limit_exceeded": "API usage limit exceeded. Please try again later.",
         "convert_error": "Conversion error: {message}",
         "step1_photo": "Select photos to convert",
         "step2_style": "Choose a webtoon style",
@@ -64,7 +65,13 @@
         "step4_complete": "Done! 💬 Add speech bubbles and save to gallery",
         "save_failed": "Save failed",
         "ai_retried": "AI retried for a better result",
-        "try_different_photo": "This photo is difficult to convert. Try a different photo."
+        "try_different_photo": "This photo is difficult to convert. Try a different photo.",
+        "step_photo_short": "Photo",
+        "step_style_short": "Style",
+        "step_video_short": "Video",
+        "step_scenes_short": "Scenes",
+        "step_convert_short": "Convert",
+        "step_complete_short": "Done"
     },
     "Metadata": {
         "title": "BanaToon - Capture the Vibe, Make it Toon",
@@ -116,7 +123,36 @@
         "no_images": "No converted images yet.",
         "go_create": "✨ Create Now",
         "no_webtoons": "No saved webtoons.",
-        "delete_failed_some": "Failed to delete {count} images."
+        "delete_failed_some": "Failed to delete {count} images.",
+        "image_count": "{count} images",
+        "cancel_selection": "Cancel",
+        "view_webtoon": "View Webtoon",
+        "delete_btn": "Delete",
+        "save_btn": "Save",
+        "kakao_btn": "Kakao",
+        "share_story": "Share to Story",
+        "view_processed": "Converted",
+        "view_original": "Original",
+        "webtoon_viewer_title": "My Webtoon Viewer",
+        "premium_viewer_title": "Premium Viewer",
+        "premium_converting": "Converting...",
+        "premium_convert_btn": "Premium Convert",
+        "close_btn": "Close",
+        "save_to_mywebtoon": "Save to My Webtoon",
+        "cuts_connected": "{count} panels",
+        "smart_layout": "Smart Layout",
+        "analyzing_layout": "Analyzing...",
+        "layout_fail": "Layout analysis failed.",
+        "layout_error": "Error occurred during layout analysis.",
+        "result_title": "Done!",
+        "result_webtoon_desc": "Webtoon saved successfully.",
+        "result_image_desc": "Photos converted successfully.",
+        "premium_label": "Premium Convert",
+        "premium_upgrade_hint": "Upgrade to higher quality webtoon!",
+        "premium_upgrade_desc": "Click on the image to convert to premium.",
+        "confirm_btn": "Confirm",
+        "premium_upsell_title": "Upgrade to Premium",
+        "premium_upsell_desc": "Click a webtoon to convert to 800x1280 high quality with AI"
     },
     "PhotoPreviewGrid": {
         "selected_photos": "Selected photos ({count}/{max})",
@@ -133,7 +169,12 @@
         "style_shout": "Shout",
         "fallback_1": "Nice!",
         "fallback_2": "Awesome!",
-        "fallback_3": "Amazing!"
+        "fallback_3": "Amazing!",
+        "hint_add_bubble": "Click \"Add Bubble\" button above",
+        "input_placeholder": "Enter dialogue here",
+        "delete_bubble": "Delete",
+        "ai_recommend_hint": "AI analyzed the image and suggested dialogue!",
+        "cancel": "Cancel"
     },
     "ResultGallery": {
         "title": "Results",
@@ -143,7 +184,8 @@
         "edit_bubble": "✏️ Edit Bubble",
         "add_bubble": "💬 Add Bubble",
         "save_success": "Saved to Gallery.",
-        "save_fail": "Save failed"
+        "save_fail": "Save failed",
+        "save_partial": "Only {saved} of {total} images were saved."
     },
     "WebtoonViewer": {
         "view_large": "View Large",
@@ -383,6 +425,11 @@
                 "a": "We are preparing for Long Context analysis of long videos through the introduction of the next-generation Gemini 1.5 Pro model. Through this, we are developing a function that understands the storyline of the entire video, not just simple cut conversion, and automatically generates speech bubbles and sound effects suitable for it."
             }
         ]
+    },
+    "Nav": {
+        "nav_home": "Home",
+        "nav_gallery": "Gallery",
+        "nav_faq": "FAQ"
     },
     "Contact": {
         "title_prefix": "Contact",

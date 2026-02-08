@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import KakaoRedirect from '../../components/KakaoRedirect';
 import Footer from '../../components/Footer';
+import BottomNav from '../../components/BottomNav';
 import '../globals.css';
 
 // runtime config removed to use default nodejs_compat
@@ -195,11 +196,12 @@ export default async function LocaleLayout({
           <AntdRegistry>
             <KakaoRedirect />
             <ErrorBoundary>
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 pb-[72px] md:pb-0">{children}</main>
             </ErrorBoundary>
 
             {/* Footer with Navigation and Disclaimer */}
             <Footer />
+            <BottomNav />
           </AntdRegistry>
         </NextIntlClientProvider>
       </body>

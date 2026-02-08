@@ -8,6 +8,14 @@ const config: Config = {
         neonYellow: '#CCFF00',
         darkBg: '#000000',
       },
+      borderRadius: {
+        card: '20px',
+        btn: '14px',
+        tab: '12px',
+      },
+      boxShadow: {
+        accent: '0 4px 15px var(--accent-glow)',
+      },
     },
   },
   plugins: [],

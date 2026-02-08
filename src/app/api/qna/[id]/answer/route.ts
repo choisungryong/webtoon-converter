@@ -16,9 +16,9 @@ export async function POST(
     const body = await request.json();
     const { password, answer } = body;
 
-    // Validate admin password
-    const adminPassword = env.QNA_ADMIN_PASSWORD || 'toonsnap2026';
-    if (password !== adminPassword) {
+    // Validate admin password (env var required, no fallback)
+    const adminPassword = env.QNA_ADMIN_PASSWORD;
+    if (!adminPassword || password !== adminPassword) {
       return NextResponse.json(
         { success: false, error: '관리자 비밀번호가 일치하지 않습니다.' },
         { status: 401 }
@@ -50,7 +50,7 @@ export async function POST(
     }
 
     // Update with answer
-    const now = Math.floor(Date.now() / 1000);
+    const now = Date.now();
     await db
       .prepare(
         `

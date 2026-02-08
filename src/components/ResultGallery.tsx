@@ -29,9 +29,10 @@ export default function ResultGallery({
     setIsSaving(true);
 
     try {
+      let savedCount = 0;
       for (let i = 0; i < images.length; i++) {
         const imageToSave = editedImages[i] || images[i];
-        await fetch('/api/gallery', {
+        const res = await fetch('/api/gallery', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -39,9 +40,20 @@ export default function ResultGallery({
             userId: userId,
           }),
         });
+        if (res.ok) {
+          savedCount++;
+        } else {
+          console.error(`Failed to save image ${i + 1}:`, res.status);
+        }
       }
-      message.success(t('save_success'));
-      onSaveComplete();
+      if (savedCount === images.length) {
+        message.success(t('save_success'));
+      } else if (savedCount > 0) {
+        message.warning(t('save_partial', { saved: savedCount, total: images.length }));
+      } else {
+        message.error(t('save_fail'));
+      }
+      if (savedCount > 0) onSaveComplete();
     } catch (e) {
       message.error(t('save_fail'));
     } finally {

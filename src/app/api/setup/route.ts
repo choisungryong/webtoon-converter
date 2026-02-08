@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
                 r2_key TEXT NOT NULL,
                 prompt TEXT,
                 user_id TEXT,
-                created_at INTEGER DEFAULT (strftime('%s', 'now'))
+                created_at INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
             );
             CREATE INDEX IF NOT EXISTS idx_user_id ON generated_images(user_id);
             CREATE INDEX IF NOT EXISTS idx_created_at ON generated_images(created_at);

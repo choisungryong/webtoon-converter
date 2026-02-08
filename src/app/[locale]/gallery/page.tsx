@@ -606,10 +606,10 @@ function GalleryContent() {
           </div>
 
           {/* Tabs */}
-          <div className="order-last flex w-full justify-center rounded-lg bg-white/10 p-1 md:order-none md:w-auto">
+          <div className="order-last flex w-full justify-center rounded-xl bg-white/10 p-1 md:order-none md:w-auto">
             <button
               onClick={() => setActiveTab('image')}
-              className={`rounded-md px-3 py-2 text-sm transition-all ${activeTab === 'image'
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'image'
                 ? 'bg-neonYellow font-bold text-black shadow-lg'
                 : 'text-gray-400 hover:text-white'
                 }`}
@@ -618,7 +618,7 @@ function GalleryContent() {
             </button>
             <button
               onClick={() => setActiveTab('webtoon')}
-              className={`rounded-md px-3 py-2 text-sm transition-all ${activeTab === 'webtoon'
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'webtoon'
                 ? 'bg-neonYellow font-bold text-black shadow-lg'
                 : 'text-gray-400 hover:text-white'
                 }`}
@@ -627,9 +627,9 @@ function GalleryContent() {
             </button>
             <button
               onClick={() => setActiveTab('premium')}
-              className={`rounded-md px-3 py-2 text-sm transition-all ${activeTab === 'premium'
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'premium'
                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 font-bold text-white shadow-lg'
-                : 'text-gray-400 hover:text-white'
+                : 'border border-purple-500/30 text-gray-400 hover:text-white'
                 }`}
             >
               {t('tab_premium')}
@@ -659,7 +659,23 @@ function GalleryContent() {
           )}
         </div>
 
+        {/* Premium Upsell Banner in MyWebtoon tab */}
+        {activeTab === 'webtoon' && images.length > 0 && (
+          <div
+            onClick={() => setActiveTab('premium')}
+            className="flex cursor-pointer items-center gap-3 rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-3 transition-all hover:border-purple-500/40"
+          >
+            <StarFilled className="text-lg text-purple-400" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-purple-300">{t('premium_upsell_title')}</p>
+              <p className="text-xs text-gray-400">{t('premium_upsell_desc')}</p>
+            </div>
+            <span className="text-gray-500">→</span>
+          </div>
+        )}
+
         {/* Gallery Content */}
+        <div key={activeTab} className="section-enter">
         {activeTab === 'premium' ? (
           // Premium Gallery
           loadingPremium ? (
@@ -732,7 +748,7 @@ function GalleryContent() {
                     {getRelativeDateLabel(dateKey)}
                   </h3>
                   <div className="h-px flex-1 bg-white/10"></div>
-                  <span className="text-xs text-gray-500">{dateImages.length}장</span>
+                  <span className="text-xs text-gray-500">{t('image_count', { count: dateImages.length })}</span>
                 </div>
 
                 {/* Images Grid */}
@@ -825,27 +841,28 @@ function GalleryContent() {
             </Link>
           </GlassCard>
         )}
+        </div>
 
         {/* Selection Action Bar (Image Tab & Selection active) */}
         {activeTab === 'image' && selectedImages.length > 0 && (
-          <div className="animate-fade-in fixed inset-x-4 bottom-8 z-50 mx-auto flex max-w-md items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#1a1a1a] p-3 shadow-2xl md:left-1/2 md:right-auto md:-translate-x-1/2 md:gap-4">
+          <div className="animate-fade-in fixed inset-x-4 bottom-[88px] z-50 mx-auto flex max-w-md items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#1a1a1a] p-3 shadow-2xl md:bottom-8 md:left-1/2 md:right-auto md:-translate-x-1/2 md:gap-4">
             <button
               onClick={() => {
                 setSelectedImages([]);
                 setIsSelectionMode(false);
               }}
               className="flex size-8 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-              title="선택 취소"
+              title={t('cancel_selection')}
             >
               ✕
             </button>
-            <span className="px-2 font-bold text-white">{selectedImages.length}장</span>
+            <span className="px-2 font-bold text-white">{t('image_count', { count: selectedImages.length })}</span>
             <div className="h-6 w-px bg-white/10"></div>
             <button
               onClick={() => setWebtoonViewOpen(true)}
               className="flex items-center gap-2 rounded-xl bg-neonYellow px-4 py-2 text-sm font-bold text-black transition-all hover:scale-105 active:scale-95"
             >
-              <span>📖</span> 웹툰 보기
+              <span>📖</span> {t('view_webtoon')}
             </button>
             <button
               onClick={(e) => {
@@ -854,7 +871,7 @@ function GalleryContent() {
               }}
               className="flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-2 text-sm font-bold text-red-500 transition-all hover:bg-red-500/20"
             >
-              <DeleteOutlined /> 삭제
+              <DeleteOutlined /> {t('delete_btn')}
             </button>
           </div>
         )}
@@ -895,7 +912,7 @@ function GalleryContent() {
                         : 'text-gray-400 hover:text-white'
                         }`}
                     >
-                      ✨ 변환본
+                      ✨ {t('view_processed')}
                     </button>
                     <button
                       onClick={() => setViewMode('original')}
@@ -904,7 +921,7 @@ function GalleryContent() {
                         : 'text-gray-400 hover:text-white'
                         }`}
                     >
-                      📷 원본
+                      📷 {t('view_original')}
                     </button>
                   </div>
                 </div>
@@ -943,7 +960,7 @@ function GalleryContent() {
                   }}
                 >
                   <span style={{ fontSize: '22px' }}>📤</span>
-                  스토리에 공유하기
+                  {t('share_story')}
                 </button>
 
                 {/* Secondary Actions Row */}
@@ -958,7 +975,7 @@ function GalleryContent() {
                     }}
                     className="flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm text-red-400 transition-colors hover:bg-red-500/10"
                   >
-                    <DeleteOutlined /> 삭제
+                    <DeleteOutlined /> {t('delete_btn')}
                   </button>
 
                   <div className="flex gap-2">
@@ -974,7 +991,7 @@ function GalleryContent() {
                       }
                       className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2.5 text-sm text-white transition-colors hover:bg-white/20"
                     >
-                      <DownloadOutlined /> 저장
+                      <DownloadOutlined /> {t('save_btn')}
                     </button>
                     <button
                       onClick={() =>
@@ -986,9 +1003,9 @@ function GalleryContent() {
                         )
                       }
                       className="flex items-center gap-1.5 rounded-lg bg-[#ffe812] px-3 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#ffe812]/90"
-                      title="카카오톡 공유"
+                      title={t('kakao_btn')}
                     >
-                      <MessageOutlined /> 카카오
+                      <MessageOutlined /> {t('kakao_btn')}
                     </button>
                   </div>
                 </div>
@@ -1037,7 +1054,7 @@ function GalleryContent() {
             <div className="flex h-full flex-col">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-white/10 bg-[#1a1a1a] p-4">
-                <div className="font-medium text-white">📖 마이웹툰 뷰어</div>
+                <div className="font-medium text-white">📖 {t('webtoon_viewer_title')}</div>
                 <span className="text-sm text-gray-400">
                   {new Date(
                     (webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at) * 1000
@@ -1072,7 +1089,7 @@ function GalleryContent() {
                 <div className="border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-4 py-3">
                   <div className="flex items-center justify-center gap-2 text-white">
                     <Spin size="small" />
-                    <span className="text-sm font-medium">프리미엄 변환 중...</span>
+                    <span className="text-sm font-medium">{t('premium_converting')}</span>
                   </div>
                   <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/20">
                     <div
@@ -1095,7 +1112,7 @@ function GalleryContent() {
                     boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
                   }}
                 >
-                  <span>📤</span> 스토리에 공유하기
+                  <span>📤</span> {t('share_story')}
                 </button>
 
                 {/* Secondary Actions Row */}
@@ -1111,7 +1128,7 @@ function GalleryContent() {
                     }}
                     className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                   >
-                    <DeleteOutlined /> 삭제
+                    <DeleteOutlined /> {t('delete_btn')}
                   </button>
 
                   <div className="flex gap-2">
@@ -1122,7 +1139,7 @@ function GalleryContent() {
                         disabled={convertingPremium}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/40 active:scale-95 disabled:opacity-50"
                       >
-                        <StarFilled /> 프리미엄 변환
+                        <StarFilled /> {t('premium_convert_btn')}
                       </button>
                     )}
                     <button
@@ -1134,13 +1151,13 @@ function GalleryContent() {
                       }
                       className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
                     >
-                      <DownloadOutlined /> 저장
+                      <DownloadOutlined /> {t('save_btn')}
                     </button>
                     <button
                       onClick={() => handleKakaoShare(webtoonPreviewImage.url)}
                       className="flex items-center gap-1.5 rounded-lg bg-[#ffe812] px-3 py-2 text-sm font-bold text-black hover:bg-[#ffe812]/90"
                     >
-                      <MessageOutlined /> 카카오
+                      <MessageOutlined /> {t('kakao_btn')}
                     </button>
                   </div>
                 </div>
@@ -1200,7 +1217,7 @@ function GalleryContent() {
                 <div className="flex items-center gap-2 font-medium text-white">
                   ✨{' '}
                   <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text font-bold text-transparent">
-                    프리미엄 뷰어
+                    {t('premium_viewer_title')}
                   </span>
                 </div>
                 <span className="text-sm text-gray-400">
@@ -1243,7 +1260,7 @@ function GalleryContent() {
                     boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
                   }}
                 >
-                  <span>📤</span> 스토리에 공유하기
+                  <span>📤</span> {t('share_story')}
                 </button>
 
                 <div className="flex items-center justify-between gap-2">
@@ -1256,7 +1273,7 @@ function GalleryContent() {
                     }}
                     className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                   >
-                    <DeleteOutlined /> 삭제
+                    <DeleteOutlined /> {t('delete_btn')}
                   </button>
 
                   <div className="flex gap-2">
@@ -1269,13 +1286,13 @@ function GalleryContent() {
                       }
                       className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
                     >
-                      <DownloadOutlined /> 저장
+                      <DownloadOutlined /> {t('save_btn')}
                     </button>
                     <button
                       onClick={() => handleKakaoShare(premiumPreviewImage.url)}
                       className="flex items-center gap-1.5 rounded-lg bg-[#ffe812] px-3 py-2 text-sm font-bold text-black hover:bg-[#ffe812]/90"
                     >
-                      <MessageOutlined /> 카카오
+                      <MessageOutlined /> {t('kakao_btn')}
                     </button>
                   </div>
                 </div>
@@ -1294,7 +1311,8 @@ function GalleryContent() {
             setSmartLayoutEnabled(false);
           }}
           centered
-          width="650px"
+          width="95vw"
+          style={{ maxWidth: '650px' }}
           styles={{
             content: {
               background: smartLayoutEnabled ? '#0a0a0a' : '#fff',
@@ -1321,7 +1339,7 @@ function GalleryContent() {
             <span
               className={`text-sm font-medium ${smartLayoutEnabled ? 'text-white' : 'text-gray-700'}`}
             >
-              {selectedImages.length}컷 연결됨
+              {t('cuts_connected', { count: selectedImages.length })}
             </span>
             <button
               onClick={async () => {
@@ -1348,11 +1366,11 @@ function GalleryContent() {
                       setSmartLayoutEnabled(true);
                     } else {
                       console.error('[SmartLayout] Failed:', data);
-                      message.error(data.error || '레이아웃 분석에 실패했습니다.');
+                      message.error(data.error || t('layout_fail'));
                     }
                   } catch (err) {
                     console.error(err);
-                    message.error('레이아웃 분석 중 오류가 발생했습니다.');
+                    message.error(t('layout_error'));
                   } finally {
                     setAnalyzingLayout(false);
                   }
@@ -1369,10 +1387,10 @@ function GalleryContent() {
             >
               {analyzingLayout ? (
                 <>
-                  <Spin size="small" /> 분석중...
+                  <Spin size="small" /> {t('analyzing_layout')}
                 </>
               ) : (
-                <>✨ 스마트 레이아웃 {smartLayoutEnabled ? 'ON' : 'OFF'}</>
+                <>✨ {t('smart_layout')} {smartLayoutEnabled ? 'ON' : 'OFF'}</>
               )}
             </button>
           </div>
@@ -1420,7 +1438,7 @@ function GalleryContent() {
               }}
               className={`rounded-xl px-5 py-2.5 font-medium transition-colors ${smartLayoutEnabled ? 'text-gray-400 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              닫기
+              {t('close_btn')}
             </button>
             <button
               onClick={handleWebtoonSave}
@@ -1428,7 +1446,7 @@ function GalleryContent() {
               className="flex items-center gap-2 rounded-xl bg-neonYellow px-6 py-2.5 font-bold text-black shadow-lg transition-all hover:bg-[#bbe600] hover:shadow-xl active:scale-95"
             >
               {savingWebtoon ? <Spin size="small" /> : <DownloadOutlined />}
-              마이웹툰에 저장
+              {t('save_to_mywebtoon')}
             </button>
           </div>
         </Modal>
@@ -1463,11 +1481,11 @@ function GalleryContent() {
             </div>
 
             {/* Title */}
-            <h3 className="mb-2 text-xl font-bold text-white">✨ 변환 완료!</h3>
+            <h3 className="mb-2 text-xl font-bold text-white">✨ {t('result_title')}</h3>
             <p className="mb-6 text-sm text-gray-400">
               {activeTab === 'webtoon'
-                ? '웹툰이 성공적으로 저장되었습니다.'
-                : '사진이 성공적으로 변환되었습니다.'}
+                ? t('result_webtoon_desc')
+                : t('result_image_desc')}
             </p>
 
             {/* Preview of latest image */}
@@ -1489,12 +1507,12 @@ function GalleryContent() {
               <div className="mb-4 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <StarFilled className="text-purple-400" />
-                  <span className="text-sm font-semibold text-purple-400">프리미엄 변환</span>
+                  <span className="text-sm font-semibold text-purple-400">{t('premium_label')}</span>
                 </div>
                 <p className="text-xs text-gray-400">
-                  더 고퀄리티 웹툰으로 업그레이드해보세요!
+                  {t('premium_upgrade_hint')}
                   <br />
-                  이미지를 클릭하면 프리미엄 변환이 가능합니다.
+                  {t('premium_upgrade_desc')}
                 </p>
               </div>
             )}
@@ -1509,7 +1527,7 @@ function GalleryContent() {
               }}
               className="w-full rounded-xl bg-neonYellow py-3 font-bold text-black transition-all hover:bg-[#bbe600] active:scale-95"
             >
-              확인하기
+              {t('confirm_btn')}
             </button>
           </div>
         </Modal>

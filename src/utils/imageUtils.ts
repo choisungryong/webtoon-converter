@@ -51,7 +51,7 @@ export const compressImage = (
 
       resolve(result);
     };
-    img.onerror = () => reject(new Error('이미지 로드 실패'));
+    img.onerror = () => reject(new Error('IMAGE_LOAD_FAILED'));
     img.src = src;
   });
 };
@@ -132,7 +132,7 @@ export const stitchImagesVertically = async (
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('이미지 로드 실패'));
+        img.onerror = () => reject(new Error('IMAGE_LOAD_FAILED'));
         img.src = url;
       });
     };
