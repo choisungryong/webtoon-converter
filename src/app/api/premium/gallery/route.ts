@@ -27,51 +27,60 @@ export async function GET(request: NextRequest) {
 
     // Fetch episodes if requested
     if (type === 'episodes') {
-      const epResult = await env.DB.prepare(
-        `SELECT id, title, story_data, panel_ids, status, created_at as createdAt
-         FROM premium_episodes
-         WHERE user_id = ?
-         ORDER BY created_at DESC
-         LIMIT 50`
-      ).bind(userId).all();
+      try {
+        const epResult = await env.DB.prepare(
+          `SELECT id, title, story_data, panel_ids, status, created_at as createdAt
+           FROM premium_episodes
+           WHERE user_id = ?
+           ORDER BY created_at DESC
+           LIMIT 50`
+        ).bind(userId).all();
 
-      const episodes = (epResult.results || []).map((row: any) => {
-        const panelIds: string[] = JSON.parse(row.panel_ids || '[]');
-        const storyData = JSON.parse(row.story_data || '{}');
-        return {
-          id: row.id,
-          title: row.title || storyData.title,
-          panelCount: storyData.panels?.length || 0,
-          status: row.status,
-          thumbnailUrl: panelIds[0] ? `/api/premium/${panelIds[0]}/image` : null,
-          createdAt: row.createdAt,
-        };
-      });
+        const episodes = (epResult.results || []).map((row: any) => {
+          const panelIds: string[] = JSON.parse(row.panel_ids || '[]');
+          const storyData = JSON.parse(row.story_data || '{}');
+          return {
+            id: row.id,
+            title: row.title || storyData.title,
+            panelCount: storyData.panels?.length || 0,
+            status: row.status,
+            thumbnailUrl: panelIds[0] ? `/api/premium/${panelIds[0]}/image` : null,
+            createdAt: row.createdAt,
+          };
+        });
 
-      return NextResponse.json({ episodes });
+        return NextResponse.json({ episodes });
+      } catch {
+        // Table may not exist yet
+        return NextResponse.json({ episodes: [] });
+      }
     }
 
-    // Fetch premium webtoons for user (non-episode ones + all)
-    const result = await env.DB.prepare(
-      `SELECT id, r2_key, source_webtoon_id, episode_id, created_at as createdAt
-             FROM premium_webtoons
-             WHERE user_id = ?
-             ORDER BY created_at DESC
-             LIMIT 50`
-    )
-      .bind(userId)
-      .all();
+    // Fetch premium webtoons for user
+    try {
+      const result = await env.DB.prepare(
+        `SELECT id, r2_key, source_webtoon_id, created_at as createdAt
+               FROM premium_webtoons
+               WHERE user_id = ?
+               ORDER BY created_at DESC
+               LIMIT 50`
+      )
+        .bind(userId)
+        .all();
 
-    const images = (result.results || []).map((row: any) => ({
-      id: row.id,
-      r2_key: row.r2_key,
-      source_webtoon_id: row.source_webtoon_id,
-      episode_id: row.episode_id,
-      createdAt: row.createdAt,
-      url: `/api/premium/${row.id}/image`,
-    }));
+      const images = (result.results || []).map((row: any) => ({
+        id: row.id,
+        r2_key: row.r2_key,
+        source_webtoon_id: row.source_webtoon_id,
+        createdAt: row.createdAt,
+        url: `/api/premium/${row.id}/image`,
+      }));
 
-    return NextResponse.json({ images });
+      return NextResponse.json({ images });
+    } catch {
+      // Table may not exist yet
+      return NextResponse.json({ images: [] });
+    }
   } catch (error) {
     console.error('[Premium/Gallery] GET Error:', error);
     return NextResponse.json(
