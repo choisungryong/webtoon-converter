@@ -70,24 +70,21 @@ export async function POST(request: NextRequest) {
       httpMetadata: { contentType: parsed.mimeType },
     });
 
+    // Ensure source_image_ids column exists
+    if (sourceImageIds && sourceImageIds.length > 0) {
+      try {
+        await env.DB.exec(`ALTER TABLE generated_images ADD COLUMN source_image_ids TEXT;`);
+      } catch { /* column already exists */ }
+    }
+
     // Save to DB - rollback R2 on failure
     try {
       if (sourceImageIds && sourceImageIds.length > 0) {
-        // Try with source_image_ids column first, fallback without it
-        try {
-          await env.DB.prepare(
-            `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
-          )
-            .bind(imageId, r2Key, saveType, userId, JSON.stringify(sourceImageIds))
-            .run();
-        } catch {
-          // Column may not exist yet — insert without it
-          await env.DB.prepare(
-            `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
-          )
-            .bind(imageId, r2Key, saveType, userId)
-            .run();
-        }
+        await env.DB.prepare(
+          `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
+        )
+          .bind(imageId, r2Key, saveType, userId, JSON.stringify(sourceImageIds))
+          .run();
       } else {
         await env.DB.prepare(
           `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`

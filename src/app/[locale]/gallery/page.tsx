@@ -40,8 +40,8 @@ interface GalleryImage {
   original_url?: string;
   r2_key: string;
   prompt?: string;
-  created_at: number;
-  createdAt?: number; // API returns this
+  created_at?: number;
+  createdAt?: number;
 }
 
 // Helper function to group images by date
@@ -49,7 +49,7 @@ const groupImagesByDate = (images: GalleryImage[]): Map<string, GalleryImage[]> 
   const groups = new Map<string, GalleryImage[]>();
 
   images.forEach((img) => {
-    const timestamp = img.createdAt || img.created_at;
+    const timestamp = img.createdAt || img.created_at || 0;
     const dateKey = formatToKoreanDate(timestamp);
 
     if (!groups.has(dateKey)) {
@@ -1234,13 +1234,7 @@ function GalleryContent() {
               <div className="flex items-center justify-between border-b border-white/10 bg-[#1a1a1a] p-4">
                 <div className="font-medium text-white">📖 {t('webtoon_viewer_title')}</div>
                 <span className="text-sm text-gray-400">
-                  {new Date(
-                    webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at
-                  ).toLocaleDateString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatToKoreanDate(webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at || 0)}
                 </span>
               </div>
 
@@ -1410,13 +1404,7 @@ function GalleryContent() {
                   </span>
                 </div>
                 <span className="text-sm text-gray-400">
-                  {new Date(
-                    premiumPreviewImage.createdAt || premiumPreviewImage.created_at
-                  ).toLocaleDateString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatToKoreanDate(premiumPreviewImage.createdAt || premiumPreviewImage.created_at || 0)}
                 </span>
               </div>
 
