@@ -135,9 +135,12 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
       }
     };
 
+    const icon = mode === 'photo' ? '📷' : '🎬';
+    const title = mode === 'photo' ? t('select_photo') : t('select_video');
+
     return (
       <div
-        className="upload-area"
+        className={`upload-area${hasPhotos ? ' upload-area--compact' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -145,7 +148,6 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
         style={{
           borderColor: isDragging ? 'var(--accent-color)' : 'var(--border-color)',
           background: isDragging ? 'var(--accent-glow)' : 'transparent',
-          padding: hasPhotos ? '12px' : '32px',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.6 : 1,
         }}
@@ -175,137 +177,75 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
           />
         )}
 
-        {mode === 'photo' ? (
-          <div
-            style={{
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              width: '100%',
-              pointerEvents: 'none', // Allow clicks to pass through to parent
-            }}
-          >
-            {!hasPhotos ? (
+        {hasPhotos ? (
+          /* Compact add-more row for photo mode */
+          <p className="flex items-center gap-1.5 text-[13px] m-0" style={{ color: 'var(--accent-color)' }}>
+            <span>➕</span> {t('add_more_photos', { count: maxPhotos - currentPhotoCount })}
+          </p>
+        ) : (
+          /* Unified initial state for both photo and video */
+          <div className="flex flex-col items-center w-full" style={{ pointerEvents: 'none' }}>
+            <div className="upload-icon">
+              <span className="text-xl">{icon}</span>
+            </div>
+            <p className="text-[15px] font-bold m-0" style={{ color: 'var(--text-primary)' }}>
+              {title}
+            </p>
+            <p className="text-xs mt-1.5 mb-0" style={{ color: 'var(--text-muted)' }}>
+              {mode === 'photo'
+                ? t('drag_drop_click', { maxPhotos })
+                : t('video_format_guide', { size: maxVideoSizeMB })}
+            </p>
+
+            {mode === 'video' && (
               <>
-                <div className="upload-icon">
-                  <span style={{ fontSize: '32px' }}>📷</span>
+                {/* Action buttons */}
+                <div className="flex gap-2 mt-3 w-full max-w-[280px]" style={{ pointerEvents: 'auto' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold border-0 cursor-pointer"
+                    style={{
+                      background: 'var(--accent-color)',
+                      color: 'var(--accent-on-color)',
+                    }}
+                  >
+                    📁 {t('select_from_gallery')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cameraInputRef.current?.click();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer"
+                    style={{
+                      background: 'transparent',
+                      color: 'var(--accent-color)',
+                      border: '1.5px solid var(--accent-color)',
+                    }}
+                  >
+                    📹 {t('record_video')}
+                  </button>
                 </div>
-                <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {t('select_photo')}
-                </p>
+
+                {/* Cloud warning - compact inline */}
                 <p
+                  className="text-[11px] mt-2 mb-0 py-1.5 px-3 rounded-lg"
                   style={{
-                    color: 'var(--text-muted)',
-                    fontSize: '14px',
-                    marginTop: '8px',
+                    color: '#f59e0b',
+                    background: 'rgba(245, 158, 11, 0.08)',
+                    border: '1px solid rgba(245, 158, 11, 0.2)',
                   }}
                 >
-                  {t('drag_drop_click', { maxPhotos })}
+                  ⚠️ {t('cloud_warning')} — <span style={{ color: 'var(--text-muted)' }}>{t('local_file_only')}</span>
                 </p>
               </>
-            ) : (
-              <p
-                style={{
-                  color: 'var(--accent-color)',
-                  fontSize: '13px',
-                  margin: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <span>➕</span> {t('add_more_photos', { count: maxPhotos - currentPhotoCount })}
-              </p>
             )}
           </div>
-        ) : (
-          <>
-            <div className="upload-icon">
-              <span style={{ fontSize: '32px' }}>🎬</span>
-            </div>
-            <p
-              className="text-lg font-bold"
-              style={{ color: 'var(--text-primary)', marginBottom: '16px' }}
-            >
-              {t('select_video')}
-            </p>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'center',
-                flexWrap: 'wrap',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  background: 'var(--accent-color)',
-                  color: 'black',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                📁 {t('select_from_gallery')}
-              </button>
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  background: 'transparent',
-                  color: 'var(--accent-color)',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  border: '2px solid var(--accent-color)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                📹 {t('record_video')}
-              </button>
-            </div>
-
-            <p
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '13px',
-                marginTop: '12px',
-              }}
-            >
-              {t('video_format_guide', { size: maxVideoSizeMB })}
-            </p>
-            <p
-              style={{
-                color: '#f59e0b',
-                fontSize: '12px',
-                marginTop: '8px',
-                padding: '8px 12px',
-                background: 'rgba(245, 158, 11, 0.1)',
-                borderRadius: '8px',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-              }}
-            >
-              ⚠️ {t('cloud_warning')}
-              <br />
-              <span style={{ color: 'var(--text-muted)' }}>
-                {t('local_file_only')}
-              </span>
-            </p>
-          </>
         )}
       </div>
     );
@@ -315,5 +255,3 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
 FileUploader.displayName = 'FileUploader';
 
 export default FileUploader;
-
-
