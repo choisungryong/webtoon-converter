@@ -41,31 +41,35 @@ function BubbleOverlay({
 
   if (!dialogue && !editable) return null;
 
-  // Use AI-provided coordinates if available, otherwise fallback
-  const hasAiPosition = typeof bubbleX === 'number' && typeof bubbleY === 'number';
-  const xPercent = hasAiPosition ? Math.max(5, Math.min(85, bubbleX)) : (panelIndex % 2 === 0 ? 12 : 60);
-  const yPercent = hasAiPosition ? Math.max(3, Math.min(40, bubbleY)) : 8 + (panelIndex % 3) * 4;
-  // Tail direction: bubble on left half → tail points right-down, on right → left-down
-  const tailOnLeft = xPercent < 50;
+  // Use AI-provided coordinates, fallback to alternating positions
+  const hasAiPos = typeof bubbleX === 'number' && typeof bubbleY === 'number';
+  const x = hasAiPos ? Math.max(3, Math.min(75, bubbleX)) : (panelIndex % 2 === 0 ? 8 : 48);
+  const y = hasAiPos ? Math.max(2, Math.min(45, bubbleY)) : 6 + (panelIndex % 3) * 5;
+  const tailOnLeft = x < 45;
+
+  // SVG tail that curves naturally downward toward the character
+  const normalTail = tailOnLeft
+    ? 'M8,0 C8,0 2,18 0,28 C4,22 8,12 14,0 Z'
+    : 'M6,0 C6,0 12,18 14,28 C10,22 6,12 0,0 Z';
+  const shoutTail = tailOnLeft
+    ? 'M6,0 L0,20 L12,0 Z'
+    : 'M2,0 L8,20 L14,0 Z';
 
   if (editing && editable) {
     return (
-      <div className="absolute z-20" style={{ left: `${xPercent}%`, top: `${yPercent}%` }}>
-        <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-xl">
+      <div className="absolute z-20" style={{ left: `${x}%`, top: `${y}%` }}>
+        <div className="flex items-center gap-1.5 rounded-xl bg-white p-1.5 shadow-2xl">
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="w-32 rounded border border-gray-300 px-2 py-1 text-sm text-black"
+            className="w-36 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-black"
             maxLength={15}
             autoFocus
           />
           <button
-            onClick={() => {
-              onEdit?.(text);
-              setEditing(false);
-            }}
-            className="rounded bg-neonYellow px-2 py-1 text-xs font-bold text-black"
+            onClick={() => { onEdit?.(text); setEditing(false); }}
+            className="rounded-lg bg-neonYellow px-3 py-1.5 text-xs font-bold text-black"
           >
             OK
           </button>
@@ -79,16 +83,24 @@ function BubbleOverlay({
   if (bubbleStyle === 'shout') {
     return (
       <div
-        className={`absolute z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
-        style={{ left: `${xPercent}%`, top: `${yPercent}%` }}
+        className={`absolute z-10 ${editable ? 'cursor-pointer transition-transform hover:scale-110' : ''}`}
+        style={{ left: `${x}%`, top: `${y}%` }}
         onClick={() => editable && setEditing(true)}
       >
-        <div className="rounded-md bg-black px-4 py-1.5 text-center text-sm font-black tracking-wide text-white shadow-lg">
-          {displayText}
+        <div
+          className="relative bg-black px-6 py-3 text-center shadow-xl"
+          style={{
+            clipPath: 'polygon(10% 0%, 90% 0%, 100% 15%, 98% 50%, 100% 85%, 90% 100%, 10% 100%, 0% 85%, 2% 50%, 0% 15%)',
+          }}
+        >
+          <span className="text-base font-black tracking-wider text-white drop-shadow-sm"
+            style={{ textShadow: '0 0 8px rgba(255,255,255,0.3)' }}
+          >
+            {displayText}
+          </span>
         </div>
-        {/* Tail pointing toward character */}
-        <svg width="20" height="14" viewBox="0 0 20 14" className={`${tailOnLeft ? 'ml-2' : 'ml-auto mr-2'} -mt-px`}>
-          <path d="M0,0 Q10,14 8,14 Q6,10 0,0" fill="black" />
+        <svg width="14" height="20" viewBox="0 0 14 28" className={`${tailOnLeft ? 'ml-[30%]' : 'ml-[60%]'} -mt-[2px]`}>
+          <path d={shoutTail} fill="black" />
         </svg>
       </div>
     );
@@ -98,30 +110,40 @@ function BubbleOverlay({
 
   return (
     <div
-      className={`absolute z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
-      style={{ left: `${xPercent}%`, top: `${yPercent}%` }}
+      className={`absolute z-10 ${editable ? 'cursor-pointer transition-transform hover:scale-105' : ''}`}
+      style={{ left: `${x}%`, top: `${y}%` }}
       onClick={() => editable && setEditing(true)}
     >
-      {/* Bubble body */}
-      <div
-        className={`relative max-w-[60vw] px-4 py-2 text-center text-[13px] font-bold leading-tight shadow-md ${
-          isThought
-            ? 'rounded-2xl border-[1.5px] border-dashed border-gray-400 bg-white/95 text-gray-600'
-            : 'rounded-2xl border-[1.5px] border-gray-800 bg-white text-black'
-        }`}
-      >
-        {displayText}
-      </div>
-      {/* Tail pointing toward character */}
       {isThought ? (
-        <div className={`flex flex-col ${tailOnLeft ? 'ml-3' : 'ml-auto mr-3'}`}>
-          <div className="mt-1 h-2 w-2 rounded-full border border-gray-400 bg-white/95" />
-          <div className={`${tailOnLeft ? 'ml-1' : 'mr-1 ml-auto'} mt-0.5 h-1.5 w-1.5 rounded-full border border-gray-400 bg-white/95`} />
-        </div>
+        <>
+          <div
+            className="rounded-[50%] border-2 border-gray-300 bg-white/95 px-5 py-3 text-center shadow-lg backdrop-blur-sm"
+            style={{ minWidth: '5rem' }}
+          >
+            <span className="text-sm font-semibold italic leading-snug text-gray-500">
+              {displayText}
+            </span>
+          </div>
+          <div className={`flex flex-col ${tailOnLeft ? 'ml-[25%]' : 'ml-[65%]'}`}>
+            <div className="mt-1.5 h-3 w-3 rounded-full border border-gray-300 bg-white/95" />
+            <div className={`${tailOnLeft ? 'ml-1' : '-ml-0.5'} mt-1 h-2 w-2 rounded-full border border-gray-300 bg-white/90`} />
+            <div className={`${tailOnLeft ? 'ml-2' : '-ml-1'} mt-0.5 h-1.5 w-1.5 rounded-full border border-gray-300 bg-white/80`} />
+          </div>
+        </>
       ) : (
-        <svg width="16" height="12" viewBox="0 0 16 12" className={`${tailOnLeft ? 'ml-3' : 'ml-auto mr-3'} -mt-px`}>
-          <path d="M0,0 C4,0 6,8 8,12 C4,8 2,4 0,0" fill="white" stroke="#1f2937" strokeWidth="1" />
-        </svg>
+        <>
+          <div
+            className="rounded-[50%] border-2 border-gray-900 bg-white px-6 py-3 text-center shadow-lg"
+            style={{ minWidth: '5.5rem' }}
+          >
+            <span className="text-base font-bold leading-snug text-black">
+              {displayText}
+            </span>
+          </div>
+          <svg width="14" height="24" viewBox="0 0 14 28" className={`${tailOnLeft ? 'ml-[25%]' : 'ml-[60%]'} -mt-[3px]`}>
+            <path d={normalTail} fill="white" stroke="#111827" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+        </>
       )}
     </div>
   );
@@ -131,8 +153,10 @@ function NarrationBox({ narration }: { narration: string | null }) {
   if (!narration) return null;
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-6">
-      <p className="text-center text-xs italic text-gray-200">{narration}</p>
+    <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-5 pb-4 pt-10">
+      <p className="text-center text-sm leading-relaxed text-gray-100" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+        {narration}
+      </p>
     </div>
   );
 }
