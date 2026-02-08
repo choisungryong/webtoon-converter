@@ -375,7 +375,7 @@ function GalleryContent() {
 
   // Episode Creation - Stage 2: Convert panels
   const handleGenerateEpisode = async () => {
-    if (!episodeStory || !episodeId || !webtoonPreviewImage) return;
+    if (!episodeStory || !webtoonPreviewImage) return;
     setShowStoryPreview(false);
     setConvertingPremium(true);
     const totalPanels = episodeStory.panels.length;
@@ -384,12 +384,13 @@ function GalleryContent() {
     try {
       const currentUserId = localStorage.getItem('toonsnap_user_id');
 
-      // Get source image IDs from the webtoon
-      const webtoonRow = images.find((img) => img.id === webtoonPreviewImage.id);
-      // We need to fetch the source images from the gallery
-      const sourceRes = await fetch(`/api/gallery?type=image&userId=${currentUserId}`);
-      const sourceData = await sourceRes.json();
-      const sourceImages: GalleryImage[] = sourceData.images || [];
+      // Fetch source image IDs from the webtoon record
+      const webtoonRes = await fetch(`/api/gallery/${webtoonPreviewImage.id}/source-images?userId=${currentUserId}`);
+      let sourceImageIds: string[] = [];
+      if (webtoonRes.ok) {
+        const webtoonData = await webtoonRes.json();
+        sourceImageIds = webtoonData.sourceImageIds || [];
+      }
 
       let styleReference: string | undefined;
       const panelResults: any[] = [];
@@ -398,14 +399,15 @@ function GalleryContent() {
         setEpisodeProgress({ current: i + 1, total: totalPanels });
         const panel = episodeStory.panels[i];
 
-        // Find the source image for this panel
-        // source_image_ids are stored in the webtoon, panels map 1:1
-        // We need to fetch each source image as base64
-        const imgUrl = sourceImages[i]?.url;
-        if (!imgUrl) continue;
+        // Get source image for this panel by ID
+        const sourceId = sourceImageIds[i];
+        if (!sourceId) continue;
 
-        const response = await fetch(imgUrl);
-        const blob = await response.blob();
+        // Fetch the source image as base64
+        const imgRes = await fetch(`/api/gallery/${sourceId}/image`);
+        if (!imgRes.ok) continue;
+
+        const blob = await imgRes.blob();
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -415,6 +417,9 @@ function GalleryContent() {
 
         const storyDirection = `Camera: ${panel.cameraDirection}. Emotion: ${panel.emotion}. Scene: ${panel.sceneDescription}`;
 
+        // Add delay between conversions to avoid rate limiting
+        if (i > 0) await new Promise((r) => setTimeout(r, 2000));
+
         const convertRes = await fetch('/api/premium/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -423,7 +428,7 @@ function GalleryContent() {
             sourceWebtoonId: webtoonPreviewImage.id,
             userId: currentUserId,
             storyDirection,
-            episodeId,
+            episodeId: episodeId || undefined,
             panelIndex: i,
             styleReference: i > 0 ? styleReference : undefined,
           }),
@@ -438,7 +443,6 @@ function GalleryContent() {
             imageUrl: `/api/premium/${convertData.imageId}/image`,
           });
 
-          // Save first panel result as style reference
           if (i === 0 && convertData.imageId) {
             styleReference = convertData.imageId;
           }
@@ -447,7 +451,6 @@ function GalleryContent() {
         }
       }
 
-      // Show episode viewer with results
       setCurrentEpisode({
         id: episodeId,
         title: episodeStory.title,
