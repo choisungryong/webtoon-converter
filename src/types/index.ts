@@ -60,6 +60,7 @@ export interface PanelStory {
   bubbleStyle: 'normal' | 'thought' | 'shout';
   bubbleX?: number; // 0-100, percentage from left where bubble should appear
   bubbleY?: number; // 0-100, percentage from top where bubble should appear
+  bubbleSize?: 'sm' | 'md' | 'lg';
   cameraDirection: string;
   emotion: string;
   sceneDescription: string;

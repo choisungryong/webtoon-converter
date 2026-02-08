@@ -1832,10 +1832,10 @@ function GalleryContent() {
                   synopsis={currentEpisode.synopsis}
                   panels={currentEpisode.panels}
                   editable={true}
-                  onUpdateDialogue={async (panelIndex, dialogue) => {
+                  onUpdatePanel={async (panelIndex, updates) => {
                     if (!currentEpisode) return;
                     const updatedPanels = [...currentEpisode.panels];
-                    updatedPanels[panelIndex] = { ...updatedPanels[panelIndex], dialogue };
+                    updatedPanels[panelIndex] = { ...updatedPanels[panelIndex], ...updates };
                     setCurrentEpisode({ ...currentEpisode, panels: updatedPanels });
 
                     // Save to server
@@ -1848,6 +1848,9 @@ function GalleryContent() {
                         dialogue: p.dialogue,
                         narration: p.narration,
                         bubbleStyle: p.bubbleStyle,
+                        bubbleX: p.bubbleX,
+                        bubbleY: p.bubbleY,
+                        bubbleSize: p.bubbleSize,
                         cameraDirection: p.cameraDirection,
                         emotion: p.emotion,
                         sceneDescription: p.sceneDescription,
