@@ -18,7 +18,6 @@ import ConvertingProgress from '../../components/ConvertingProgress';
 import ResultGallery from '../../components/ResultGallery';
 import SpeechBubbleModal from '../../components/SpeechBubbleModal';
 import StepGuide, { StepProgressBar } from '../../components/StepGuide';
-import TechnicalGuide from '../../components/TechnicalGuide';
 
 // Hooks & Utils
 import { useUserId } from '../../hooks/useUserId';
@@ -541,14 +540,29 @@ export default function Home() {
 
       if (convertedImages.length === 0) throw new Error(t('insufficient_images'));
 
+      // Save each converted image individually for episode source tracking
+      message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
+      const sourceImageIds: string[] = [];
+      for (const img of convertedImages) {
+        try {
+          const imgSaveRes = await fetch('/api/webtoon/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: img, userId: userId }),
+          });
+          if (imgSaveRes.ok) {
+            const imgData = await imgSaveRes.json();
+            if (imgData.imageId) sourceImageIds.push(imgData.imageId);
+          }
+        } catch { /* continue even if individual save fails */ }
+      }
+      setProgress(80);
+
       let finalImage: string;
       if (convertedImages.length === 1) {
-        // Single frame: save directly without stitching
         finalImage = convertedImages[0];
-        message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
       } else {
         message.loading({ content: t('stitching'), key: 'episode' });
-        setProgress(75);
         finalImage = await stitchImagesVertically(convertedImages);
         message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
       }
@@ -557,7 +571,11 @@ export default function Home() {
       const saveRes = await fetch('/api/webtoon/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: finalImage, userId: userId }),
+        body: JSON.stringify({
+          image: finalImage,
+          userId: userId,
+          ...(sourceImageIds.length > 0 && { sourceImageIds }),
+        }),
       });
 
       if (!saveRes.ok) {
@@ -870,7 +888,6 @@ export default function Home() {
           {mode === 'video' && renderVideoMode()}
         </div>
 
-        <TechnicalGuide />
       </div>
 
       {/* Speech Bubble Editor Modal */}
