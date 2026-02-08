@@ -26,14 +26,16 @@ export async function POST(request: NextRequest) {
   try {
     const { env } = getRequestContext();
 
-    let body: { image: string; userId: string; sourceImageIds?: string[] };
+    let body: { image: string; userId: string; sourceImageIds?: string[]; type?: string };
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const { image, userId, sourceImageIds } = body;
+    const { image, userId, sourceImageIds, type: imageType = 'webtoon' } = body;
+    const validTypes = ['webtoon', 'frame'];
+    const saveType = validTypes.includes(imageType) ? imageType : 'webtoon';
 
     if (!image || !userId) {
       return NextResponse.json({ error: 'Missing image or userId' }, { status: 400 });
@@ -76,21 +78,21 @@ export async function POST(request: NextRequest) {
           await env.DB.prepare(
             `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
           )
-            .bind(imageId, r2Key, 'webtoon', userId, JSON.stringify(sourceImageIds))
+            .bind(imageId, r2Key, saveType, userId, JSON.stringify(sourceImageIds))
             .run();
         } catch {
           // Column may not exist yet — insert without it
           await env.DB.prepare(
             `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
           )
-            .bind(imageId, r2Key, 'webtoon', userId)
+            .bind(imageId, r2Key, saveType, userId)
             .run();
         }
       } else {
         await env.DB.prepare(
           `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
         )
-          .bind(imageId, r2Key, 'webtoon', userId)
+          .bind(imageId, r2Key, saveType, userId)
           .run();
       }
     } catch (dbError) {

@@ -548,7 +548,7 @@ export default function Home() {
           const imgSaveRes = await fetch('/api/webtoon/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: img, userId: userId }),
+            body: JSON.stringify({ image: img, userId: userId, type: 'frame' }),
           });
           if (imgSaveRes.ok) {
             const imgData = await imgSaveRes.json();
