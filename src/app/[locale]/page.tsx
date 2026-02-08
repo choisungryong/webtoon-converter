@@ -197,27 +197,23 @@ export default function Home() {
       }
     }
 
-    // Seek helper with reliable waiting
+    // Seek helper: waits for seeked event + small render delay
     const seekTo = (time: number): Promise<void> => {
       return new Promise((resolve) => {
         let resolved = false;
-        const onSeeked = () => {
+        const done = () => {
           if (!resolved) {
             resolved = true;
             video.removeEventListener('seeked', onSeeked);
-            resolve();
+            // Small delay to ensure frame is actually rendered/decoded
+            setTimeout(resolve, 50);
           }
         };
+        const onSeeked = () => done();
         video.addEventListener('seeked', onSeeked);
         video.currentTime = time;
-        // Fallback timeout: 2 seconds for slow devices/large files
-        setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            video.removeEventListener('seeked', onSeeked);
-            resolve();
-          }
-        }, 2000);
+        // Fallback timeout: 3 seconds for slow devices/large files
+        setTimeout(() => done(), 3000);
       });
     };
 
@@ -259,12 +255,16 @@ export default function Home() {
         if (frames.length >= 12) break;
       }
 
-      // Fallback: if scene detection found too few frames, sample uniformly
-      if (frames.length < MIN_FRAMES && duration > 1) {
-        const uniformCount = Math.min(8, Math.max(MIN_FRAMES, Math.round(duration)));
-        const uniformInterval = duration / (uniformCount + 1);
+      // Fallback: if scene detection found too few frames, sample at uniform intervals
+      // No duplicate check — we explicitly want frames even from static videos
+      if (frames.length < MIN_FRAMES) {
+        console.log(`[FrameExtract] Scene detection found only ${frames.length} frames, falling back to uniform sampling`);
+        // Clear scene-detected frames and start fresh with uniform sampling
+        frames.length = 0;
+        const targetCount = Math.min(8, Math.max(MIN_FRAMES, Math.ceil(duration)));
+        const uniformInterval = duration / (targetCount + 1);
 
-        for (let i = 1; i <= uniformCount && frames.length < 12; i++) {
+        for (let i = 1; i <= targetCount; i++) {
           const time = uniformInterval * i;
           await seekTo(time);
 
@@ -272,29 +272,10 @@ export default function Home() {
             canvas.width = captureW;
             canvas.height = captureH;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const frameData = canvas.toDataURL('image/jpeg', 0.8);
-
-            // Avoid duplicate frames (check against existing)
-            let isDuplicate = false;
-            if (frames.length > 0) {
-              canvas.width = COMPARE_SIZE;
-              canvas.height = compareH;
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const newImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-              // Compare against last captured frame's data
-              if (previousImageData) {
-                const diff = calculateImageDifference(previousImageData, newImgData);
-                isDuplicate = diff < 0.03; // Very strict duplicate check
-              }
-              previousImageData = newImgData;
-            }
-
-            if (!isDuplicate) {
-              frames.push(frameData);
-            }
+            frames.push(canvas.toDataURL('image/jpeg', 0.8));
           }
         }
+        console.log(`[FrameExtract] Uniform sampling extracted ${frames.length} frames`);
       }
 
       setExtractedFrames(frames);
