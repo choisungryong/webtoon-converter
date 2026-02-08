@@ -14,22 +14,37 @@ const SAFETY_SETTINGS = [
 ];
 
 function buildEpisodePrompt(imageCount: number, panelCount: number): string {
-  return `Completely redraw these ${imageCount} reference photographs as a single continuous Korean webtoon episode page. Do not apply filters to the photos — illustrate everything from scratch as hand-drawn manhwa art.
+  return `TASK: Redraw these ${imageCount} reference photographs as a single continuous Korean webtoon episode page. You are an ILLUSTRATOR — DRAW everything from scratch as hand-drawn manhwa art.
 
-STYLE: Premium Korean webtoon illustration in the style of Solo Leveling, True Beauty, or Lookism. Sharp clean digital linework with smooth cel-shading. Characters redrawn as manhwa characters with anime-style expressive eyes, defined jawlines, and stylized proportions. Vibrant colors with gradient shading and cinematic lighting. Rich detailed backgrounds with depth of field.
+ART STYLE SPECIFICATION:
+- Line art: Sharp clean digital inking with professional line weight variation
+- Coloring: Vibrant saturated colors with gradient shading and cinematic color grading
+- Shading: Multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents
+- Eyes: Expressive anime-style eyes with highlight reflections and defined eyelashes
+- Hair: Stylized with individual strand groups, light reflections, and color variation
+- Background: Rich detailed environments with atmospheric depth and lighting
+- Overall feel: Premium Korean webtoon — like Solo Leveling, True Beauty, or Lookism at their best
 
-CHARACTER RULES: Study each person in the reference photos carefully. Redraw them as illustrated manhwa characters while preserving their gender, hair color, outfit colors, and distinguishing features. Maintain perfect character consistency across all panels — the same character must look identical in every panel they appear in.
+CHARACTER RULES:
+- Study each person in the reference photos carefully
+- Redraw them as illustrated manhwa characters preserving gender, hair color, outfit colors, distinguishing features
+- Maintain PERFECT character consistency across all panels — same character must look identical everywhere
+
+ANATOMY RULES (CRITICAL):
+- Correct human proportions: head-to-body ratio ~1:7 for adults
+- Exactly 5 fingers per hand, proper finger length proportions (middle finger longest)
+- Arms and legs must have correct length relative to torso — no elongated or shortened limbs
+- Shoulders, elbows, wrists, knees must bend at anatomically correct angles
+- Faces must be symmetrical with proper eye spacing (one eye-width apart)
+- DO NOT distort, stretch, or compress any body parts
+- Characters must be fully contained within frames — do not crop heads or limbs at panel edges
 
 LAYOUT: Create a single tall vertical image (800 x 2400 pixels). Arrange ${panelCount} panels vertically for webtoon scroll format. Use dynamic panel shapes with a mix of 2-3 large dramatic panels and smaller reaction panels. Clean white gutters between panels.
 
-STORYTELLING: Each panel shows a different moment from the reference scenes. Use varied camera angles — close-ups for emotion, medium shots for dialogue, wide shots for establishing scenes. Add speed lines, emotion effects, and screen tones where they enhance the narrative.
+STORYTELLING: Each panel shows a different moment from the reference scenes. Use varied camera angles — close-ups for emotion, medium shots for dialogue, wide shots for establishing scenes.
 
-OUTPUT REQUIREMENTS:
-- The result must be 100% ILLUSTRATED MANHWA ART, not photographs with effects
-- Preserve the original scenes, characters, and narrative flow from the references
-- Do not add any text, speech bubbles, or watermarks
-- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each
-- Characters fully contained within frames — do not crop heads or limbs at panel edges`;
+Do NOT add any text, speech bubbles, logos, or watermarks.
+DO NOT paste, composite, or filter the original photos — DRAW from scratch.`;
 }
 
 /**
@@ -41,7 +56,7 @@ async function callGeminiEpisode(
   prompt: string,
   temperature: number,
 ): Promise<{ imageBase64: string; mimeType: string } | null> {
-  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`;
 
   const parts: any[] = [...imageParts, { text: prompt }];
 
@@ -51,10 +66,8 @@ async function callGeminiEpisode(
     body: JSON.stringify({
       contents: [{ parts }],
       generationConfig: {
-        responseModalities: ['IMAGE'],
+        responseModalities: ['TEXT', 'IMAGE'],
         temperature,
-        topP: 0.8,
-        topK: 40,
       },
       safetySettings: SAFETY_SETTINGS,
     }),

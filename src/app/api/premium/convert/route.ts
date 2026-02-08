@@ -38,29 +38,50 @@ const SAFETY_SETTINGS = [
 ];
 
 // Used when we have the original photo — best quality path
-const PREMIUM_FROM_ORIGINAL_PROMPT = `Completely redraw this photograph as a premium-quality Korean webtoon illustration with cinematic production values. Do not apply a filter — create an entirely new masterpiece illustration from scratch.
+const PREMIUM_FROM_ORIGINAL_PROMPT = `TASK: Redraw this photograph as a premium-quality Korean webtoon illustration with cinematic production values. You are an ILLUSTRATOR — DRAW everything from scratch.
 
-STYLE: Premium modern Korean webtoon art (like Solo Leveling, Omniscient Reader, or True Beauty at their highest production quality). Razor-sharp clean digital linework with professional multi-layer cel-shading. Cinematic lighting with dramatic volumetric shadows, rim lighting, and glowing highlights. Rich cinematic color grading with depth and contrast. Highly detailed backgrounds with atmospheric perspective and depth of field. Character designs with complex detailed hair rendering, intricate clothing folds, expressive jewel-like eyes, and refined facial features.
+ART STYLE SPECIFICATION:
+- Line art: Razor-sharp clean digital inking with professional line weight variation — bold contours, thin interior detail lines
+- Coloring: Rich cinematic color grading with depth, contrast, and vibrant saturated tones
+- Shading: Professional multi-layer cel-shading with dramatic volumetric shadows, rim lighting, and glowing highlight accents
+- Eyes: Large expressive jewel-like eyes with multiple highlight layers and color reflections
+- Hair: Complex detailed rendering with individual strand groups, light reflections, and color depth
+- Clothing: Intricate fabric folds with proper light/shadow interaction, material texture differentiation
+- Background: Highly detailed with atmospheric perspective, depth of field, and cinematic lighting
+- Overall feel: Premium production quality — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty
+
+ANATOMY RULES (CRITICAL):
+- Correct human proportions: head-to-body ratio ~1:7 for adults
+- Exactly 5 fingers per hand, proper finger length proportions (middle finger longest)
+- Arms and legs must have correct length relative to torso — no elongated or shortened limbs
+- Shoulders, elbows, wrists, knees must bend at anatomically correct angles
+- Faces must be symmetrical with proper eye spacing (one eye-width apart)
+- Neck must be proportional to head size — not too thin or too thick
+- DO NOT distort, stretch, or compress any body parts
 
 FORMAT: Output as a single image preserving the original photo's aspect ratio.
-
-OUTPUT REQUIREMENTS:
-- The result must be a PREMIUM ILLUSTRATED DRAWING with significantly more detail and polish than a standard webtoon conversion
-- Preserve the original composition, characters, poses, and expressions from the photograph
-- Do not add any text, speech bubbles, or watermarks
-- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each
-- Characters must be fully contained within the frame — do not crop heads or limbs`;
+Do NOT add any text, speech bubbles, logos, or watermarks.
+DO NOT paste, composite, or filter the original photo — DRAW from scratch.`;
 
 // Fallback when no original photo exists — upgrade existing webtoon
-const PREMIUM_UPGRADE_PROMPT = `Enhance this webtoon illustration to premium quality with significantly improved detail, lighting, and artistic refinement. Preserve the exact composition, characters, and scene — only upgrade the visual quality.
+const PREMIUM_UPGRADE_PROMPT = `TASK: Enhance this webtoon illustration to premium quality. Preserve the exact composition, characters, and scene — only upgrade the visual quality.
 
-STYLE: Premium modern Korean webtoon art with sharper linework, richer cel-shading with multiple tonal layers, cinematic lighting with dramatic shadows and glowing highlights, and more detailed backgrounds with depth of field.
+ART STYLE SPECIFICATION:
+- Line art: Sharpen and refine all linework with professional weight variation
+- Coloring: Enrich colors with deeper saturation and better contrast
+- Shading: Add multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents
+- Background: Add atmospheric depth, detail, and depth of field effects
+- Overall feel: Premium production quality upgrade while maintaining the original art direction
 
-OUTPUT REQUIREMENTS:
-- Preserve the exact same composition, characters, poses, and scene
-- Enhance: sharper lines, richer colors, better lighting, more background detail
-- Do not add any text, speech bubbles, or watermarks
-- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each`;
+ANATOMY RULES (CRITICAL):
+- Correct human proportions: head-to-body ratio ~1:7 for adults
+- Exactly 5 fingers per hand, proper finger length proportions
+- Arms and legs must have correct length relative to torso — no elongated or shortened limbs
+- Faces must be symmetrical with proper eye spacing
+- DO NOT distort, stretch, or compress any body parts — FIX any anatomy issues from the original
+
+Preserve the exact same composition, characters, poses, and scene.
+Do NOT add any text, speech bubbles, logos, or watermarks.`;
 
 /**
  * Call Gemini and return generated image or null.
@@ -72,7 +93,7 @@ async function callGeminiPremium(
   prompt: string,
   temperature: number,
 ): Promise<{ imageBase64: string; mimeType: string } | null> {
-  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`;
 
   const res = await fetch(geminiEndpoint, {
     method: 'POST',
@@ -85,10 +106,8 @@ async function callGeminiPremium(
         ],
       }],
       generationConfig: {
-        responseModalities: ['IMAGE'],
+        responseModalities: ['TEXT', 'IMAGE'],
         temperature,
-        topP: 0.8,
-        topK: 40,
       },
       safetySettings: SAFETY_SETTINGS,
     }),
