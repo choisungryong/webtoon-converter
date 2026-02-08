@@ -35,7 +35,8 @@ import { StyleOption, DEFAULT_STYLE } from '../../data/styles';
 const MAX_PHOTOS = 5;
 const MAX_FRAMES = 10;
 const MAX_VIDEO_SIZE_MB = 50;
-const DIFF_THRESHOLD = 0.15; // Histogram-based: 0~1 range, 0.15 = meaningful scene change
+const DIFF_THRESHOLD = 0.08; // Histogram-based: 0~1 range, lowered to catch subtle scene changes
+const MIN_FRAMES = 4; // Minimum frames to extract even if scenes are similar
 const MAX_FRAME_DIMENSION = 1920; // Cap captured frame resolution
 const COMPARE_SIZE = 480; // Resolution for scene comparison
 
@@ -258,6 +259,44 @@ export default function Home() {
         if (frames.length >= 12) break;
       }
 
+      // Fallback: if scene detection found too few frames, sample uniformly
+      if (frames.length < MIN_FRAMES && duration > 1) {
+        const uniformCount = Math.min(8, Math.max(MIN_FRAMES, Math.round(duration)));
+        const uniformInterval = duration / (uniformCount + 1);
+
+        for (let i = 1; i <= uniformCount && frames.length < 12; i++) {
+          const time = uniformInterval * i;
+          await seekTo(time);
+
+          if (ctx) {
+            canvas.width = captureW;
+            canvas.height = captureH;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frameData = canvas.toDataURL('image/jpeg', 0.8);
+
+            // Avoid duplicate frames (check against existing)
+            let isDuplicate = false;
+            if (frames.length > 0) {
+              canvas.width = COMPARE_SIZE;
+              canvas.height = compareH;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const newImgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+              // Compare against last captured frame's data
+              if (previousImageData) {
+                const diff = calculateImageDifference(previousImageData, newImgData);
+                isDuplicate = diff < 0.03; // Very strict duplicate check
+              }
+              previousImageData = newImgData;
+            }
+
+            if (!isDuplicate) {
+              frames.push(frameData);
+            }
+          }
+        }
+      }
+
       setExtractedFrames(frames);
 
       // Auto-select frames
@@ -423,16 +462,11 @@ export default function Home() {
       return;
     }
 
-    if (extractedFrames.length < 2) {
+    if (extractedFrames.length === 0) {
       message.warning({
         content: t('video_too_short'),
         duration: 5,
       });
-      return;
-    }
-
-    if (selectedFrameIndices.length < 2) {
-      message.warning(t('min_scenes_warning'));
       return;
     }
 
@@ -524,20 +558,25 @@ export default function Home() {
         setProgress(Math.round(((i + 1) / imagesToConvert.length) * 70));
       }
 
-      if (convertedImages.length < 2) throw new Error(t('insufficient_images'));
+      if (convertedImages.length === 0) throw new Error(t('insufficient_images'));
 
-      message.loading({ content: t('stitching'), key: 'episode' });
-      setProgress(75);
-
-      const stitchedImage = await stitchImagesVertically(convertedImages);
-
-      message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
+      let finalImage: string;
+      if (convertedImages.length === 1) {
+        // Single frame: save directly without stitching
+        finalImage = convertedImages[0];
+        message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
+      } else {
+        message.loading({ content: t('stitching'), key: 'episode' });
+        setProgress(75);
+        finalImage = await stitchImagesVertically(convertedImages);
+        message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
+      }
       setProgress(90);
 
       const saveRes = await fetch('/api/webtoon/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: stitchedImage, userId: userId }),
+        body: JSON.stringify({ image: finalImage, userId: userId }),
       });
 
       if (!saveRes.ok) {
