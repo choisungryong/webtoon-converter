@@ -70,11 +70,29 @@ export async function POST(request: NextRequest) {
 
     // Save to DB - rollback R2 on failure
     try {
-      await env.DB.prepare(
-        `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
-      )
-        .bind(imageId, r2Key, 'webtoon', userId, sourceImageIds ? JSON.stringify(sourceImageIds) : null)
-        .run();
+      if (sourceImageIds && sourceImageIds.length > 0) {
+        // Try with source_image_ids column first, fallback without it
+        try {
+          await env.DB.prepare(
+            `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
+          )
+            .bind(imageId, r2Key, 'webtoon', userId, JSON.stringify(sourceImageIds))
+            .run();
+        } catch {
+          // Column may not exist yet — insert without it
+          await env.DB.prepare(
+            `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
+          )
+            .bind(imageId, r2Key, 'webtoon', userId)
+            .run();
+        }
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
+        )
+          .bind(imageId, r2Key, 'webtoon', userId)
+          .run();
+      }
     } catch (dbError) {
       console.error('DB insert failed, rolling back R2:', dbError);
       try {
