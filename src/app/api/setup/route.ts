@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
             CREATE TABLE IF NOT EXISTS generated_images (
                 id TEXT PRIMARY KEY,
                 r2_key TEXT NOT NULL,
+                original_r2_key TEXT,
+                type TEXT DEFAULT 'generated',
                 prompt TEXT,
                 user_id TEXT,
                 source_image_ids TEXT,
@@ -38,6 +40,12 @@ export async function GET(request: NextRequest) {
         `);
 
     // Add columns if they don't exist (safe for existing deployments)
+    try {
+      await env.DB.exec(`ALTER TABLE generated_images ADD COLUMN original_r2_key TEXT;`);
+    } catch { /* column already exists */ }
+    try {
+      await env.DB.exec(`ALTER TABLE generated_images ADD COLUMN type TEXT DEFAULT 'generated';`);
+    } catch { /* column already exists */ }
     try {
       await env.DB.exec(`ALTER TABLE generated_images ADD COLUMN source_image_ids TEXT;`);
     } catch { /* column already exists */ }

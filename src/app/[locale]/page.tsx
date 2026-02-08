@@ -562,7 +562,7 @@ export default function Home() {
 
       if (!saveRes.ok) {
         const errData = await saveRes.json().catch(() => ({}));
-        throw new Error(errData.message || t('save_failed'));
+        throw new Error(errData.error || t('save_failed'));
       }
 
       setProgress(100);
