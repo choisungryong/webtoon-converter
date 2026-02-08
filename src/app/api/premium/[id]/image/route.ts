@@ -18,9 +18,9 @@ export async function GET(
       );
     }
 
-    // Get the R2 key from premium_webtoons table
+    // Look up in generated_images (premium images stored with type='premium')
     const row = (await env.DB.prepare(
-      `SELECT r2_key FROM premium_webtoons WHERE id = ?`
+      `SELECT r2_key FROM generated_images WHERE id = ?`
     )
       .bind(id)
       .first()) as { r2_key: string } | null;

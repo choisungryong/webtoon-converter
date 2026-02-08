@@ -49,12 +49,6 @@ export async function GET(request: NextRequest) {
     try {
       await env.DB.exec(`ALTER TABLE generated_images ADD COLUMN source_image_ids TEXT;`);
     } catch { /* column already exists */ }
-    try {
-      await env.DB.exec(`ALTER TABLE premium_webtoons ADD COLUMN episode_id TEXT;`);
-    } catch { /* column already exists */ }
-    try {
-      await env.DB.exec(`ALTER TABLE premium_webtoons ADD COLUMN panel_index INTEGER;`);
-    } catch { /* column already exists */ }
 
     return NextResponse.json({
       success: true,

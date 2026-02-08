@@ -281,9 +281,9 @@ export async function POST(request: NextRequest) {
         });
 
         await env.DB.prepare(
-          `INSERT INTO premium_webtoons (id, user_id, source_webtoon_id, r2_key, prompt, episode_id, panel_index) VALUES (?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO generated_images (id, user_id, r2_key, type, prompt) VALUES (?, ?, ?, ?, ?)`
         )
-          .bind(imageId, userId, sourceWebtoonId || null, r2Key, 'premium-conversion', episodeId || null, panelIndex ?? null)
+          .bind(imageId, userId, r2Key, 'premium', 'premium-conversion')
           .run();
 
         // If part of an episode, update episode's panel_ids and status

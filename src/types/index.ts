@@ -43,19 +43,10 @@ export interface GeneratedImageRow {
   r2_key: string;
   original_r2_key?: string;
   prompt?: string;
-  type: 'image' | 'webtoon';
+  type: 'generated' | 'webtoon' | 'premium';
   user_id?: string;
   source_image_ids?: string;
   created_at: number;
-}
-
-export interface PremiumWebtoonRow {
-  id: string;
-  r2_key: string;
-  source_webtoon_id?: string;
-  episode_id?: string;
-  panel_index?: number;
-  createdAt: number;
 }
 
 // ============================================
