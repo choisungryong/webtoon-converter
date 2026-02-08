@@ -7,8 +7,8 @@ export const runtime = 'edge';
 export async function POST(request: NextRequest) {
   try {
     const { env } = getRequestContext();
-    const body = (await request.json()) as { image: string; userId: string };
-    const { image, userId } = body;
+    const body = (await request.json()) as { image: string; userId: string; sourceImageIds?: string[] };
+    const { image, userId, sourceImageIds } = body;
 
     if (!image || !userId) {
       return NextResponse.json(
@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     // Save to DB - rollback R2 on failure
     try {
       await env.DB.prepare(
-        `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
+        `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
       )
-        .bind(imageId, r2Key, 'webtoon', userId)
+        .bind(imageId, r2Key, 'webtoon', userId, sourceImageIds ? JSON.stringify(sourceImageIds) : null)
         .run();
     } catch (dbError) {
       console.error('DB insert failed, rolling back R2:', dbError);

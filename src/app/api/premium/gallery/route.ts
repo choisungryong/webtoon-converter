@@ -23,12 +23,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // Fetch premium webtoons for user
+    const type = searchParams.get('type');
+
+    // Fetch episodes if requested
+    if (type === 'episodes') {
+      const epResult = await env.DB.prepare(
+        `SELECT id, title, story_data, panel_ids, status, created_at as createdAt
+         FROM premium_episodes
+         WHERE user_id = ?
+         ORDER BY created_at DESC
+         LIMIT 50`
+      ).bind(userId).all();
+
+      const episodes = (epResult.results || []).map((row: any) => {
+        const panelIds: string[] = JSON.parse(row.panel_ids || '[]');
+        const storyData = JSON.parse(row.story_data || '{}');
+        return {
+          id: row.id,
+          title: row.title || storyData.title,
+          panelCount: storyData.panels?.length || 0,
+          status: row.status,
+          thumbnailUrl: panelIds[0] ? `/api/premium/${panelIds[0]}/image` : null,
+          createdAt: row.createdAt,
+        };
+      });
+
+      return NextResponse.json({ episodes });
+    }
+
+    // Fetch premium webtoons for user (non-episode ones + all)
     const result = await env.DB.prepare(
-      `SELECT id, r2_key, source_webtoon_id, created_at as createdAt 
-             FROM premium_webtoons 
-             WHERE user_id = ? 
-             ORDER BY created_at DESC 
+      `SELECT id, r2_key, source_webtoon_id, episode_id, created_at as createdAt
+             FROM premium_webtoons
+             WHERE user_id = ?
+             ORDER BY created_at DESC
              LIMIT 50`
     )
       .bind(userId)
@@ -38,8 +66,9 @@ export async function GET(request: NextRequest) {
       id: row.id,
       r2_key: row.r2_key,
       source_webtoon_id: row.source_webtoon_id,
+      episode_id: row.episode_id,
       createdAt: row.createdAt,
-      url: `/api/premium/${row.id}/image`, // Use API endpoint instead of direct R2 URL
+      url: `/api/premium/${row.id}/image`,
     }));
 
     return NextResponse.json({ images });

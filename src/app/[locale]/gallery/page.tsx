@@ -21,7 +21,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import GlassCard from '../../../components/GlassCard';
 import WebtoonViewer from '../../../components/WebtoonViewer';
-import type { PanelLayout, KakaoSDK } from '../../../types';
+import EpisodeViewer from '../../../components/EpisodeViewer';
+import type { PanelLayout, KakaoSDK, EpisodeStoryData, PanelStory } from '../../../types';
 import { formatToKoreanDate, getRelativeDateLabel } from '../../../utils/dateUtils';
 import { downloadFile, generateTimestampedFilename } from '../../../utils/fileUtils';
 import { generateUUID, delay } from '../../../utils/commonUtils';
@@ -80,6 +81,16 @@ function GalleryContent() {
   const [premiumImages, setPremiumImages] = useState<GalleryImage[]>([]);
   const [loadingPremium, setLoadingPremium] = useState(false);
   const [convertingPremium, setConvertingPremium] = useState(false);
+
+  // Episode State
+  const [episodeCreating, setEpisodeCreating] = useState(false);
+  const [episodeStory, setEpisodeStory] = useState<EpisodeStoryData | null>(null);
+  const [episodeId, setEpisodeId] = useState<string | null>(null);
+  const [episodeProgress, setEpisodeProgress] = useState({ current: 0, total: 0 });
+  const [showStoryPreview, setShowStoryPreview] = useState(false);
+  const [showEpisodeViewer, setShowEpisodeViewer] = useState(false);
+  const [currentEpisode, setCurrentEpisode] = useState<any>(null);
+  const [episodes, setEpisodes] = useState<any[]>([]);
 
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -318,56 +329,168 @@ function GalleryContent() {
   useEffect(() => {
     if (userId && activeTab === 'premium') {
       fetchPremiumImages();
+      fetchEpisodes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, userId]);
 
-  // Premium Conversion
-  const handlePremiumConvert = async () => {
+  // Episode Creation - Stage 1: Generate Story
+  const handleCreateEpisode = async () => {
     if (!webtoonPreviewImage) return;
-    setConvertingPremium(true);
+    setEpisodeCreating(true);
 
     try {
       const currentUserId = localStorage.getItem('toonsnap_user_id');
 
-      // Convert image URL to Base64 Data URI
-      const imageUrl = webtoonPreviewImage.url;
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-      const res = await fetch('/api/premium/convert', {
+      const res = await fetch('/api/premium/episode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: base64, // Now sending Base64 Data URI
-          sourceWebtoonId: webtoonPreviewImage.id,
+          webtoonId: webtoonPreviewImage.id,
           userId: currentUserId,
+          locale: locale,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || 'Conversion failed');
+        if (data.error === 'NO_SOURCE_IMAGES') {
+          message.error(t('episode_no_source'));
+          return;
+        }
+        throw new Error(data.error || 'Story generation failed');
       }
 
-      message.success(t('premium_convert_success'));
-      setWebtoonPreviewImage(null);
-      setActiveTab('premium');
-      fetchPremiumImages();
+      setEpisodeStory(data.story);
+      setEpisodeId(data.episodeId);
+      setShowStoryPreview(true);
     } catch (err) {
-      console.error('Premium conversion error:', err);
-      const errorMessage = err instanceof Error ? err.message : t('premium_convert_fail');
-      message.error(errorMessage);
+      console.error('Episode creation error:', err);
+      message.error(t('episode_story_fail'));
+    } finally {
+      setEpisodeCreating(false);
+    }
+  };
+
+  // Episode Creation - Stage 2: Convert panels
+  const handleGenerateEpisode = async () => {
+    if (!episodeStory || !episodeId || !webtoonPreviewImage) return;
+    setShowStoryPreview(false);
+    setConvertingPremium(true);
+    const totalPanels = episodeStory.panels.length;
+    setEpisodeProgress({ current: 0, total: totalPanels });
+
+    try {
+      const currentUserId = localStorage.getItem('toonsnap_user_id');
+
+      // Get source image IDs from the webtoon
+      const webtoonRow = images.find((img) => img.id === webtoonPreviewImage.id);
+      // We need to fetch the source images from the gallery
+      const sourceRes = await fetch(`/api/gallery?type=image&userId=${currentUserId}`);
+      const sourceData = await sourceRes.json();
+      const sourceImages: GalleryImage[] = sourceData.images || [];
+
+      let styleReference: string | undefined;
+      const panelResults: any[] = [];
+
+      for (let i = 0; i < totalPanels; i++) {
+        setEpisodeProgress({ current: i + 1, total: totalPanels });
+        const panel = episodeStory.panels[i];
+
+        // Find the source image for this panel
+        // source_image_ids are stored in the webtoon, panels map 1:1
+        // We need to fetch each source image as base64
+        const imgUrl = sourceImages[i]?.url;
+        if (!imgUrl) continue;
+
+        const response = await fetch(imgUrl);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        const storyDirection = `Camera: ${panel.cameraDirection}. Emotion: ${panel.emotion}. Scene: ${panel.sceneDescription}`;
+
+        const convertRes = await fetch('/api/premium/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64,
+            sourceWebtoonId: webtoonPreviewImage.id,
+            userId: currentUserId,
+            storyDirection,
+            episodeId,
+            panelIndex: i,
+            styleReference: i > 0 ? styleReference : undefined,
+          }),
+        });
+
+        const convertData = await convertRes.json();
+
+        if (convertRes.ok && convertData.success) {
+          panelResults.push({
+            ...panel,
+            imageId: convertData.imageId,
+            imageUrl: `/api/premium/${convertData.imageId}/image`,
+          });
+
+          // Save first panel result as style reference
+          if (i === 0 && convertData.imageId) {
+            styleReference = convertData.imageId;
+          }
+        } else {
+          panelResults.push({ ...panel, imageId: null, imageUrl: null });
+        }
+      }
+
+      // Show episode viewer with results
+      setCurrentEpisode({
+        id: episodeId,
+        title: episodeStory.title,
+        synopsis: episodeStory.synopsis,
+        panels: panelResults,
+      });
+      setWebtoonPreviewImage(null);
+      setShowEpisodeViewer(true);
+      message.success(t('episode_complete'));
+      fetchEpisodes();
+    } catch (err) {
+      console.error('Episode generation error:', err);
+      message.error(t('episode_story_fail'));
     } finally {
       setConvertingPremium(false);
+      setEpisodeProgress({ current: 0, total: 0 });
+    }
+  };
+
+  // Fetch episodes for premium tab
+  const fetchEpisodes = async () => {
+    try {
+      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const res = await fetch(`/api/premium/gallery?userId=${currentUserId}&type=episodes`);
+      const data = await res.json();
+      setEpisodes(data.episodes || []);
+    } catch (err) {
+      console.error('Episodes fetch error:', err);
+    }
+  };
+
+  // Load episode detail and show viewer
+  const handleViewEpisode = async (epId: string) => {
+    try {
+      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const res = await fetch(`/api/premium/episode/${epId}?userId=${currentUserId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentEpisode(data);
+        setShowEpisodeViewer(true);
+      }
+    } catch (err) {
+      console.error('Episode load error:', err);
     }
   };
 
@@ -376,7 +499,8 @@ function GalleryContent() {
     if (!window.confirm(t('premium_delete_confirm'))) return;
 
     try {
-      const res = await fetch(`/api/premium/gallery?id=${imageId}`, {
+      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const res = await fetch(`/api/premium/gallery?id=${imageId}&userId=${currentUserId}`, {
         method: 'DELETE',
       });
 
@@ -485,10 +609,12 @@ function GalleryContent() {
       // 5. Save to Server
       const userId = localStorage.getItem('toonsnap_user_id');
       if (userId) {
+        // Pass source image IDs in selection order for episode creation later
+        const sortedIds = sortedSelectedImages.map((img) => img.id);
         const res = await fetch('/api/webtoon/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: webtoonDataUrl, userId }),
+          body: JSON.stringify({ image: webtoonDataUrl, userId, sourceImageIds: sortedIds }),
         });
 
         if (!res.ok) {
@@ -523,8 +649,10 @@ function GalleryContent() {
 
     setDeleting(imageId);
     try {
-      const res = await fetch(`/api/gallery/${imageId}`, {
+      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const res = await fetch(`/api/gallery/${imageId}?userId=${currentUserId}`, {
         method: 'DELETE',
+        headers: currentUserId ? { 'x-user-id': currentUserId } : {},
       });
 
       if (!res.ok) {
@@ -561,10 +689,12 @@ function GalleryContent() {
 
     setDeleting('bulk');
     try {
+      const currentUserId = localStorage.getItem('toonsnap_user_id');
       const results = await Promise.all(
         selectedImages.map((id) =>
-          fetch(`/api/gallery/${id}`, {
+          fetch(`/api/gallery/${id}?userId=${currentUserId}`, {
             method: 'DELETE',
+            headers: currentUserId ? { 'x-user-id': currentUserId } : {},
           }).then((res) => ({ id, ok: res.ok }))
         )
       );
@@ -677,62 +807,110 @@ function GalleryContent() {
         {/* Gallery Content */}
         <div key={activeTab} className="section-enter">
         {activeTab === 'premium' ? (
-          // Premium Gallery
+          // Premium Gallery with Episodes
           loadingPremium ? (
             <div className="flex justify-center py-20">
               <Spin size="large" />
             </div>
-          ) : premiumImages.length > 0 ? (
-            <div className="gallery-grid">
-              {premiumImages.map((img) => (
-                <div
-                  key={img.id}
-                  className="webtoon-preview-card group"
-                  onClick={() => {
-                    setPremiumPreviewImage({
-                      ...img,
-                      created_at: img.createdAt,
-                    } as any);
-                  }}
-                >
-                  <Image
-                    src={img.url}
-                    alt="Premium Webtoon"
-                    fill
-                    className="object-cover object-top"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  />
-                  <div className="webtoon-preview-blur" />
-                  {/* Premium Badge */}
-                  <div className="premium-badge rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {t('pro_badge')}
-                  </div>
-                  {/* Delete Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePremiumDelete(img.id);
-                    }}
-                    className="delete-btn flex size-6 items-center justify-center rounded-full bg-red-500/80 text-xs text-white opacity-0 transition-opacity hover:bg-red-500 group-hover:opacity-100"
-                  >
-                    <DeleteOutlined />
-                  </button>
-                </div>
-              ))}
-            </div>
           ) : (
-            <GlassCard className="py-16 text-center">
-              <p className="mb-4 text-lg text-gray-400">{t('no_premium')}</p>
-              <p className="mb-4 text-sm text-gray-500">
-                {t('no_premium_desc')}
-              </p>
-              <button
-                onClick={() => setActiveTab('webtoon')}
-                className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 font-bold text-white"
-              >
-                {t('go_to_mywebtoon')}
-              </button>
-            </GlassCard>
+            <div className="space-y-6">
+              {/* Episodes Section */}
+              {episodes.length > 0 && (
+                <div>
+                  <h3 className="mb-3 text-sm font-medium text-gray-400">{t('episode_section_title')}</h3>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {episodes.map((ep) => (
+                      <div
+                        key={ep.id}
+                        onClick={() => handleViewEpisode(ep.id)}
+                        className="group cursor-pointer overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-b from-purple-500/10 to-transparent transition-all hover:border-purple-500/40"
+                      >
+                        {ep.thumbnailUrl ? (
+                          <div className="relative aspect-[3/4]">
+                            <Image
+                              src={ep.thumbnailUrl}
+                              alt={ep.title}
+                              fill
+                              className="object-cover object-top"
+                              sizes="(max-width: 640px) 50vw, 33vw"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                          </div>
+                        ) : (
+                          <div className="flex aspect-[3/4] items-center justify-center bg-gray-900">
+                            <span className="text-3xl">📖</span>
+                          </div>
+                        )}
+                        <div className="p-2">
+                          <p className="truncate text-xs font-bold text-white">{ep.title}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {t('episode_panel_count', { count: ep.panelCount })}
+                            {ep.status !== 'complete' && ` · ${ep.status}`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual Premium Images */}
+              {premiumImages.length > 0 ? (
+                <div>
+                  {episodes.length > 0 && (
+                    <h3 className="mb-3 text-sm font-medium text-gray-400">{t('pro_badge')}</h3>
+                  )}
+                  <div className="gallery-grid">
+                    {premiumImages.filter((img) => !(img as any).episode_id).map((img) => (
+                      <div
+                        key={img.id}
+                        className="webtoon-preview-card group"
+                        onClick={() => {
+                          setPremiumPreviewImage({
+                            ...img,
+                            created_at: img.createdAt,
+                          } as any);
+                        }}
+                      >
+                        <Image
+                          src={img.url}
+                          alt="Premium Webtoon"
+                          fill
+                          className="object-cover object-top"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                        <div className="webtoon-preview-blur" />
+                        <div className="premium-badge rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          {t('pro_badge')}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePremiumDelete(img.id);
+                          }}
+                          className="delete-btn flex size-6 items-center justify-center rounded-full bg-red-500/80 text-xs text-white opacity-0 transition-opacity hover:bg-red-500 group-hover:opacity-100"
+                        >
+                          <DeleteOutlined />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : episodes.length === 0 ? (
+                <GlassCard className="py-16 text-center">
+                  <p className="mb-4 text-lg text-gray-400">{t('episode_no_episodes')}</p>
+                  <p className="mb-4 text-sm text-gray-500">
+                    {t('episode_no_episodes_desc')}
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('webtoon')}
+                    className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 font-bold text-white"
+                  >
+                    {t('go_to_mywebtoon')}
+                  </button>
+                </GlassCard>
+              ) : null}
+            </div>
           )
         ) : loading ? (
           <div className="flex justify-center py-20">
@@ -1057,7 +1235,7 @@ function GalleryContent() {
                 <div className="font-medium text-white">📖 {t('webtoon_viewer_title')}</div>
                 <span className="text-sm text-gray-400">
                   {new Date(
-                    (webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at) * 1000
+                    webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at
                   ).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -1084,17 +1262,28 @@ function GalleryContent() {
                 </div>
               </div>
 
-              {/* Converting Status Bar */}
-              {convertingPremium && (
+              {/* Episode Creating Status Bar */}
+              {(episodeCreating || convertingPremium) && (
                 <div className="border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-4 py-3">
                   <div className="flex items-center justify-center gap-2 text-white">
                     <Spin size="small" />
-                    <span className="text-sm font-medium">{t('premium_converting')}</span>
+                    <span className="text-sm font-medium">
+                      {episodeCreating
+                        ? t('episode_generating_story')
+                        : episodeProgress.total > 0
+                          ? t('episode_converting_panel', { current: episodeProgress.current, total: episodeProgress.total })
+                          : t('premium_converting')}
+                    </span>
                   </div>
                   <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/20">
                     <div
-                      className="h-full animate-pulse bg-gradient-to-r from-purple-500 to-pink-500"
-                      style={{ width: '60%' }}
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                      style={{
+                        width: episodeProgress.total > 0
+                          ? `${(episodeProgress.current / episodeProgress.total) * 100}%`
+                          : '60%',
+                        animation: episodeProgress.total > 0 ? 'none' : 'pulse 2s infinite',
+                      }}
                     ></div>
                   </div>
                 </div>
@@ -1132,14 +1321,14 @@ function GalleryContent() {
                   </button>
 
                   <div className="flex gap-2">
-                    {/* Premium Button - Only for non-premium */}
+                    {/* Episode Create Button - Only for non-premium webtoons */}
                     {!isPremiumPreview && (
                       <button
-                        onClick={handlePremiumConvert}
-                        disabled={convertingPremium}
+                        onClick={handleCreateEpisode}
+                        disabled={episodeCreating || convertingPremium}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/40 active:scale-95 disabled:opacity-50"
                       >
-                        <StarFilled /> {t('premium_convert_btn')}
+                        <StarFilled /> {t('create_episode')}
                       </button>
                     )}
                     <button
@@ -1222,7 +1411,7 @@ function GalleryContent() {
                 </div>
                 <span className="text-sm text-gray-400">
                   {new Date(
-                    (premiumPreviewImage.createdAt || premiumPreviewImage.created_at) * 1000
+                    premiumPreviewImage.createdAt || premiumPreviewImage.created_at
                   ).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'long',
@@ -1494,7 +1683,7 @@ function GalleryContent() {
                 <div className="mb-6 overflow-hidden rounded-xl border border-white/10 shadow-lg">
                   <Image
                     src={images[0]?.url}
-                    alt="변환 결과"
+                    alt="Result"
                     width={500}
                     height={300}
                     className="max-h-48 w-full object-cover"
@@ -1502,7 +1691,7 @@ function GalleryContent() {
                 </div>
               )}
 
-            {/* Premium 유도 (웹툰 탭일 때만) */}
+            {/* Episode 유도 (웹툰 탭일 때만) */}
             {activeTab === 'webtoon' && (
               <div className="mb-4 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
                 <div className="mb-2 flex items-center justify-center gap-2">
@@ -1522,7 +1711,6 @@ function GalleryContent() {
               onClick={() => {
                 setShowResultModal(false);
                 setHighlightLatest(true);
-                // 5초 후 하이라이트 자동 해제
                 setTimeout(() => setHighlightLatest(false), 5000);
               }}
               className="w-full rounded-xl bg-neonYellow py-3 font-bold text-black transition-all hover:bg-[#bbe600] active:scale-95"
@@ -1530,6 +1718,173 @@ function GalleryContent() {
               {t('confirm_btn')}
             </button>
           </div>
+        </Modal>
+
+        {/* Story Preview Modal */}
+        <Modal
+          open={showStoryPreview}
+          onCancel={() => setShowStoryPreview(false)}
+          footer={null}
+          centered
+          width={500}
+          styles={{
+            content: {
+              background: '#1a1a1a',
+              padding: '0',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            },
+          }}
+          closeIcon={
+            <span className="mr-2 mt-2 flex size-8 items-center justify-center rounded-full bg-black/50 text-xl text-white">
+              ×
+            </span>
+          }
+        >
+          {episodeStory && (
+            <div className="flex flex-col overflow-hidden">
+              <div className="border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4">
+                <h3 className="text-lg font-bold text-white">{t('episode_story_title')}</h3>
+              </div>
+
+              <div className="flex-1 space-y-4 overflow-y-auto p-4" style={{ maxHeight: '60vh' }}>
+                {/* Title & Synopsis */}
+                <div>
+                  <h4 className="text-base font-bold text-white">{episodeStory.title}</h4>
+                  <p className="mt-1 text-sm text-gray-400">{episodeStory.synopsis}</p>
+                </div>
+
+                {/* Panel List */}
+                <div className="space-y-3">
+                  {episodeStory.panels.map((panel, i) => (
+                    <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="flex size-6 items-center justify-center rounded-full bg-purple-500/20 text-xs font-bold text-purple-400">
+                          {i + 1}
+                        </span>
+                        <span className="text-xs text-gray-500">{panel.cameraDirection} · {panel.emotion}</span>
+                      </div>
+                      {panel.dialogue && (
+                        <p className="text-sm text-white">
+                          <span className="mr-1 text-xs text-gray-500">{t('episode_panel_dialogue')}:</span>
+                          &ldquo;{panel.dialogue}&rdquo;
+                        </p>
+                      )}
+                      {panel.narration && (
+                        <p className="text-xs italic text-gray-400">
+                          <span className="mr-1 not-italic text-gray-500">{t('episode_panel_narration')}:</span>
+                          {panel.narration}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 bg-[#1a1a1a] p-4">
+                <button
+                  onClick={handleGenerateEpisode}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 py-3 font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95"
+                >
+                  <StarFilled /> {t('episode_confirm_generate')}
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Episode Viewer Modal */}
+        <Modal
+          open={showEpisodeViewer}
+          onCancel={() => {
+            setShowEpisodeViewer(false);
+            setCurrentEpisode(null);
+          }}
+          footer={null}
+          width={600}
+          centered
+          style={{ maxWidth: '95vw', padding: 0 }}
+          styles={{
+            content: {
+              background: '#0a0a0a',
+              padding: '0',
+              borderRadius: '12px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            },
+            body: {
+              padding: 0,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              overflowY: 'auto',
+            },
+          }}
+          closeIcon={
+            <span className="absolute right-3 top-3 z-50 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/60 text-xl text-white hover:bg-black/80">
+              ×
+            </span>
+          }
+        >
+          {currentEpisode && (
+            <div className="flex h-full flex-col">
+              <div className="flex-1 overflow-y-auto">
+                <EpisodeViewer
+                  title={currentEpisode.title}
+                  synopsis={currentEpisode.synopsis}
+                  panels={currentEpisode.panels}
+                  editable={true}
+                  onUpdateDialogue={async (panelIndex, dialogue) => {
+                    if (!currentEpisode) return;
+                    const updatedPanels = [...currentEpisode.panels];
+                    updatedPanels[panelIndex] = { ...updatedPanels[panelIndex], dialogue };
+                    setCurrentEpisode({ ...currentEpisode, panels: updatedPanels });
+
+                    // Save to server
+                    const currentUserId = localStorage.getItem('toonsnap_user_id');
+                    const storyData = {
+                      title: currentEpisode.title,
+                      synopsis: currentEpisode.synopsis,
+                      panels: updatedPanels.map((p: any) => ({
+                        panelIndex: p.panelIndex,
+                        dialogue: p.dialogue,
+                        narration: p.narration,
+                        bubbleStyle: p.bubbleStyle,
+                        cameraDirection: p.cameraDirection,
+                        emotion: p.emotion,
+                        sceneDescription: p.sceneDescription,
+                      })),
+                    };
+                    try {
+                      await fetch(`/api/premium/episode/${currentEpisode.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: currentUserId, storyData }),
+                      });
+                    } catch { /* best effort */ }
+                  }}
+                />
+              </div>
+              <div className="border-t border-white/10 bg-[#1a1a1a] p-3">
+                <button
+                  onClick={() => {
+                    setShowEpisodeViewer(false);
+                    setCurrentEpisode(null);
+                  }}
+                  className="w-full rounded-xl bg-white/10 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/20"
+                >
+                  {t('close_btn')}
+                </button>
+              </div>
+            </div>
+          )}
         </Modal>
       </div>
     </main>

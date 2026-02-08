@@ -45,6 +45,7 @@ export interface GeneratedImageRow {
   prompt?: string;
   type: 'image' | 'webtoon';
   user_id?: string;
+  source_image_ids?: string;
   created_at: number;
 }
 
@@ -52,7 +53,40 @@ export interface PremiumWebtoonRow {
   id: string;
   r2_key: string;
   source_webtoon_id?: string;
+  episode_id?: string;
+  panel_index?: number;
   createdAt: number;
+}
+
+// ============================================
+// Episode Types
+// ============================================
+
+export interface PanelStory {
+  panelIndex: number;
+  dialogue: string | null;
+  narration: string | null;
+  bubbleStyle: 'normal' | 'thought' | 'shout';
+  cameraDirection: string;
+  emotion: string;
+  sceneDescription: string;
+}
+
+export interface EpisodeStoryData {
+  title: string;
+  synopsis: string;
+  panels: PanelStory[];
+}
+
+export interface PremiumEpisodeRow {
+  id: string;
+  user_id: string;
+  title: string | null;
+  story_data: string;
+  source_webtoon_id: string | null;
+  panel_ids: string;
+  status: 'pending' | 'generating' | 'complete' | 'failed';
+  created_at: number;
 }
 
 export interface QnaPostRow {

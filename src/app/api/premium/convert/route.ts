@@ -148,9 +148,13 @@ export async function POST(request: NextRequest) {
       image: string;
       sourceWebtoonId?: string;
       userId: string;
+      storyDirection?: string;
+      episodeId?: string;
+      panelIndex?: number;
+      styleReference?: string;
     };
 
-    const { image, sourceWebtoonId, userId } = body;
+    const { image, sourceWebtoonId, userId, storyDirection, episodeId, panelIndex, styleReference } = body;
 
     if (!image || !userId) {
       return NextResponse.json(
@@ -218,6 +222,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Append story direction to prompt if provided (episode mode)
+    if (storyDirection) {
+      premiumPrompt += `\n\nSTORY DIRECTION FOR THIS PANEL:\n${storyDirection}`;
+    }
+
     // Call Gemini with retry logic
     let result: { imageBase64: string; mimeType: string } | null = null;
 
@@ -230,7 +239,7 @@ export async function POST(request: NextRequest) {
       const attemptPrompt = attempt > 0
         ? `IMPORTANT: You MUST generate a new premium-quality illustrated image. Do NOT return the original or a photo-like result.\n\n${premiumPrompt}`
         : premiumPrompt;
-      const attemptTemp = attempt > 0 ? 1.2 : 1.0;
+      const attemptTemp = attempt > 0 ? 1.2 : (styleReference ? 0.8 : 1.0);
 
       try {
         result = await callGeminiPremium(apiKey, inputBase64, inputMimeType, attemptPrompt, attemptTemp);
@@ -272,10 +281,35 @@ export async function POST(request: NextRequest) {
         });
 
         await env.DB.prepare(
-          `INSERT INTO premium_webtoons (id, user_id, source_webtoon_id, r2_key, prompt) VALUES (?, ?, ?, ?, ?)`
+          `INSERT INTO premium_webtoons (id, user_id, source_webtoon_id, r2_key, prompt, episode_id, panel_index) VALUES (?, ?, ?, ?, ?, ?, ?)`
         )
-          .bind(imageId, userId, sourceWebtoonId || null, r2Key, 'premium-conversion')
+          .bind(imageId, userId, sourceWebtoonId || null, r2Key, 'premium-conversion', episodeId || null, panelIndex ?? null)
           .run();
+
+        // If part of an episode, update episode's panel_ids and status
+        if (episodeId && panelIndex !== undefined) {
+          try {
+            const epRow = await env.DB.prepare(
+              `SELECT panel_ids, story_data FROM premium_episodes WHERE id = ? AND user_id = ?`
+            ).bind(episodeId, userId).first() as any;
+
+            if (epRow) {
+              const panelIds: string[] = JSON.parse(epRow.panel_ids || '[]');
+              panelIds[panelIndex] = imageId;
+
+              const storyData = JSON.parse(epRow.story_data || '{}');
+              const totalPanels = storyData.panels?.length || 0;
+              const completedPanels = panelIds.filter(Boolean).length;
+              const newStatus = completedPanels >= totalPanels ? 'complete' : 'generating';
+
+              await env.DB.prepare(
+                `UPDATE premium_episodes SET panel_ids = ?, status = ? WHERE id = ?`
+              ).bind(JSON.stringify(panelIds), newStatus, episodeId).run();
+            }
+          } catch (epErr) {
+            console.error('[Premium/Convert] Episode update error:', epErr);
+          }
+        }
 
         saved = true;
         console.log('[Premium/Convert] Saved to R2 and DB:', imageId);

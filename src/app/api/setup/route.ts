@@ -18,11 +18,35 @@ export async function GET(request: NextRequest) {
                 r2_key TEXT NOT NULL,
                 prompt TEXT,
                 user_id TEXT,
+                source_image_ids TEXT,
                 created_at INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
             );
             CREATE INDEX IF NOT EXISTS idx_user_id ON generated_images(user_id);
             CREATE INDEX IF NOT EXISTS idx_created_at ON generated_images(created_at);
+
+            CREATE TABLE IF NOT EXISTS premium_episodes (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                title TEXT,
+                story_data TEXT NOT NULL,
+                source_webtoon_id TEXT,
+                panel_ids TEXT DEFAULT '[]',
+                status TEXT DEFAULT 'pending',
+                created_at INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
+            );
+            CREATE INDEX IF NOT EXISTS idx_episodes_user ON premium_episodes(user_id);
         `);
+
+    // Add columns if they don't exist (safe for existing deployments)
+    try {
+      await env.DB.exec(`ALTER TABLE generated_images ADD COLUMN source_image_ids TEXT;`);
+    } catch { /* column already exists */ }
+    try {
+      await env.DB.exec(`ALTER TABLE premium_webtoons ADD COLUMN episode_id TEXT;`);
+    } catch { /* column already exists */ }
+    try {
+      await env.DB.exec(`ALTER TABLE premium_webtoons ADD COLUMN panel_index INTEGER;`);
+    } catch { /* column already exists */ }
 
     return NextResponse.json({
       success: true,
