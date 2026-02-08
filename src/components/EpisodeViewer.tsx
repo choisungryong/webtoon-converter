@@ -35,15 +35,9 @@ function BubbleOverlay({
 
   if (!dialogue && !editable) return null;
 
-  const bubbleClasses = {
-    normal: 'bg-white text-black border-2 border-black rounded-[50%] px-4 py-2',
-    thought: 'bg-white/90 text-gray-700 border-2 border-dashed border-gray-400 rounded-[50%] px-4 py-2',
-    shout: 'bg-black text-white font-black px-4 py-2 rounded-lg',
-  };
-
   if (editing && editable) {
     return (
-      <div className="absolute left-1/2 top-4 z-20 -translate-x-1/2">
+      <div className="absolute left-1/2 top-[35%] z-20 -translate-x-1/2">
         <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-xl">
           <input
             type="text"
@@ -67,12 +61,62 @@ function BubbleOverlay({
     );
   }
 
+  // Bubble styles per type
+  const bubbleContent = (
+    <span className="relative z-10">{dialogue || '...'}</span>
+  );
+
+  if (bubbleStyle === 'shout') {
+    return (
+      <div
+        className={`absolute left-1/2 top-[30%] z-10 -translate-x-1/2 ${editable ? 'cursor-pointer hover:ring-2 hover:ring-neonYellow' : ''}`}
+        onClick={() => editable && setEditing(true)}
+      >
+        <div className="relative bg-black px-5 py-2 text-center text-sm font-black text-white shadow-lg"
+          style={{ clipPath: 'polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%)' }}
+        >
+          {bubbleContent}
+        </div>
+      </div>
+    );
+  }
+
+  const isThought = bubbleStyle === 'thought';
+
   return (
     <div
-      className={`absolute left-1/2 top-4 z-10 max-w-[70%] -translate-x-1/2 text-center text-sm font-bold shadow-lg ${bubbleClasses[bubbleStyle]} ${editable ? 'cursor-pointer hover:ring-2 hover:ring-neonYellow' : ''}`}
+      className={`absolute left-1/2 top-[30%] z-10 -translate-x-1/2 ${editable ? 'cursor-pointer hover:ring-2 hover:ring-neonYellow' : ''}`}
       onClick={() => editable && setEditing(true)}
     >
-      {dialogue || '...'}
+      {/* Bubble body */}
+      <div
+        className={`relative max-w-[70vw] text-center text-sm font-bold shadow-lg ${
+          isThought
+            ? 'rounded-[50%] border-2 border-dashed border-gray-400 bg-white/90 px-5 py-3 text-gray-700'
+            : 'rounded-[50%] border-2 border-black bg-white px-5 py-3 text-black'
+        }`}
+      >
+        {bubbleContent}
+      </div>
+      {/* Tail pointing down toward character */}
+      {isThought ? (
+        <div className="flex flex-col items-center">
+          <div className="mt-1 h-2.5 w-2.5 rounded-full bg-white/90 shadow" />
+          <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white/90 shadow" />
+        </div>
+      ) : (
+        <div className="flex justify-center">
+          <div
+            className="h-0 w-0"
+            style={{
+              borderLeft: '8px solid transparent',
+              borderRight: '8px solid transparent',
+              borderTop: '12px solid white',
+              filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
