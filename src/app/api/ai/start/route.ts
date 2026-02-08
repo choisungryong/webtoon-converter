@@ -39,88 +39,97 @@ export async function GET(request: NextRequest) {
   });
 }
 
-/**
- * Build the style prompt for the given styleId.
- * Prompts are structured following Google's recommendation:
- *   1. Core instruction (what to do) at the top
- *   2. Detailed style description (narrative, descriptive)
- *   3. Anatomy/quality guardrails at the bottom
- */
-function buildPrompt(styleId: string, customPrompt?: string): string {
-  const ANATOMY_GUARDRAILS = `
-ANATOMY & FRAMING RULES:
-- Correct human anatomy: 2 arms, 2 legs, 2 hands with 5 fingers each
-- Normal proportions, no extra or missing limbs
-- Keep hidden body parts hidden — do not invent anatomy
-- Maintain the same framing as the original photo`;
+// ============ Prompt Engineering ============
 
+const COMMON_RULES = `
+CRITICAL RULES (MUST FOLLOW):
+1. You are an ILLUSTRATOR, not a photo editor. DRAW everything from scratch.
+2. DO NOT paste, composite, or filter the original photo in any way.
+3. DO NOT return a photorealistic or photo-like image. The output must look hand-drawn.
+4. Preserve the exact same composition, poses, facial expressions, and number of people.
+5. Do NOT add any text, speech bubbles, logos, or watermarks.
+6. Correct human anatomy: 5 fingers per hand, proper proportions, no extra limbs.
+7. Maintain the original photo's aspect ratio and framing.`;
+
+function buildPrompt(styleId: string): string {
   const STYLE_PROMPTS: Record<string, string> = {
-    watercolor: `Completely redraw this photograph as a hand-painted Studio Ghibli-style illustration. Do not apply a filter — create an entirely new illustrated image from scratch.
+    watercolor: `TASK: Redraw this photograph as a hand-painted anime illustration in the style of Studio Ghibli films.
 
-STYLE: Soft watercolor washes with warm pastel colors reminiscent of Hayao Miyazaki films. Gentle pencil-like outlines define each shape. Characters have large expressive anime eyes and clumped stylized hair strands. Shading is flat cel-shading with no realistic skin texture or photographic gradients. The background should be reimagined as a lush, dreamy Ghibli-esque landscape with simplified illustrated shapes.
+ART STYLE SPECIFICATION:
+- Line art: Soft, gentle pencil-like outlines with varying thickness (thin for details, thicker for silhouettes)
+- Coloring: Soft watercolor washes with warm pastel tones — peach skin, warm yellows, soft greens, sky blues
+- Shading: Simple 2-tone cel-shading with soft edges, NO photographic gradients or realistic skin textures
+- Eyes: Large, round, expressive anime-style eyes with highlight dots
+- Hair: Simplified into flowing clumped strands with soft color gradients
+- Background: Reimagined as a dreamy, simplified illustrated landscape with soft atmospheric perspective
+- Overall feel: Warm, nostalgic, peaceful — like a frame from a Miyazaki film
 
-OUTPUT REQUIREMENTS:
-- The result must be a 100% ILLUSTRATED PAINTING, not a photo with effects
-- Preserve the original composition, character poses, and expressions
-- Do not add any text, speech bubbles, or watermarks
-${ANATOMY_GUARDRAILS}`,
+COLOR PALETTE: Warm pastels — #F4E4C9 (skin), #8CC084 (nature), #87CEEB (sky), #FFD700 (warm light), #E8A87C (blush)
+${COMMON_RULES}`,
 
-    'cinematic-noir': `Completely redraw this photograph as a gritty Korean thriller manhwa panel in the style of webtoons like "Bastard" or "Sweet Home". Do not apply a filter — illustrate everything from scratch.
+    'cinematic-noir': `TASK: Redraw this photograph as a dark Korean crime thriller manhwa panel, similar to "Bastard" or "Sweet Home".
 
-STYLE: Heavy bold black ink lines with dramatic chiaroscuro lighting. Skin rendered as smooth flat color blocks, clothes as solid shadow/light shapes. Pitch-black shadows dominate the composition. The atmosphere is dark and tense with drawn film grain or rain effects. The overall mood evokes a Korean crime thriller webtoon.
+ART STYLE SPECIFICATION:
+- Line art: Heavy, bold black ink strokes with sharp angular lines and aggressive hatching for shadows
+- Coloring: Very limited desaturated palette — mostly blacks, dark grays, muted blues, with occasional red accents
+- Shading: Extreme chiaroscuro — 70% of the image should be deep shadows, dramatic directional lighting
+- Faces: Sharp angular features, intense narrow eyes, defined jawlines, minimal expression lines for tension
+- Background: Dark atmospheric environments with drawn rain/grain effects, urban decay elements
+- Overall feel: Tense, oppressive, dangerous — like a Korean noir thriller
 
-OUTPUT REQUIREMENTS:
-- The result must be a hand-inked WEBTOON PANEL, not a processed photograph
-- Preserve the original composition, character poses, and expressions
-- Do not add any text, speech bubbles, or watermarks
-${ANATOMY_GUARDRAILS}`,
+COLOR PALETTE: Dark and desaturated — #1A1A2E (deep dark), #16213E (dark blue), #0F3460 (midnight), #E94560 (blood red accent), #2C2C2C (shadow)
+${COMMON_RULES}`,
 
-    'dark-fantasy': `Completely redraw this photograph as an action manhwa panel in the style of "Solo Leveling" or "Tower of God". Do not apply a filter — illustrate everything from scratch.
+    'dark-fantasy': `TASK: Redraw this photograph as a high-action Korean fantasy manhwa panel, similar to "Solo Leveling" or "Tower of God".
 
-STYLE: Razor-sharp digital inking with high contrast between cool-toned darks and neon accent highlights (blue, purple glow). Characters should look like powerful manhwa protagonists with sharp angular jawlines and intense glowing eyes. Add dynamic energy auras and speed line effects. The color palette is dominated by deep blues, blacks, and electric purple accents.
+ART STYLE SPECIFICATION:
+- Line art: Razor-sharp precise digital inking with dynamic line weight variation — bold for characters, thin for energy effects
+- Coloring: Rich deep colors with dramatic neon accent glows — electric blue, purple, cyan energy effects
+- Shading: Multi-layer cel-shading with sharp transitions, dramatic rim lighting, volumetric light effects
+- Characters: Sharp angular features, intense glowing eyes, powerful confident expressions, stylized proportions
+- Effects: Add subtle energy aura glow around characters, faint speed lines or particle effects in background
+- Background: Dark atmospheric with depth, complementary cool tones, subtle magical particle effects
+- Overall feel: Powerful, epic, cinematic — like a key action scene from a popular manhwa
 
-OUTPUT REQUIREMENTS:
-- The result must be a dynamic ACTION MANHWA ILLUSTRATION, not a photo with effects
-- Preserve the original composition, character poses, and expressions
-- Do not add any text, speech bubbles, or watermarks
-${ANATOMY_GUARDRAILS}`,
+COLOR PALETTE: Dark with neon accents — #0D0D2B (deep dark), #4361EE (electric blue), #7B2FF7 (purple glow), #00D4FF (cyan), #1A1A3E (dark base)
+${COMMON_RULES}`,
 
-    'elegant-fantasy': `Completely redraw this photograph as a romance fantasy (rofan) webtoon panel in the style of "Remarried Empress" or "Who Made Me a Princess". Do not apply a filter — illustrate everything from scratch.
+    'elegant-fantasy': `TASK: Redraw this photograph as a luxury romance fantasy (rofan) webtoon panel, similar to "Remarried Empress" or "Who Made Me a Princess".
 
-STYLE: Delicate thin brownish outlines with idealized beautiful character designs in the shoujo manga tradition. Hair and eyes sparkle like jewels with soft highlights. The color palette centers on pink, gold, pastel purple, and soft whites. Clothing is rendered as elegant flowing fabrics. The background is transformed into a soft floral or palace-like illustrated scene with dreamy bokeh effects.
+ART STYLE SPECIFICATION:
+- Line art: Delicate, thin lines in warm brown/sepia tones (NOT black), elegant flowing curves
+- Coloring: Soft luxurious palette — rose pink, champagne gold, lavender, pearl white, soft cream
+- Shading: Gentle gradient shading with soft sparkle/glitter effects on hair and eyes
+- Eyes: Large jewel-like eyes with multiple highlight layers and color reflections, long detailed eyelashes
+- Hair: Flowing silky strands with individual highlight streaks, slight sparkle effects
+- Clothing: Elegant and detailed, rendered as flowing luxurious fabrics with soft folds
+- Background: Soft focus with flower petals, golden bokeh, or palace-like architectural elements
+- Overall feel: Beautiful, romantic, dreamy — like a high-production rofan webtoon
 
-OUTPUT REQUIREMENTS:
-- The result must be a beautiful ROMANCE WEBTOON ILLUSTRATION, not a photo with effects
-- Preserve the original composition, character poses, and expressions
-- Do not add any text, speech bubbles, or watermarks
-${ANATOMY_GUARDRAILS}`,
+COLOR PALETTE: Romantic luxury — #F8C8DC (rose pink), #FFD700 (gold), #E6E6FA (lavender), #FFF5EE (cream), #DDA0DD (plum)
+${COMMON_RULES}`,
 
-    'classic-webtoon': `Completely redraw this photograph as a standard Korean webtoon episode panel. Do not apply a filter — illustrate everything from scratch.
+    'classic-webtoon': `TASK: Redraw this photograph as a standard modern Korean webtoon panel, like "True Beauty" or "Lookism".
 
-STYLE: Clean digital art with bold uniform black outlines around every object and character. Flat cel-shading with simple distinct colors and no complex gradients. Character faces drawn in typical Korean webtoon anime style with slightly exaggerated expressions for readability. The background is simplified into clean illustrated shapes optimized for vertical-scroll mobile reading.
+ART STYLE SPECIFICATION:
+- Line art: Clean, uniform-weight black outlines around every object, character, and background element
+- Coloring: Flat solid colors with clear distinct fills, NO complex gradients — simple and clean
+- Shading: 2-tone flat cel-shading with crisp hard edges between light and shadow areas
+- Faces: Korean webtoon anime-style — slightly large eyes, small nose, expressive but clean features
+- Hair: Simplified into distinct flat-colored sections with minimal internal detail
+- Background: Simplified and cleaned up, using flat colors and basic shapes, screen-tone effects optional
+- Overall feel: Clean, readable, professional — optimized for mobile vertical scrolling
 
-OUTPUT REQUIREMENTS:
-- The result must be a 100% ILLUSTRATED COMIC PANEL, not a photo with effects
-- Preserve the original composition, character poses, and expressions
-- Do not add any text, speech bubbles, or watermarks
-${ANATOMY_GUARDRAILS}`,
+COLOR PALETTE: Clean and vibrant — use the dominant colors from the original photo, simplified into flat fills with good contrast
+${COMMON_RULES}`,
   };
 
-  return STYLE_PROMPTS[styleId] || customPrompt || `Completely redraw this photograph as a Korean webtoon comic illustration. Do not apply a filter — illustrate everything from scratch.
-
-STYLE: Clean bold black outlines, flat cel-shading colors, Korean webtoon anime-style character faces. Background redrawn as a simplified illustrated scene.
-
-OUTPUT REQUIREMENTS:
-- The result must be a 100% ILLUSTRATED DRAWING, not a photo with effects
-- Preserve the original composition, character poses, and expressions
-- Do not add any text, speech bubbles, or watermarks
-${ANATOMY_GUARDRAILS}`;
+  return STYLE_PROMPTS[styleId] || STYLE_PROMPTS['classic-webtoon'];
 }
 
 /**
  * Call Gemini API and extract generated image from response.
- * Optionally accepts a style reference image for multi-image consistency.
- * Returns { imageBase64, mimeType } or null if no image was generated.
+ * Uses TEXT+IMAGE modalities so the model can reason about style before generating.
  */
 async function callGemini(
   apiKey: string,
@@ -130,13 +139,18 @@ async function callGemini(
   temperature: number,
   styleRef?: { data: string; mimeType: string } | null,
 ): Promise<{ imageBase64: string; mimeType: string } | null> {
-  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
   // Build parts: [style reference (optional)] + [source photo] + [prompt]
   const parts: any[] = [];
+
   if (styleRef) {
+    // Style reference image comes first with clear label
+    parts.push({ text: '[STYLE REFERENCE IMAGE - match this exact art style]:' });
     parts.push({ inlineData: { mimeType: styleRef.mimeType, data: styleRef.data } });
+    parts.push({ text: '[SOURCE PHOTOGRAPH - redraw this in the above style]:' });
   }
+
   parts.push({ inlineData: { mimeType, data: base64Data } });
   parts.push({ text: prompt });
 
@@ -152,10 +166,9 @@ async function callGemini(
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig: {
-          responseModalities: ['IMAGE'],
+          // Allow TEXT+IMAGE so model can reason about style before drawing
+          responseModalities: ['TEXT', 'IMAGE'],
           temperature,
-          topP: 0.8,
-          topK: 40,
         },
         safetySettings: [
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -217,11 +230,21 @@ export async function POST(request: NextRequest) {
     }
 
     const { image, styleId = 'classic-webtoon', styleReference } = body;
-    let prompt = buildPrompt(styleId, body.prompt);
+    let prompt = buildPrompt(styleId);
 
-    // If a style reference is provided, prepend consistency instruction
+    // If a style reference is provided, add strong consistency instruction
     if (styleReference) {
-      prompt = `STYLE CONSISTENCY: The first image provided is a style reference — a previously converted illustration. You MUST match its exact art style, line weight, color palette, and shading technique when redrawing the second image (the photograph). The result should look like it belongs in the same webtoon episode as the reference.\n\n${prompt}`;
+      prompt = `STYLE CONSISTENCY REQUIREMENT (HIGHEST PRIORITY):
+The first image is a style reference — a previously converted illustration from this same series.
+You MUST exactly replicate:
+- The same line art thickness and style
+- The same color palette and saturation level
+- The same shading technique (number of tones, edge hardness)
+- The same level of detail and simplification
+- The same eye/face drawing style
+The result MUST look like it was drawn by the same artist in the same session.
+
+${prompt}`;
     }
 
     if (!image) {
@@ -286,11 +309,15 @@ export async function POST(request: NextRequest) {
         console.log(`[API/Start] Retry attempt ${attempt}/${MAX_RETRIES}`);
       }
 
-      // On retry: prepend emphasis and increase temperature for variation
       const attemptPrompt = isRetry
-        ? `IMPORTANT: You MUST generate a completely new illustrated image. Do NOT return the original photo or a photo-like result.\n\n${prompt}`
+        ? `IMPORTANT: Your previous attempt was rejected. You MUST generate a completely new ILLUSTRATED image that is clearly hand-drawn art, NOT a photograph or photo filter.\n\n${prompt}`
         : prompt;
-      const attemptTemperature = isRetry ? 1.2 : 1.0;
+
+      // Lower temperature when style reference present for consistency
+      // Higher on retry for more variation
+      let attemptTemperature = 1.0;
+      if (styleRef) attemptTemperature = 0.8; // More deterministic for consistency
+      if (isRetry) attemptTemperature = 1.2; // More creative on retry
 
       result = await callGemini(apiKey, base64Data, mimeType, attemptPrompt, attemptTemperature, styleRef);
 
