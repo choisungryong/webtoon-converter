@@ -49,7 +49,7 @@ const groupImagesByDate = (images: GalleryImage[]): Map<string, GalleryImage[]> 
   const groups = new Map<string, GalleryImage[]>();
 
   images.forEach((img) => {
-    const timestamp = img.createdAt || img.created_at || 0;
+    const timestamp = img.createdAt || img.created_at || Date.now();
     const dateKey = formatToKoreanDate(timestamp);
 
     if (!groups.has(dateKey)) {
@@ -1237,7 +1237,7 @@ function GalleryContent() {
               <div className="flex items-center justify-between border-b border-white/10 bg-[#1a1a1a] p-4">
                 <div className="font-medium text-white">📖 {t('webtoon_viewer_title')}</div>
                 <span className="text-sm text-gray-400">
-                  {formatToKoreanDate(webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at || 0)}
+                  {formatToKoreanDate(webtoonPreviewImage.createdAt || webtoonPreviewImage.created_at || Date.now())}
                 </span>
               </div>
 
@@ -1407,7 +1407,7 @@ function GalleryContent() {
                   </span>
                 </div>
                 <span className="text-sm text-gray-400">
-                  {formatToKoreanDate(premiumPreviewImage.createdAt || premiumPreviewImage.created_at || 0)}
+                  {formatToKoreanDate(premiumPreviewImage.createdAt || premiumPreviewImage.created_at || Date.now())}
                 </span>
               </div>
 

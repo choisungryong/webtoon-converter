@@ -79,17 +79,18 @@ export async function POST(request: NextRequest) {
 
     // Save to DB - rollback R2 on failure
     try {
+      const now = Date.now();
       if (sourceImageIds && sourceImageIds.length > 0) {
         await env.DB.prepare(
-          `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids) VALUES (?, ?, ?, ?, ?)`
+          `INSERT INTO generated_images (id, r2_key, type, user_id, source_image_ids, created_at) VALUES (?, ?, ?, ?, ?, ?)`
         )
-          .bind(imageId, r2Key, saveType, userId, JSON.stringify(sourceImageIds))
+          .bind(imageId, r2Key, saveType, userId, JSON.stringify(sourceImageIds), now)
           .run();
       } else {
         await env.DB.prepare(
-          `INSERT INTO generated_images (id, r2_key, type, user_id) VALUES (?, ?, ?, ?)`
+          `INSERT INTO generated_images (id, r2_key, type, user_id, created_at) VALUES (?, ?, ?, ?, ?)`
         )
-          .bind(imageId, r2Key, saveType, userId)
+          .bind(imageId, r2Key, saveType, userId, now)
           .run();
       }
     } catch (dbError) {

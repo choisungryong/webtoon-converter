@@ -16,7 +16,7 @@ export const formatToKoreanDate = (
     day: 'numeric',
   }
 ): string => {
-  if (!date) return '날짜 정보 없음';
+  if (date === null || date === undefined || date === '') return '날짜 정보 없음';
 
   let dateObj: Date;
 
