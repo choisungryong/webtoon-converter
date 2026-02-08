@@ -24,20 +24,28 @@ function BubbleOverlay({
   bubbleStyle,
   editable,
   onEdit,
+  panelIndex,
 }: {
   dialogue: string | null;
   bubbleStyle: 'normal' | 'thought' | 'shout';
   editable?: boolean;
   onEdit?: (text: string) => void;
+  panelIndex: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(dialogue || '');
 
   if (!dialogue && !editable) return null;
 
+  // Alternate left/right per panel for natural webtoon look
+  const isLeft = panelIndex % 2 === 0;
+  const horizontalPos = isLeft ? 'left-[12%]' : 'right-[12%]';
+  // Slight vertical variation per panel
+  const topPercent = 8 + (panelIndex % 3) * 4; // 8%, 12%, 16%
+
   if (editing && editable) {
     return (
-      <div className="absolute left-1/2 top-[35%] z-20 -translate-x-1/2">
+      <div className={`absolute ${horizontalPos} z-20`} style={{ top: `${topPercent}%` }}>
         <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-xl">
           <input
             type="text"
@@ -61,22 +69,22 @@ function BubbleOverlay({
     );
   }
 
-  // Bubble styles per type
-  const bubbleContent = (
-    <span className="relative z-10">{dialogue || '...'}</span>
-  );
+  const displayText = dialogue || '...';
 
   if (bubbleStyle === 'shout') {
     return (
       <div
-        className={`absolute left-1/2 top-[30%] z-10 -translate-x-1/2 ${editable ? 'cursor-pointer hover:ring-2 hover:ring-neonYellow' : ''}`}
+        className={`absolute ${horizontalPos} z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
+        style={{ top: `${topPercent}%` }}
         onClick={() => editable && setEditing(true)}
       >
-        <div className="relative bg-black px-5 py-2 text-center text-sm font-black text-white shadow-lg"
-          style={{ clipPath: 'polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%)' }}
-        >
-          {bubbleContent}
+        <div className="rounded-md bg-black px-4 py-1.5 text-center text-sm font-black tracking-wide text-white shadow-lg">
+          {displayText}
         </div>
+        {/* Tail */}
+        <svg width="20" height="14" viewBox="0 0 20 14" className={`${isLeft ? 'ml-4' : 'ml-auto mr-4'} -mt-px`}>
+          <path d="M0,0 Q10,14 8,14 Q6,10 0,0" fill="black" />
+        </svg>
       </div>
     );
   }
@@ -85,37 +93,30 @@ function BubbleOverlay({
 
   return (
     <div
-      className={`absolute left-1/2 top-[30%] z-10 -translate-x-1/2 ${editable ? 'cursor-pointer hover:ring-2 hover:ring-neonYellow' : ''}`}
+      className={`absolute ${horizontalPos} z-10 ${editable ? 'cursor-pointer hover:scale-105' : ''}`}
+      style={{ top: `${topPercent}%` }}
       onClick={() => editable && setEditing(true)}
     >
       {/* Bubble body */}
       <div
-        className={`relative max-w-[70vw] text-center text-sm font-bold shadow-lg ${
+        className={`relative max-w-[60vw] px-4 py-2 text-center text-[13px] font-bold leading-tight shadow-md ${
           isThought
-            ? 'rounded-[50%] border-2 border-dashed border-gray-400 bg-white/90 px-5 py-3 text-gray-700'
-            : 'rounded-[50%] border-2 border-black bg-white px-5 py-3 text-black'
+            ? 'rounded-2xl border-[1.5px] border-dashed border-gray-400 bg-white/95 text-gray-600'
+            : 'rounded-2xl border-[1.5px] border-gray-800 bg-white text-black'
         }`}
       >
-        {bubbleContent}
+        {displayText}
       </div>
-      {/* Tail pointing down toward character */}
+      {/* Tail */}
       {isThought ? (
-        <div className="flex flex-col items-center">
-          <div className="mt-1 h-2.5 w-2.5 rounded-full bg-white/90 shadow" />
-          <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-white/90 shadow" />
+        <div className={`flex flex-col ${isLeft ? 'ml-5' : 'ml-auto mr-5'}`}>
+          <div className="mt-1 h-2 w-2 rounded-full border border-gray-400 bg-white/95" />
+          <div className="ml-1 mt-0.5 h-1.5 w-1.5 rounded-full border border-gray-400 bg-white/95" />
         </div>
       ) : (
-        <div className="flex justify-center">
-          <div
-            className="h-0 w-0"
-            style={{
-              borderLeft: '8px solid transparent',
-              borderRight: '8px solid transparent',
-              borderTop: '12px solid white',
-              filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))',
-            }}
-          />
-        </div>
+        <svg width="16" height="12" viewBox="0 0 16 12" className={`${isLeft ? 'ml-5' : 'ml-auto mr-5'} -mt-px`}>
+          <path d="M0,0 C4,0 6,8 8,12 C4,8 2,4 0,0" fill="white" stroke="#1f2937" strokeWidth="1" />
+        </svg>
       )}
     </div>
   );
@@ -153,7 +154,6 @@ export default function EpisodeViewer({
       <div className="space-y-1 bg-black">
         {panels.map((panel, index) => (
           <div key={index} className="relative">
-            {/* Panel Image */}
             {panel.imageUrl ? (
               <div className="relative aspect-[3/4] w-full">
                 <Image
@@ -168,6 +168,7 @@ export default function EpisodeViewer({
                   bubbleStyle={panel.bubbleStyle}
                   editable={editable}
                   onEdit={(text) => onUpdateDialogue?.(index, text || null)}
+                  panelIndex={index}
                 />
                 <NarrationBox narration={panel.narration} />
               </div>
