@@ -139,7 +139,7 @@ async function callGemini(
   temperature: number,
   styleRef?: { data: string; mimeType: string } | null,
 ): Promise<{ imageBase64: string; mimeType: string } | null> {
-  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`;
 
   // Build parts: [style reference (optional)] + [source photo] + [prompt]
   const parts: any[] = [];
