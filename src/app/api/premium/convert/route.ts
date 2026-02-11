@@ -40,17 +40,17 @@ const SAFETY_SETTINGS = [
 ];
 
 // Used when we have the original photo — best quality path
-const PREMIUM_FROM_ORIGINAL_PROMPT = `Use this photograph ONLY as a composition reference. Do not filter, edit, or overlay it. Create a completely new premium-quality Korean webtoon illustration from scratch where every single element is hand-drawn artwork.
+const PREMIUM_FROM_ORIGINAL_PROMPT = `You are a premium Korean webtoon illustrator creating a BRAND NEW hand-drawn illustration from scratch. The attached photograph is ONLY a composition guide — you must redraw EVERY element as illustrated artwork.
 
-Draw every person (foreground and background), every object, and the entire environment — sky, ground, walls, streets, furniture, trees, buildings — using razor-sharp digital inking with professional line weight variation, rich cinematic color grading, and multi-layer cel-shading with dramatic volumetric shadows and rim lighting. Render eyes as large expressive jewels with multiple highlight layers, hair with individual strand groups and light reflections, clothing with intricate fabric folds. The background must be a fully illustrated environment with atmospheric perspective, depth of field, and cinematic lighting — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty. Zero photographic elements should remain anywhere. Preserve the exact composition, poses, and expressions with correct anatomy. No text, speech bubbles, or watermarks.`;
+Draw every person including ALL background bystanders and passersby, every object, and the ENTIRE environment — sky, ground, walls, streets, furniture, trees, buildings — using razor-sharp digital inking with professional line weight variation, rich cinematic color grading, and multi-layer cel-shading with dramatic volumetric shadows and rim lighting. Render eyes as large expressive jewels with multiple highlight layers, hair with individual strand groups and light reflections, clothing with intricate fabric folds. The background must be a fully illustrated environment with atmospheric perspective, depth of field, and cinematic lighting — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty. Every single pixel must be hand-drawn artwork — no photographic surfaces, textures, or people anywhere. Preserve the exact composition, poses, and expressions with correct anatomy. No text, speech bubbles, or watermarks. Remember: background people must be drawn with the same level of detail as foreground people.`;
 
 // Fallback when no original photo exists — upgrade existing webtoon
 const PREMIUM_UPGRADE_PROMPT = `Enhance this webtoon illustration to premium production quality while preserving the exact composition, characters, poses, and scene. Sharpen and refine all linework with professional weight variation, enrich colors with deeper saturation and better contrast, add multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents. Redraw the background with atmospheric depth, added detail, and depth of field effects. Fix any anatomy issues to ensure correct human proportions and proper finger counts. Produce a clean image with no text, speech bubbles, or watermarks.`;
 
 // Escalating retry prompts
 const PREMIUM_RETRY_PROMPTS = [
-  `CRITICAL: Your previous output still contained photographic or photorealistic elements. This time you MUST completely redraw EVERY element as illustration artwork — all people, the entire background, sky, ground, and all objects must be fully hand-drawn with visible line art and cel-shading.\n\n`,
-  `ABSOLUTE REQUIREMENT: Create a 100% hand-drawn illustration. Every single pixel must be artwork. Draw clear outlines and apply cel-shading to EVERYTHING including all background elements and bystanders. Nothing from the original photograph should be visible.\n\n`,
+  `FAILED QUALITY CHECK: Your previous output left background people and environmental surfaces looking like real photographs. THIS ATTEMPT MUST FIX: (1) Redraw ALL background bystanders with visible outlines and cel-shading. (2) Redraw the ENTIRE sky, ground, walls, streets with illustrated textures. (3) Every surface needs drawn outlines — zero photographic remnants.\n\n`,
+  `SECOND FAILED QUALITY CHECK: Background people and environment are STILL photographic. Create a 100% hand-drawn illustration where every pixel is artwork. Draw thick visible outlines around EVERY person including distant bystanders. Fill EVERY surface with flat illustrated colors. Redraw the ENTIRE scene from scratch as manhwa illustration.\n\n`,
 ];
 
 /**
@@ -75,7 +75,7 @@ async function checkIllustrationQuality(
         contents: [{
           parts: [
             { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
-            { text: 'Rate this image from 1 to 10. Is every part — all people (foreground AND background), the environment, sky, ground, objects — fully illustrated hand-drawn artwork (10)? Or do some areas still look like a real photograph (1)? Look carefully at the background and surrounding people. Reply with ONLY a single number.' },
+            { text: 'Examine this image carefully. Check these specific areas: (1) Are ALL background/surrounding people drawn as illustrations or do they look like real photographs? (2) Is the sky/ceiling fully illustrated or photographic? (3) Are the ground/floor/street surfaces drawn or photorealistic? (4) Are walls, buildings, and furniture illustrated with line art or photographic? Rate from 1 to 10 where 10 means every element is fully illustrated artwork and 1 means significant areas are still photographic. Be strict — if even one background person or environmental area looks photorealistic, score 5 or below. Reply with ONLY a single number.' },
           ],
         }],
         generationConfig: { temperature: 0.1 },
@@ -91,7 +91,7 @@ async function checkIllustrationQuality(
     const score = match ? parseInt(match[0], 10) : 10;
 
     console.log(`[Premium Quality Check] Score: ${score}/10, raw: "${text.trim()}"`);
-    return { pass: score >= 7, score };
+    return { pass: score >= 8, score };
   } catch (e) {
     console.warn('[Premium Quality Check] Error, skipping:', e);
     return { pass: true, score: 10 };
@@ -116,8 +116,9 @@ async function callGeminiPremium(
     body: JSON.stringify({
       contents: [{
         parts: [
-          { inlineData: { mimeType, data: base64Data } },
           { text: prompt },
+          { text: '\n[COMPOSITION REFERENCE — redraw this entire scene from scratch as illustration]:' },
+          { inlineData: { mimeType, data: base64Data } },
         ],
       }],
       generationConfig: {

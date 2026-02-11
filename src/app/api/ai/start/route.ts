@@ -43,30 +43,30 @@ export async function GET(request: NextRequest) {
 
 // ============ Prompt Engineering ============
 
-// Anti-editing framing: forces the model to treat input as reference, not source to edit
-const COMMON_RULES = `Use this photograph ONLY as a composition reference. Do not filter, edit, or overlay it. Create a completely new hand-drawn illustration from scratch where every single element is illustrated artwork: all foreground and background people, the entire environment including sky, ground, walls, streets, furniture, trees, and buildings, and all objects. Zero photographic or photorealistic elements should remain anywhere in the final image. Preserve the exact composition, poses, and expressions with correct anatomy. Produce a clean image with no text, speech bubbles, or watermarks.`;
+// Role-based framing: assigns illustrator identity before showing the photo
+const COMMON_RULES = `You are a professional Korean webtoon illustrator creating a BRAND NEW hand-drawn illustration from scratch. The attached photograph is ONLY a composition guide showing you what to draw — you must redraw EVERY element as illustrated artwork. This means EVERY person including background bystanders and passersby, EVERY part of the environment including the sky, ground, walls, streets, buildings, trees, and furniture, and EVERY object must be fully redrawn with visible line art and cel-shading. No part of the output should look like a real photograph — every single pixel must be hand-drawn artwork. Preserve the exact composition, poses, expressions, and number of people with correct anatomy. Produce a clean image with no text, speech bubbles, or watermarks.`;
 
 function buildPrompt(styleId: string): string {
   const STYLE_PROMPTS: Record<string, string> = {
     watercolor: `${COMMON_RULES}
 
-Create a warm hand-painted anime illustration in the style of Studio Ghibli. Draw soft pencil-like outlines with varying thickness and fill every surface — people, objects, sky, ground, walls, every background element — with watercolor washes in warm pastels: peach skin tones, soft greens, sky blues, golden sunlight. The background must be a dreamy illustrated landscape with soft atmospheric perspective. Apply two-tone cel-shading with soft edges throughout. The entire image should feel warm, nostalgic, and peaceful like a Miyazaki film frame.`,
+Create a warm hand-painted anime illustration in the style of Studio Ghibli. Draw soft pencil-like outlines with varying thickness and fill every surface — people, objects, sky, ground, walls, every background element — with watercolor washes in warm pastels: peach skin tones, soft greens, sky blues, golden sunlight. The background must be a dreamy illustrated landscape with soft atmospheric perspective. Apply two-tone cel-shading with soft edges throughout. The entire image should feel warm, nostalgic, and peaceful like a Miyazaki film frame. Remember: background bystanders, the sky, the ground, and all walls must also be fully painted in watercolor style.`,
 
     'cinematic-noir': `${COMMON_RULES}
 
-Create a dark Korean crime thriller manhwa panel in the vein of Bastard or Sweet Home. Draw everything with heavy bold ink strokes and aggressive hatching. Use a palette of blacks, dark grays, muted blues, and occasional blood-red accents. The entire environment — every wall, street, floor, sky, and background element — must be redrawn as dark atmospheric illustration with grain and urban decay textures. Drench the scene in deep shadows with extreme chiaroscuro so roughly seventy percent sits in darkness. All people, whether in foreground or background, must have sharp angular illustrated features and intense narrow eyes.`,
+Create a dark Korean crime thriller manhwa panel in the vein of Bastard or Sweet Home. Draw everything with heavy bold ink strokes and aggressive hatching. Use a palette of blacks, dark grays, muted blues, and occasional blood-red accents. The entire environment — every wall, street, floor, sky, and background element — must be redrawn as dark atmospheric illustration with grain and urban decay textures. Drench the scene in deep shadows with extreme chiaroscuro so roughly seventy percent sits in darkness. All people, whether in foreground or background, must have sharp angular illustrated features and intense narrow eyes. Remember: every bystander in the background must be redrawn as a dark ink illustration, and the entire environment must show hatching or ink texture — no photographic surfaces.`,
 
     'dark-fantasy': `${COMMON_RULES}
 
-Create a high-action Korean fantasy manhwa panel in the style of Solo Leveling or Tower of God. Draw razor-sharp digital inking with bold outlines for every person and object, using thinner lines for energy effects. Color the entire scene — all people, all objects, the complete background environment — in rich deep tones with dramatic neon accents in electric blue, purple, and cyan. The background must be a fully illustrated dark atmospheric environment with depth and subtle magical particle effects. Apply multi-layer cel-shading with sharp transitions and dramatic rim lighting to every surface.`,
+Create a high-action Korean fantasy manhwa panel in the style of Solo Leveling or Tower of God. Draw razor-sharp digital inking with bold outlines for every person and object, using thinner lines for energy effects. Color the entire scene — all people, all objects, the complete background environment — in rich deep tones with dramatic neon accents in electric blue, purple, and cyan. The background must be a fully illustrated dark atmospheric environment with depth and subtle magical particle effects. Apply multi-layer cel-shading with sharp transitions and dramatic rim lighting to every surface. Remember: every surrounding person must be redrawn with bold outlines and cel-shading, and the entire environment including the sky, ground, and all buildings must be fully illustrated dark fantasy artwork — no photographic elements anywhere.`,
 
     'elegant-fantasy': `${COMMON_RULES}
 
-Create a luxury romance fantasy webtoon panel in the style of Remarried Empress or Who Made Me a Princess. Draw every element with delicate thin lines in warm sepia tones and elegant flowing curves. Color the entire scene — all people, all objects, the complete background — in soft rose pinks, champagne golds, lavender, and pearl whites. Draw hair as flowing silky strands with sparkle highlights, eyes as large jewels with multiple highlight layers. The background must be a fully illustrated scene with flower petals, golden bokeh, or palace-like architectural elements. Every surface must be romantic illustrated artwork.`,
+Create a luxury romance fantasy webtoon panel in the style of Remarried Empress or Who Made Me a Princess. Draw every element with delicate thin lines in warm sepia tones and elegant flowing curves. Color the entire scene — all people, all objects, the complete background — in soft rose pinks, champagne golds, lavender, and pearl whites. Draw hair as flowing silky strands with sparkle highlights, eyes as large jewels with multiple highlight layers. The background must be a fully illustrated scene with flower petals, golden bokeh, or palace-like architectural elements. Every surface must be romantic illustrated artwork. Remember: all background people must be drawn in the same elegant style, and the entire environment must be rendered as soft illustrated artwork.`,
 
     'classic-webtoon': `${COMMON_RULES}
 
-Create a clean modern Korean webtoon panel in the style of True Beauty or Lookism. Draw uniform-weight black outlines around every single element — all foreground and background people, every object, every part of the environment including walls, floors, sky, and furniture. Fill everything with flat solid colors and crisp two-tone cel-shading. Simplify the background into clean illustrated shapes with flat colors and optional screen-tone effects. All faces, whether main character or bystander, must have the characteristic Korean webtoon look with slightly large eyes and clean features.`,
+Create a clean modern Korean webtoon panel in the style of True Beauty or Lookism. Draw uniform-weight black outlines around every single element — all foreground and background people, every object, every part of the environment including walls, floors, sky, and furniture. Fill everything with flat solid colors and crisp two-tone cel-shading. Simplify the background into clean illustrated shapes with flat colors and optional screen-tone effects. All faces, whether main character or bystander, must have the characteristic Korean webtoon look with slightly large eyes and clean features. Remember: every person in the scene including those in the background must have clean black outlines, and the entire environment must be flat-colored illustration.`,
   };
 
   return STYLE_PROMPTS[styleId] || STYLE_PROMPTS['classic-webtoon'];
@@ -74,10 +74,10 @@ Create a clean modern Korean webtoon panel in the style of True Beauty or Lookis
 
 // Escalating retry prompts for when quality check detects photorealistic remnants
 const RETRY_PROMPTS = [
-  // Level 1: Targeted feedback
-  `CRITICAL: Your previous output still contained photographic or photorealistic elements, especially in the background and surrounding people. This time you MUST completely redraw EVERY element as illustration artwork. The background, sky, ground, all bystanders, and all objects must be fully hand-drawn with visible line art and cel-shading. Absolutely nothing from the original photograph should appear in the output.\n\n`,
-  // Level 2: Maximum strength
-  `ABSOLUTE REQUIREMENT: Create a 100% hand-drawn illustration. Every single pixel must be artwork — the background, the sky, the ground, every person including bystanders, every object, every surface. Draw clear outlines and apply cel-shading to EVERYTHING. If any area looks like a real photograph, you have failed. Start completely from scratch and draw every element by hand.\n\n`,
+  // Level 1: Targeted feedback — specify exactly what failed
+  `FAILED QUALITY CHECK: Your previous output left background people and environmental surfaces looking like real photographs. THIS ATTEMPT MUST FIX: (1) Redraw ALL background bystanders/passersby with visible outlines and cel-shading — they must look like drawn characters, not real people. (2) Redraw the ENTIRE sky, ground, walls, streets, and all surfaces with illustrated textures and line art. (3) Every building, tree, furniture piece, and object needs visible drawn outlines. Start from scratch and ensure zero photographic remnants.\n\n`,
+  // Level 2: Maximum strength — total redraw mandate
+  `SECOND FAILED QUALITY CHECK: Background people and environment are STILL photographic. You MUST create a 100% hand-drawn illustration where every single pixel is artwork. Draw thick visible outlines around EVERY person including distant bystanders. Fill EVERY surface — sky, ground, walls, roads — with flat illustrated colors and drawn textures. If any area could be mistaken for a real photograph, you have failed. Redraw the ENTIRE scene from scratch as a cartoon/manhwa illustration.\n\n`,
 ];
 
 /**
@@ -103,7 +103,7 @@ async function checkIllustrationQuality(
         contents: [{
           parts: [
             { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
-            { text: 'Rate this image from 1 to 10. Is every part of this image — all people (foreground AND background), the environment, sky, ground, objects — fully illustrated hand-drawn artwork (10)? Or do some areas still look like a real photograph or photorealistic rendering (1)? Look carefully at the background, surrounding/minor people, and environmental textures. Reply with ONLY a single number.' },
+            { text: 'Examine this image carefully. Check these specific areas: (1) Are ALL background/surrounding people drawn as illustrations or do they look like real photographs? (2) Is the sky/ceiling fully illustrated or photographic? (3) Are the ground/floor/street surfaces drawn or photorealistic? (4) Are walls, buildings, and furniture illustrated with line art or photographic? Rate from 1 to 10 where 10 means every element is fully illustrated artwork and 1 means significant areas are still photographic. Be strict — if even one background person or environmental area looks photorealistic, score 5 or below. Reply with ONLY a single number.' },
           ],
         }],
         generationConfig: { temperature: 0.1 },
@@ -119,7 +119,7 @@ async function checkIllustrationQuality(
     const score = match ? parseInt(match[0], 10) : 10;
 
     console.log(`[Quality Check] Score: ${score}/10, raw: "${text.trim()}"`);
-    return { pass: score >= 7, score };
+    return { pass: score >= 8, score };
   } catch (e) {
     console.warn('[Quality Check] Error, skipping:', e);
     return { pass: true, score: 10 }; // fail open
@@ -140,17 +140,18 @@ async function callGemini(
 ): Promise<{ imageBase64: string; mimeType: string } | null> {
   const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
 
-  // Build parts: [style reference (optional)] + [source photo] + [prompt]
+  // Build parts: [instruction] + [style reference (optional)] + [label] + [source photo]
+  // Instruction BEFORE image prevents the model from entering "photo edit" mode
   const parts: any[] = [];
 
   if (styleRef) {
     parts.push({ text: 'Style reference — match this art style exactly:' });
     parts.push({ inlineData: { mimeType: styleRef.mimeType, data: styleRef.data } });
-    parts.push({ text: 'Source photograph — redraw this in the above style:' });
   }
 
-  parts.push({ inlineData: { mimeType, data: base64Data } });
   parts.push({ text: prompt });
+  parts.push({ text: '\n[COMPOSITION REFERENCE — redraw this entire scene from scratch as illustration]:' });
+  parts.push({ inlineData: { mimeType, data: base64Data } });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
@@ -323,10 +324,10 @@ ${prompt}`;
         ? (RETRY_PROMPTS[attempt - 1] || RETRY_PROMPTS[RETRY_PROMPTS.length - 1]) + prompt
         : prompt;
 
-      // Temperature: base 0.8, lower with style ref, slightly higher on retry
-      let attemptTemperature = 0.8;
-      if (styleRef) attemptTemperature = 0.6;
-      if (isRetry) attemptTemperature = 1.0;
+      // Temperature: base 0.5 (lower = more faithful transformation), style ref even lower, retry higher
+      let attemptTemperature = 0.5;
+      if (styleRef) attemptTemperature = 0.4;
+      if (isRetry) attemptTemperature = 0.8;
 
       result = await callGemini(apiKey, base64Data, mimeType, attemptPrompt, attemptTemperature, styleRef);
 
