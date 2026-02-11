@@ -4,6 +4,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useState } from 'react'
 import { useTranslations } from 'next-intl';
 import { message } from 'antd';
 import { isValidFileSize } from '../utils/fileUtils';
+import { compressImage } from '../utils/imageUtils';
 
 export type UploadMode = 'photo' | 'video';
 
@@ -50,7 +51,7 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
       triggerCameraInput: () => cameraInputRef.current?.click(),
     }));
 
-    const handlePhotoFiles = (files: FileList) => {
+    const handlePhotoFiles = async (files: FileList) => {
       if (!onPhotoSelect) return;
 
       const imageFiles: File[] = [];
@@ -62,7 +63,14 @@ const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(
         const file = files[i];
         if (file.type.startsWith('image/')) {
           imageFiles.push(file);
-          previews.push(URL.createObjectURL(file));
+          // Produce data URIs (persist across page reloads) instead of blob URLs
+          const blobUrl = URL.createObjectURL(file);
+          try {
+            const dataUrl = await compressImage(blobUrl);
+            previews.push(dataUrl);
+          } finally {
+            URL.revokeObjectURL(blobUrl);
+          }
         }
       }
 

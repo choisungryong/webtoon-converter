@@ -28,7 +28,8 @@ import {
 } from '../../utils/imageUtils';
 
 // Types & Data
-import { StyleOption, DEFAULT_STYLE } from '../../data/styles';
+import { StyleOption, STYLE_OPTIONS, DEFAULT_STYLE } from '../../data/styles';
+import { saveSession, loadSession, clearSession } from '../../lib/sessionStore';
 
 // Constants
 const MAX_PHOTOS = 5;
@@ -44,11 +45,6 @@ export default function Home() {
   const locale = useLocale();
   const router = useRouter();
   const userId = useUserId();
-
-  // Version Check Log
-  useEffect(() => {
-    console.log('Webtoon Converter v1.1.2 Loaded - Error Handling Patched');
-  }, []);
 
   // Mode & Theme State
   const [mode, setMode] = useState<AppMode>('video');
@@ -81,6 +77,76 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileUploaderRef = useRef<FileUploaderRef>(null);
+
+  // ============ Session Persistence (survives mobile tab kills) ============
+  const [sessionRestored, setSessionRestored] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function restoreSession() {
+      try {
+        const savedMode = sessionStorage.getItem('wt-mode') as AppMode | null;
+        const savedStyleId = sessionStorage.getItem('wt-style');
+        const savedIndices = sessionStorage.getItem('wt-frame-indices');
+
+        if (savedMode && (savedMode === 'photo' || savedMode === 'video')) {
+          setMode(savedMode);
+        }
+        if (savedStyleId) {
+          const found = STYLE_OPTIONS.find(s => s.id === savedStyleId);
+          if (found) setSelectedStyle(found);
+        }
+
+        const savedPreviews = await loadSession<string[]>('photoPreviews');
+        if (!cancelled && savedPreviews?.length) {
+          setPhotoPreviews(savedPreviews);
+        }
+
+        const savedFrames = await loadSession<string[]>('extractedFrames');
+        if (!cancelled && savedFrames?.length) {
+          setExtractedFrames(savedFrames);
+          if (savedIndices) {
+            try { setSelectedFrameIndices(JSON.parse(savedIndices)); } catch {}
+          }
+        }
+
+        if ((savedPreviews?.length || savedFrames?.length) && !cancelled) {
+          message.success({ content: t('session_restored'), duration: 2 });
+        }
+      } catch (e) {
+        console.warn('[Session] Restore failed:', e);
+      }
+      if (!cancelled) setSessionRestored(true);
+    }
+    restoreSession();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save state changes to IndexedDB/sessionStorage
+  useEffect(() => {
+    if (!sessionRestored) return;
+    sessionStorage.setItem('wt-mode', mode);
+  }, [mode, sessionRestored]);
+
+  useEffect(() => {
+    if (!sessionRestored) return;
+    sessionStorage.setItem('wt-style', selectedStyle.id);
+  }, [selectedStyle, sessionRestored]);
+
+  useEffect(() => {
+    if (!sessionRestored) return;
+    saveSession('photoPreviews', photoPreviews.length > 0 ? photoPreviews : null);
+  }, [photoPreviews, sessionRestored]);
+
+  useEffect(() => {
+    if (!sessionRestored) return;
+    saveSession('extractedFrames', extractedFrames.length > 0 ? extractedFrames : null);
+  }, [extractedFrames, sessionRestored]);
+
+  useEffect(() => {
+    if (!sessionRestored) return;
+    sessionStorage.setItem('wt-frame-indices', JSON.stringify(selectedFrameIndices));
+  }, [selectedFrameIndices, sessionRestored]);
 
   // Apply theme to document
   useEffect(() => {
@@ -432,6 +498,7 @@ export default function Home() {
         content: t('convert_complete', { count: generatedImages.length }),
         key: 'photo-save',
       });
+      clearSession();
       router.push(`/${locale}/gallery?tab=image&showResult=true`);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
@@ -596,6 +663,7 @@ export default function Home() {
         duration: 3,
       });
 
+      clearSession();
       await new Promise((r) => setTimeout(r, 500));
       router.push(`/${locale}/gallery?tab=webtoon&showResult=true`);
     } catch (e) {
@@ -614,10 +682,6 @@ export default function Home() {
 
   // ============ Common Handlers ============
   const handleReset = () => {
-    // Revoke object URLs to prevent memory leaks
-    photoPreviews.forEach((url) => {
-      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-    });
     setPhotoFiles([]);
     setPhotoPreviews([]);
     setVideoFile(null);
@@ -626,6 +690,7 @@ export default function Home() {
     setAiImages([]);
     setIsSaved(false);
     fileUploaderRef.current?.reset();
+    clearSession();
   };
 
   const handleModeChange = (m: AppMode) => {
@@ -758,7 +823,7 @@ export default function Home() {
       <StepProgressBar steps={videoSteps} currentStep={getVideoStep()} />
       {!videoFile && <StepGuide step={1} text={t('step1_video')} variant="blue" />}
       <GlassCard padding="lg">
-        {!videoFile ? (
+        {!videoFile && extractedFrames.length === 0 ? (
           <FileUploader
             ref={fileUploaderRef}
             mode="video"
@@ -767,7 +832,9 @@ export default function Home() {
           />
         ) : (
           <div className="py-4 text-center">
-            <p style={{ color: 'var(--text-primary)' }}>{videoFile.name}</p>
+            <p style={{ color: 'var(--text-primary)' }}>
+              {videoFile?.name || t('restored_video')}
+            </p>
             {analyzing && <Spin className="mt-2" />}
           </div>
         )}

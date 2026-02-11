@@ -53,6 +53,8 @@
         "saving_mywebtoon": "Saving to My Webtoon...",
         "episode_complete": "{count} scene episode created!",
         "unknown_error": "An unknown error occurred",
+        "session_restored": "Previous session restored",
+        "restored_video": "Previous video analysis",
         "api_limit_exceeded": "API usage limit exceeded. Please try again later.",
         "convert_error": "Conversion error: {message}",
         "step1_photo": "Select photos to convert",
