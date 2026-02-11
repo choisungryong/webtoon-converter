@@ -40,10 +40,63 @@ const SAFETY_SETTINGS = [
 ];
 
 // Used when we have the original photo — best quality path
-const PREMIUM_FROM_ORIGINAL_PROMPT = `Transform this photograph into a premium-quality Korean webtoon illustration with cinematic production values. Redraw the entire scene from scratch — characters, objects, and the full background — using razor-sharp digital inking with professional line weight variation, rich cinematic color grading, and multi-layer cel-shading with dramatic volumetric shadows and rim lighting. Render eyes as large expressive jewels with multiple highlight layers, hair with individual strand groups and light reflections, and clothing with intricate fabric folds showing material differences. The illustrated background should have atmospheric perspective, depth of field, and cinematic lighting — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty. Preserve the exact composition, poses, expressions, and aspect ratio with correct human anatomy and proper proportions throughout. Produce a clean image with no text, speech bubbles, or watermarks.`;
+const PREMIUM_FROM_ORIGINAL_PROMPT = `Use this photograph ONLY as a composition reference. Do not filter, edit, or overlay it. Create a completely new premium-quality Korean webtoon illustration from scratch where every single element is hand-drawn artwork.
+
+Draw every person (foreground and background), every object, and the entire environment — sky, ground, walls, streets, furniture, trees, buildings — using razor-sharp digital inking with professional line weight variation, rich cinematic color grading, and multi-layer cel-shading with dramatic volumetric shadows and rim lighting. Render eyes as large expressive jewels with multiple highlight layers, hair with individual strand groups and light reflections, clothing with intricate fabric folds. The background must be a fully illustrated environment with atmospheric perspective, depth of field, and cinematic lighting — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty. Zero photographic elements should remain anywhere. Preserve the exact composition, poses, and expressions with correct anatomy. No text, speech bubbles, or watermarks.`;
 
 // Fallback when no original photo exists — upgrade existing webtoon
-const PREMIUM_UPGRADE_PROMPT = `Enhance this webtoon illustration to premium production quality while preserving the exact composition, characters, poses, and scene. Sharpen and refine all linework with professional weight variation, enrich the colors with deeper saturation and better contrast, and add multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents. Redraw the background with atmospheric depth, added detail, and depth of field effects. Fix any anatomy issues to ensure correct human proportions and proper finger counts. Produce a clean image with no text, speech bubbles, or watermarks.`;
+const PREMIUM_UPGRADE_PROMPT = `Enhance this webtoon illustration to premium production quality while preserving the exact composition, characters, poses, and scene. Sharpen and refine all linework with professional weight variation, enrich colors with deeper saturation and better contrast, add multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents. Redraw the background with atmospheric depth, added detail, and depth of field effects. Fix any anatomy issues to ensure correct human proportions and proper finger counts. Produce a clean image with no text, speech bubbles, or watermarks.`;
+
+// Escalating retry prompts
+const PREMIUM_RETRY_PROMPTS = [
+  `CRITICAL: Your previous output still contained photographic or photorealistic elements. This time you MUST completely redraw EVERY element as illustration artwork — all people, the entire background, sky, ground, and all objects must be fully hand-drawn with visible line art and cel-shading.\n\n`,
+  `ABSOLUTE REQUIREMENT: Create a 100% hand-drawn illustration. Every single pixel must be artwork. Draw clear outlines and apply cel-shading to EVERYTHING including all background elements and bystanders. Nothing from the original photograph should be visible.\n\n`,
+];
+
+/**
+ * Quality gate: checks if the generated image is fully illustrated
+ */
+async function checkIllustrationQuality(
+  apiKey: string,
+  imageBase64: string,
+  imageMimeType: string,
+): Promise<{ pass: boolean; score: number }> {
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
+            { text: 'Rate this image from 1 to 10. Is every part — all people (foreground AND background), the environment, sky, ground, objects — fully illustrated hand-drawn artwork (10)? Or do some areas still look like a real photograph (1)? Look carefully at the background and surrounding people. Reply with ONLY a single number.' },
+          ],
+        }],
+        generationConfig: { temperature: 0.1 },
+      }),
+    });
+
+    clearTimeout(timeoutId);
+    if (!res.ok) return { pass: true, score: 10 };
+
+    const data = await res.json() as any;
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = text.match(/\d+/);
+    const score = match ? parseInt(match[0], 10) : 10;
+
+    console.log(`[Premium Quality Check] Score: ${score}/10, raw: "${text.trim()}"`);
+    return { pass: score >= 7, score };
+  } catch (e) {
+    console.warn('[Premium Quality Check] Error, skipping:', e);
+    return { pass: true, score: 10 };
+  }
+}
 
 /**
  * Call Gemini and return generated image or null.
@@ -210,7 +263,7 @@ export async function POST(request: NextRequest) {
       premiumPrompt += `\n\nSTORY DIRECTION FOR THIS PANEL:\n${storyDirection}`;
     }
 
-    // Call Gemini with retry logic
+    // Call Gemini with retry logic + quality gate
     let result: { imageBase64: string; mimeType: string } | null = null;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -219,8 +272,9 @@ export async function POST(request: NextRequest) {
         await new Promise(r => setTimeout(r, 1000));
       }
 
+      // Escalating prompts on retry
       const attemptPrompt = attempt > 0
-        ? `Generate a fully illustrated premium-quality webtoon image where every part of the scene — characters, objects, and the entire background — is clearly hand-drawn artwork.\n\n${premiumPrompt}`
+        ? (PREMIUM_RETRY_PROMPTS[attempt - 1] || PREMIUM_RETRY_PROMPTS[PREMIUM_RETRY_PROMPTS.length - 1]) + premiumPrompt
         : premiumPrompt;
       const attemptTemp = attempt > 0 ? 1.0 : (styleReference ? 0.6 : 0.8);
 
@@ -233,10 +287,22 @@ export async function POST(request: NextRequest) {
             { status: 429 }
           );
         }
-        // Other errors: continue to retry
       }
 
-      if (result && result.imageBase64) break;
+      if (!result?.imageBase64) continue;
+
+      // Quality gate (skip on final attempt — accept best effort)
+      if (attempt < MAX_RETRIES && usedOriginal) {
+        const quality = await checkIllustrationQuality(apiKey, result.imageBase64, result.mimeType);
+        if (quality.pass) {
+          console.log(`[Premium/Convert] Quality check passed (score: ${quality.score})`);
+          break;
+        }
+        console.log(`[Premium/Convert] Quality check failed (score: ${quality.score}), retrying...`);
+        result = null;
+      } else {
+        break;
+      }
     }
 
     if (!result || !result.imageBase64) {
