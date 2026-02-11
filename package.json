@@ -16,6 +16,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
     "@ant-design/nextjs-registry": "^1.0.1",
+    "@tsndr/cloudflare-worker-jwt": "^3.2.1",
     "antd": "^5.12.2",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.294.0",

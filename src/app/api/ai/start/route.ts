@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getUserFromRequest } from '../../../../lib/auth';
+import { checkAndDeductCredits, refundCredits, CREDIT_COSTS } from '../../../../lib/credits';
 
 export const runtime = 'edge';
 
@@ -267,6 +269,23 @@ ${prompt}`;
       );
     }
 
+    // 1c. Credit check
+    let authUser: any = null;
+    try { authUser = await getUserFromRequest(request, env); } catch { /* optional */ }
+    const creditResult = await checkAndDeductCredits(env.DB, {
+      userId: authUser?.id || null,
+      legacyUserId: body.userId || '',
+      isAuthenticated: !!authUser,
+      cost: CREDIT_COSTS.basic_convert,
+      reason: 'basic_convert',
+    });
+    if (!creditResult.success) {
+      return NextResponse.json(
+        { error: creditResult.error || 'INSUFFICIENT_CREDITS' },
+        { status: 402 }
+      );
+    }
+
     // 2. Validate and parse base64 image
     const ALLOWED_MIME_TYPES = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
     const MAX_BASE64_LENGTH = 10 * 1024 * 1024; // ~7.5MB decoded
@@ -332,6 +351,10 @@ ${prompt}`;
     }
 
     if (!result || !result.imageBase64) {
+      // Refund credits on failure
+      if (authUser?.id) {
+        try { await refundCredits(env.DB, authUser.id, CREDIT_COSTS.basic_convert, 'basic_convert_refund'); } catch { /* best effort */ }
+      }
       return NextResponse.json({ error: 'Image generation failed after retries. Please try again.' }, { status: 502 });
     }
 

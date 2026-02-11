@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { generateUUID } from '../utils/commonUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const STORAGE_KEY = 'toonsnap_user_id';
 
@@ -24,14 +25,29 @@ function getOrCreateUserId(): string {
 
 /**
  * 사용자 ID를 관리하는 커스텀 훅
- * localStorage에서 기존 ID를 가져오거나 새로운 ID를 생성
+ * 인증된 사용자는 auth user id, 미인증은 localStorage UUID
  */
 export function useUserId(): string {
-  const [userId, setUserId] = useState<string>('');
+  const { user } = useAuth();
+  const [legacyUserId, setLegacyUserId] = useState<string>('');
 
   useEffect(() => {
-    setUserId(getOrCreateUserId());
+    setLegacyUserId(getOrCreateUserId());
   }, []);
 
-  return userId;
+  // Prefer authenticated user ID
+  return user?.id || legacyUserId;
+}
+
+/**
+ * Get the legacy localStorage UUID (for migration purposes)
+ */
+export function useLegacyUserId(): string {
+  const [legacyUserId, setLegacyUserId] = useState<string>('');
+
+  useEffect(() => {
+    setLegacyUserId(getOrCreateUserId());
+  }, []);
+
+  return legacyUserId;
 }

@@ -6,6 +6,9 @@ import Script from 'next/script';
 import KakaoRedirect from '../../components/KakaoRedirect';
 import Footer from '../../components/Footer';
 import BottomNav from '../../components/BottomNav';
+import { AuthProvider } from '../../contexts/AuthContext';
+import LoginModal from '../../components/LoginModal';
+import PricingModal from '../../components/PricingModal';
 import '../globals.css';
 
 // runtime config removed to use default nodejs_compat
@@ -160,10 +163,19 @@ export default async function LocaleLayout({
         suppressHydrationWarning
       >
         <NextIntlClientProvider messages={messages}>
+          <AuthProvider>
           <Script
             src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"
             strategy="afterInteractive"
           />
+          {/* Toss Payments SDK */}
+          <Script
+            src="https://js.tosspayments.com/v2/standard"
+            strategy="afterInteractive"
+          />
+          <Script id="toss-client-key" strategy="afterInteractive">
+            {`window.__TOSS_CLIENT_KEY__ = '${process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || ''}';`}
+          </Script>
           <Script
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_ID}`}
             strategy="afterInteractive"
@@ -195,6 +207,8 @@ export default async function LocaleLayout({
           </Script>
           <AntdRegistry>
             <KakaoRedirect />
+            <LoginModal />
+            <PricingModal />
             <ErrorBoundary>
               <main className="flex-1 pb-[72px] md:pb-0">{children}</main>
             </ErrorBoundary>
@@ -203,6 +217,7 @@ export default async function LocaleLayout({
             <Footer />
             <BottomNav />
           </AntdRegistry>
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

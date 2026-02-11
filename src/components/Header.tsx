@@ -16,6 +16,9 @@ interface HeaderProps {
 
 import { useTranslations } from 'next-intl';
 import LanguageSwitcher from './LanguageSwitcher';
+import UserMenu from './UserMenu';
+import CreditBalance from './CreditBalance';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Header({
   mode,
@@ -24,6 +27,8 @@ export default function Header({
   onThemeChange,
 }: HeaderProps) {
   const t = useTranslations('Header');
+  const tAuth = useTranslations('Auth');
+  const { user, loading, setShowLoginModal } = useAuth();
 
   return (
     <header className="relative mb-6 w-full">
@@ -32,17 +37,36 @@ export default function Header({
         <LanguageSwitcher />
       </div>
 
-      {/* Theme Toggle - Right Top */}
-      <button
-        onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-        className="absolute right-0 top-0 flex size-10 cursor-pointer items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-secondary)]"
-      >
-        {theme === 'dark' ? (
-          <SunOutlined className="text-lg text-[var(--accent-color)]" />
-        ) : (
-          <MoonOutlined className="text-lg text-[var(--accent-color)]" />
+      {/* Right Top: Auth + Theme */}
+      <div className="absolute right-0 top-0 flex items-center gap-2">
+        {!loading && (
+          <>
+            {user ? (
+              <>
+                <CreditBalance />
+                <UserMenu />
+              </>
+            ) : (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="cursor-pointer rounded-full border border-[var(--accent-color)]/40 bg-[var(--accent-color)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--accent-color)] transition-colors hover:bg-[var(--accent-color)]/20"
+              >
+                {tAuth('login')}
+              </button>
+            )}
+          </>
         )}
-      </button>
+        <button
+          onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
+          className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-secondary)]"
+        >
+          {theme === 'dark' ? (
+            <SunOutlined className="text-lg text-[var(--accent-color)]" />
+          ) : (
+            <MoonOutlined className="text-lg text-[var(--accent-color)]" />
+          )}
+        </button>
+      </div>
 
       {/* Logo - Banana Icon + BanaToon Title */}
       <div className="flex flex-col items-center pb-6 pt-2">

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { generateUUID } from '../../../../utils/commonUtils';
+import { getUserFromRequest } from '../../../../lib/auth';
+import { checkAndDeductCredits, refundCredits, CREDIT_COSTS } from '../../../../lib/credits';
 
 export const runtime = 'edge';
 
@@ -180,6 +182,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Credit check
+    let authUser: any = null;
+    try { authUser = await getUserFromRequest(request, env); } catch { /* optional */ }
+    const creditResult = await checkAndDeductCredits(env.DB, {
+      userId: authUser?.id || null,
+      legacyUserId: userId,
+      isAuthenticated: !!authUser,
+      cost: CREDIT_COSTS.premium_convert,
+      reason: 'premium_convert',
+    });
+    if (!creditResult.success) {
+      return NextResponse.json(
+        { error: creditResult.error || 'INSUFFICIENT_CREDITS' },
+        { status: 402 }
+      );
+    }
+
     // Extract Base64 data from the provided image (fallback)
     const base64Match = image.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!base64Match) {
@@ -257,6 +276,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!result || !result.imageBase64) {
+      // Refund credits on failure
+      if (authUser?.id) {
+        try { await refundCredits(env.DB, authUser.id, CREDIT_COSTS.premium_convert, 'premium_convert_refund'); } catch { /* best effort */ }
+      }
       return NextResponse.json(
         { error: 'Premium conversion failed after retries. Please try again.' },
         { status: 502 }

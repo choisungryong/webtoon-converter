@@ -370,8 +370,14 @@ export default function Home() {
             // Check if it's JSON error or HTML error
             try {
               const errorJson = JSON.parse(errorText);
+              // Check credit/quota limits
+              if (errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
+                message.warning({ content: t('api_limit_exceeded'), duration: 6 });
+                return;
+              }
               throw new Error(errorJson.error || errorJson.message || `Server Error: ${startRes.status}`);
             } catch (e) {
+              if ((e as Error).message.includes('INSUFFICIENT') || (e as Error).message.includes('ANONYMOUS_LIMIT')) throw e;
               throw new Error(`Server connection failed (${startRes.status}). Please try again.`);
             }
           }
@@ -382,8 +388,8 @@ export default function Home() {
           throw new Error((fetchError as Error).message || 'Failed to start conversion');
         }
 
-        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
-          message.warning({ content: startData.message, duration: 6 });
+        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED' || startData.error === 'INSUFFICIENT_CREDITS' || startData.error === 'ANONYMOUS_LIMIT_REACHED') {
+          message.warning({ content: startData.message || t('api_limit_exceeded'), duration: 6 });
           break;
         }
         if (startData.error) throw new Error(startData.error);
@@ -493,8 +499,8 @@ export default function Home() {
             const errorText = await startRes.text();
             try {
               const errorJson = JSON.parse(errorText);
-              // Check specific quota limits
-              if (errorJson.error === 'DAILY_LIMIT_EXCEEDED' || errorJson.error === 'QUOTA_EXCEEDED') {
+              // Check specific quota/credit limits
+              if (errorJson.error === 'DAILY_LIMIT_EXCEEDED' || errorJson.error === 'QUOTA_EXCEEDED' || errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
                 message.warning({
                   content: errorJson.message || t('api_limit_exceeded'),
                   key: 'episode',
@@ -513,7 +519,7 @@ export default function Home() {
           throw fetchError;
         }
 
-        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED') {
+        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED' || startData.error === 'INSUFFICIENT_CREDITS' || startData.error === 'ANONYMOUS_LIMIT_REACHED') {
           message.warning({
             content: startData.message || t('api_limit_exceeded'),
             key: 'episode',

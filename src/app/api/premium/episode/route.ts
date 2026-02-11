@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { generateUUID } from '../../../../utils/commonUtils';
 import type { EpisodeStoryData } from '../../../../types';
+import { getUserFromRequest } from '../../../../lib/auth';
+import { checkAndDeductCredits, refundCredits, CREDIT_COSTS } from '../../../../lib/credits';
 
 export const runtime = 'edge';
 
@@ -108,6 +110,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Credit check
+    let authUser: any = null;
+    try { authUser = await getUserFromRequest(request, env); } catch { /* optional */ }
+    const creditResult = await checkAndDeductCredits(env.DB, {
+      userId: authUser?.id || null,
+      legacyUserId: userId,
+      isAuthenticated: !!authUser,
+      cost: CREDIT_COSTS.episode_generate,
+      reason: 'episode_generate',
+    });
+    if (!creditResult.success) {
+      return NextResponse.json(
+        { error: creditResult.error || 'INSUFFICIENT_CREDITS' },
+        { status: 402 }
+      );
+    }
+
     // 1. Get webtoon record — query without source_image_ids for compatibility
     let webtoonRow: any;
     try {
@@ -208,6 +227,10 @@ export async function POST(request: NextRequest) {
     if (!geminiRes.ok) {
       const errorText = await geminiRes.text();
       console.error('[Episode/Story] Gemini Error:', geminiRes.status, errorText);
+      // Refund on failure
+      if (authUser?.id) {
+        try { await refundCredits(env.DB, authUser.id, CREDIT_COSTS.episode_generate, 'episode_generate_refund'); } catch { /* best effort */ }
+      }
       if (geminiRes.status === 429) {
         return NextResponse.json({ error: 'QUOTA_EXCEEDED' }, { status: 429 });
       }

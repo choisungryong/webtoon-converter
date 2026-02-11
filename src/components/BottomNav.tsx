@@ -4,7 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { HomeOutlined, PictureOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { HomeOutlined, PictureOutlined, QuestionCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { useAuth } from '../contexts/AuthContext';
 
 const tabs = [
   { key: 'home', icon: HomeOutlined, labelKey: 'nav_home' as const, path: '' },
@@ -14,8 +15,10 @@ const tabs = [
 
 export default function BottomNav() {
   const t = useTranslations('Nav');
+  const tAuth = useTranslations('Auth');
   const locale = useLocale();
   const pathname = usePathname();
+  const { user, setShowLoginModal, setShowPricingModal } = useAuth();
 
   const isActive = (tabPath: string) => {
     const fullPath = `/${locale}${tabPath}`;
@@ -48,6 +51,29 @@ export default function BottomNav() {
             </Link>
           );
         })}
+        {/* Profile / Login tab */}
+        <button
+          onClick={() => {
+            if (user) {
+              setShowPricingModal(true);
+            } else {
+              setShowLoginModal(true);
+            }
+          }}
+          className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 border-none bg-transparent py-1 text-gray-500 transition-colors hover:text-gray-300"
+        >
+          {user ? (
+            <>
+              <span className="text-lg text-[var(--accent-color)]">🪙</span>
+              <span className="text-[10px] font-medium text-[var(--accent-color)]">{user.credits.total}</span>
+            </>
+          ) : (
+            <>
+              <UserOutlined className="text-lg" />
+              <span className="text-[10px] font-medium">{tAuth('login')}</span>
+            </>
+          )}
+        </button>
       </div>
     </nav>
   );

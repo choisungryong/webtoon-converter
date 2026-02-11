@@ -19,5 +19,18 @@ declare global {
 
     // App Configuration
     QNA_ADMIN_PASSWORD: string;
+
+    // Auth
+    KAKAO_CLIENT_ID: string;
+    KAKAO_CLIENT_SECRET: string;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+    JWT_SECRET: string;
+    APP_URL: string;
+
+    // Payments
+    TOSS_CLIENT_KEY: string;
+    TOSS_SECRET_KEY: string;
+    TOSS_WEBHOOK_SECRET: string;
   }
 }
