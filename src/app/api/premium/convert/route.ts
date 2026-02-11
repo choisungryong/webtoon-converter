@@ -40,50 +40,10 @@ const SAFETY_SETTINGS = [
 ];
 
 // Used when we have the original photo — best quality path
-const PREMIUM_FROM_ORIGINAL_PROMPT = `TASK: Redraw this photograph as a premium-quality Korean webtoon illustration with cinematic production values. You are an ILLUSTRATOR — DRAW everything from scratch.
-
-ART STYLE SPECIFICATION:
-- Line art: Razor-sharp clean digital inking with professional line weight variation — bold contours, thin interior detail lines
-- Coloring: Rich cinematic color grading with depth, contrast, and vibrant saturated tones
-- Shading: Professional multi-layer cel-shading with dramatic volumetric shadows, rim lighting, and glowing highlight accents
-- Eyes: Large expressive jewel-like eyes with multiple highlight layers and color reflections
-- Hair: Complex detailed rendering with individual strand groups, light reflections, and color depth
-- Clothing: Intricate fabric folds with proper light/shadow interaction, material texture differentiation
-- Background: Highly detailed with atmospheric perspective, depth of field, and cinematic lighting
-- Overall feel: Premium production quality — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty
-
-ANATOMY RULES (CRITICAL):
-- Correct human proportions: head-to-body ratio ~1:7 for adults
-- Exactly 5 fingers per hand, proper finger length proportions (middle finger longest)
-- Arms and legs must have correct length relative to torso — no elongated or shortened limbs
-- Shoulders, elbows, wrists, knees must bend at anatomically correct angles
-- Faces must be symmetrical with proper eye spacing (one eye-width apart)
-- Neck must be proportional to head size — not too thin or too thick
-- DO NOT distort, stretch, or compress any body parts
-
-FORMAT: Output as a single image preserving the original photo's aspect ratio.
-Do NOT add any text, speech bubbles, logos, or watermarks.
-DO NOT paste, composite, or filter the original photo — DRAW from scratch.`;
+const PREMIUM_FROM_ORIGINAL_PROMPT = `Transform this photograph into a premium-quality Korean webtoon illustration with cinematic production values. Redraw the entire scene from scratch — characters, objects, and the full background — using razor-sharp digital inking with professional line weight variation, rich cinematic color grading, and multi-layer cel-shading with dramatic volumetric shadows and rim lighting. Render eyes as large expressive jewels with multiple highlight layers, hair with individual strand groups and light reflections, and clothing with intricate fabric folds showing material differences. The illustrated background should have atmospheric perspective, depth of field, and cinematic lighting — like a key visual from Solo Leveling, Omniscient Reader, or True Beauty. Preserve the exact composition, poses, expressions, and aspect ratio with correct human anatomy and proper proportions throughout. Produce a clean image with no text, speech bubbles, or watermarks.`;
 
 // Fallback when no original photo exists — upgrade existing webtoon
-const PREMIUM_UPGRADE_PROMPT = `TASK: Enhance this webtoon illustration to premium quality. Preserve the exact composition, characters, and scene — only upgrade the visual quality.
-
-ART STYLE SPECIFICATION:
-- Line art: Sharpen and refine all linework with professional weight variation
-- Coloring: Enrich colors with deeper saturation and better contrast
-- Shading: Add multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents
-- Background: Add atmospheric depth, detail, and depth of field effects
-- Overall feel: Premium production quality upgrade while maintaining the original art direction
-
-ANATOMY RULES (CRITICAL):
-- Correct human proportions: head-to-body ratio ~1:7 for adults
-- Exactly 5 fingers per hand, proper finger length proportions
-- Arms and legs must have correct length relative to torso — no elongated or shortened limbs
-- Faces must be symmetrical with proper eye spacing
-- DO NOT distort, stretch, or compress any body parts — FIX any anatomy issues from the original
-
-Preserve the exact same composition, characters, poses, and scene.
-Do NOT add any text, speech bubbles, logos, or watermarks.`;
+const PREMIUM_UPGRADE_PROMPT = `Enhance this webtoon illustration to premium production quality while preserving the exact composition, characters, poses, and scene. Sharpen and refine all linework with professional weight variation, enrich the colors with deeper saturation and better contrast, and add multi-layer cel-shading with cinematic lighting, dramatic shadows, and rim light accents. Redraw the background with atmospheric depth, added detail, and depth of field effects. Fix any anatomy issues to ensure correct human proportions and proper finger counts. Produce a clean image with no text, speech bubbles, or watermarks.`;
 
 /**
  * Call Gemini and return generated image or null.
@@ -110,6 +70,10 @@ async function callGeminiPremium(
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
         temperature,
+        imageConfig: {
+          personGeneration: 'ALLOW_ALL',
+          imageSize: '2K',
+        },
       },
       safetySettings: SAFETY_SETTINGS,
     }),
@@ -256,9 +220,9 @@ export async function POST(request: NextRequest) {
       }
 
       const attemptPrompt = attempt > 0
-        ? `IMPORTANT: You MUST generate a new premium-quality illustrated image. Do NOT return the original or a photo-like result.\n\n${premiumPrompt}`
+        ? `Generate a fully illustrated premium-quality webtoon image where every part of the scene — characters, objects, and the entire background — is clearly hand-drawn artwork.\n\n${premiumPrompt}`
         : premiumPrompt;
-      const attemptTemp = attempt > 0 ? 1.2 : (styleReference ? 0.8 : 1.0);
+      const attemptTemp = attempt > 0 ? 1.0 : (styleReference ? 0.6 : 0.8);
 
       try {
         result = await callGeminiPremium(apiKey, inputBase64, inputMimeType, attemptPrompt, attemptTemp);
