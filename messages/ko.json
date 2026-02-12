@@ -74,7 +74,11 @@
         "step_video_short": "영상",
         "step_scenes_short": "장면",
         "step_convert_short": "변환",
-        "step_complete_short": "완료"
+        "step_complete_short": "완료",
+        "job_started": "서버에서 변환을 시작합니다. 앱을 닫아도 계속됩니다.",
+        "job_resuming": "이전 변환 작업을 이어서 확인합니다...",
+        "conversion_failed": "변환에 실패했습니다.",
+        "job_partial": "일부 이미지만 변환되었습니다 ({success}장 성공, {failed}장 실패)."
     },
     "Metadata": {
         "title": "BanaToon - 일상의 바이브를 툰으로 담는다",

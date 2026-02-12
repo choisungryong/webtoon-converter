@@ -74,7 +74,11 @@
         "step_video_short": "Video",
         "step_scenes_short": "Scenes",
         "step_convert_short": "Convert",
-        "step_complete_short": "Done"
+        "step_complete_short": "Done",
+        "job_started": "Conversion started on server. You can close the app safely.",
+        "job_resuming": "Resuming previous conversion...",
+        "conversion_failed": "Conversion failed.",
+        "job_partial": "Partial conversion: {success} succeeded, {failed} failed."
     },
     "Metadata": {
         "title": "BanaToon - Capture the Vibe, Make it Toon",

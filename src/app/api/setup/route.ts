@@ -100,6 +100,26 @@ export async function GET(request: NextRequest) {
             );
             CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
             CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+
+            CREATE TABLE IF NOT EXISTS conversion_jobs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                type TEXT NOT NULL DEFAULT 'photo',
+                status TEXT NOT NULL DEFAULT 'pending',
+                style_id TEXT NOT NULL,
+                total_images INTEGER NOT NULL DEFAULT 0,
+                completed_images INTEGER NOT NULL DEFAULT 0,
+                result_ids TEXT DEFAULT '[]',
+                failed_indices TEXT DEFAULT '[]',
+                scene_analysis TEXT,
+                style_reference TEXT,
+                error_message TEXT,
+                created_at INTEGER NOT NULL,
+                started_at INTEGER,
+                completed_at INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_jobs_user ON conversion_jobs(user_id);
+            CREATE INDEX IF NOT EXISTS idx_jobs_status ON conversion_jobs(status);
         `);
 
     // Add columns if they don't exist (safe for existing deployments)

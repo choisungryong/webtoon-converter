@@ -206,6 +206,38 @@ export interface QualityValidation {
 }
 
 // ============================================
+// Conversion Job Types (background processing)
+// ============================================
+
+export type ConversionJobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'partial';
+
+export interface ConversionJob {
+  id: string;
+  user_id: string;
+  type: 'photo' | 'video';
+  status: ConversionJobStatus;
+  style_id: string;
+  total_images: number;
+  completed_images: number;
+  result_ids: string;        // JSON array of generated_image IDs
+  failed_indices: string;    // JSON array of indices that failed
+  scene_analysis: string | null;  // JSON: SceneAnalysis
+  style_reference: string | null; // R2 key of first result (for consistency)
+  error_message: string | null;
+  created_at: number;
+  started_at: number | null;
+  completed_at: number | null;
+}
+
+export interface ConversionJobInput {
+  images: string[];          // base64 data URIs
+  styleId: string;
+  userId: string;
+  type: 'photo' | 'video';
+  sceneAnalysis?: SceneAnalysis | null;
+}
+
+// ============================================
 // Error Types
 // ============================================
 

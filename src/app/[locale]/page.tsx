@@ -24,13 +24,12 @@ import { useUserId } from '../../hooks/useUserId';
 import {
   compressImage,
   calculateImageDifference,
-  stitchImagesVertically,
 } from '../../utils/imageUtils';
 
 // Types & Data
 import { StyleOption, STYLE_OPTIONS, DEFAULT_STYLE } from '../../data/styles';
 import { saveSession, loadSession, clearSession } from '../../lib/sessionStore';
-import type { SceneAnalysis } from '../../types';
+import type { SceneAnalysis, ConversionJobStatus } from '../../types';
 
 // Constants
 const MAX_PHOTOS = 5;
@@ -73,6 +72,10 @@ export default function Home() {
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editedImages, setEditedImages] = useState<Record<number, string>>({});
   const [isSaved, setIsSaved] = useState(false);
+
+  // Background Job State
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -153,6 +156,89 @@ export default function Home() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // ============ Background Job Polling ============
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const startJobPolling = (jobId: string, jobType: 'photo' | 'video') => {
+    stopPolling();
+    setActiveJobId(jobId);
+    setConverting(true);
+    sessionStorage.setItem('activeJobId', jobId);
+    sessionStorage.setItem('activeJobType', jobType);
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ai/job/${jobId}`);
+        if (!res.ok) return;
+        const data = await res.json() as {
+          status: ConversionJobStatus;
+          completedImages: number;
+          totalImages: number;
+          resultIds: string[];
+          failedIndices: number[];
+          errorMessage?: string;
+        };
+
+        setTotalImagesToConvert(data.totalImages);
+        setCurrentImageIndex(data.completedImages);
+        setProgress(Math.round((data.completedImages / data.totalImages) * 80));
+
+        if (['completed', 'failed', 'partial'].includes(data.status)) {
+          stopPolling();
+          sessionStorage.removeItem('activeJobId');
+          sessionStorage.removeItem('activeJobType');
+          setActiveJobId(null);
+
+          if (data.status === 'completed') {
+            setProgress(100);
+            message.success({
+              content: t('convert_complete', { count: data.resultIds.length }),
+              key: 'job-poll',
+            });
+            clearSession();
+            router.push(`/${locale}/gallery?tab=image&showResult=true`);
+          } else if (data.status === 'partial') {
+            setProgress(100);
+            message.warning({
+              content: t('job_partial', {
+                success: data.resultIds.length,
+                failed: data.failedIndices.length,
+              }),
+              key: 'job-poll',
+              duration: 5,
+            });
+            clearSession();
+            router.push(`/${locale}/gallery?tab=image&showResult=true`);
+          } else {
+            message.error({
+              content: t('conversion_failed'),
+              key: 'job-poll',
+            });
+          }
+          setConverting(false);
+        }
+      } catch {
+        // Network error during poll, keep retrying
+      }
+    }, 3000);
+  };
+
+  // Recover active job on mount
+  useEffect(() => {
+    const savedJobId = sessionStorage.getItem('activeJobId');
+    const savedJobType = sessionStorage.getItem('activeJobType') as 'photo' | 'video' | null;
+    if (savedJobId && savedJobType) {
+      message.info({ content: t('job_resuming'), key: 'job-poll' });
+      startJobPolling(savedJobId, savedJobType);
+    }
+    return () => stopPolling();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============ Photo Mode Handlers ============
   const handlePhotoSelect = (files: File[], previews: string[]) => {
@@ -396,144 +482,165 @@ export default function Home() {
   };
 
   // ============ Conversion Handlers ============
+
+  /** Single-photo conversion: direct /api/ai/start (no job needed) */
+  const handleSinglePhotoConvert = async () => {
+    setConverting(true);
+    setProgress(0);
+    setTotalImagesToConvert(1);
+    setCurrentImageIndex(0);
+
+    try {
+      const compressedDataUrl = await compressImage(photoPreviews[0]);
+      setCurrentImageIndex(1);
+
+      const startRes = await fetch('/api/ai/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: compressedDataUrl,
+          styleId: selectedStyle.id,
+          userId: userId,
+        }),
+      });
+
+      if (!startRes.ok) {
+        const errorText = await startRes.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
+            message.warning({ content: t('api_limit_exceeded'), duration: 6 });
+            return;
+          }
+          throw new Error(errorJson.error || `Server Error: ${startRes.status}`);
+        } catch (e) {
+          if ((e as Error).message.includes('INSUFFICIENT') || (e as Error).message.includes('ANONYMOUS_LIMIT')) throw e;
+          throw new Error(`Server connection failed (${startRes.status}). Please try again.`);
+        }
+      }
+
+      const startData = await startRes.json() as any;
+      if (startData.error) throw new Error(startData.error);
+
+      if (startData.success && startData.result_url) {
+        setProgress(80);
+        message.loading({ content: t('saving_gallery'), key: 'photo-save' });
+
+        await fetch('/api/gallery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: startData.result_url,
+            userId: userId,
+            originalImage: compressedDataUrl,
+          }),
+        });
+
+        setProgress(100);
+        message.success({
+          content: t('convert_complete', { count: 1 }),
+          key: 'photo-save',
+        });
+        clearSession();
+        router.push(`/${locale}/gallery?tab=image&showResult=true`);
+      } else {
+        throw new Error('No result returned from server');
+      }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      message.error(t('convert_error', { message: errorMessage }));
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  /** Multi-photo/video: submit as background job */
+  const submitConversionJob = async (
+    imageSources: string[],
+    jobType: 'photo' | 'video',
+  ) => {
+    setConverting(true);
+    setProgress(0);
+    setTotalImagesToConvert(imageSources.length);
+    setCurrentImageIndex(0);
+
+    try {
+      // Compress all images
+      message.loading({ content: t('analyzing_scene'), key: 'job-submit' });
+      const compressedImages: string[] = [];
+      for (const src of imageSources) {
+        compressedImages.push(await compressImage(src));
+      }
+
+      // Scene analysis on first image
+      let sceneAnalysis: SceneAnalysis | undefined;
+      try {
+        const analyzeRes = await fetch('/api/ai/analyze-scene', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: compressedImages[0] }),
+        });
+        if (analyzeRes.ok) {
+          const analyzeData = await analyzeRes.json();
+          if (analyzeData.success) {
+            sceneAnalysis = analyzeData.analysis;
+          }
+        }
+      } catch (e) {
+        console.warn('[Job] Scene analysis failed, continuing without:', e);
+      }
+
+      message.loading({ content: t('job_started'), key: 'job-submit' });
+
+      // Submit job
+      const jobRes = await fetch('/api/ai/job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: compressedImages,
+          styleId: selectedStyle.id,
+          userId: userId,
+          type: jobType,
+          ...(sceneAnalysis && { sceneAnalysis }),
+        }),
+      });
+
+      if (!jobRes.ok) {
+        const errorData = await jobRes.json().catch(() => ({ error: 'Unknown error' })) as any;
+        if (errorData.error === 'INSUFFICIENT_CREDITS' || errorData.error === 'ANONYMOUS_LIMIT_REACHED') {
+          message.warning({ content: t('api_limit_exceeded'), key: 'job-submit', duration: 6 });
+          setConverting(false);
+          return;
+        }
+        throw new Error(errorData.error || `Server Error: ${jobRes.status}`);
+      }
+
+      const { jobId } = await jobRes.json() as { jobId: string; totalImages: number };
+
+      message.success({ content: t('job_started'), key: 'job-submit', duration: 3 });
+
+      // Start polling
+      startJobPolling(jobId, jobType);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      message.error({ content: t('convert_error', { message: errorMessage }), key: 'job-submit' });
+      setConverting(false);
+    }
+  };
+
   const handlePhotoConvert = async () => {
     if (photoPreviews.length === 0) {
       message.warning(t('upload_photo_warning'));
       return;
     }
 
-    setConverting(true);
-    setProgress(0);
-    setTotalImagesToConvert(photoPreviews.length);
-    setCurrentImageIndex(0);
-
-    const generatedImages: { result: string; original: string }[] = [];
-    let styleReference: string | undefined; // First result used as style anchor
-
-    try {
-      // Pre-analyze first photo for multi-photo mode (helps AI redraw everything)
-      let sceneAnalysis: SceneAnalysis | undefined;
-      if (photoPreviews.length >= 2) {
-        try {
-          message.loading({ content: t('analyzing_scene'), key: 'scene-analyze' });
-          const firstCompressed = await compressImage(photoPreviews[0]);
-          const analyzeRes = await fetch('/api/ai/analyze-scene', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: firstCompressed }),
-          });
-          if (analyzeRes.ok) {
-            const analyzeData = await analyzeRes.json();
-            if (analyzeData.success) {
-              sceneAnalysis = analyzeData.analysis;
-              console.log('[Photo] Scene analysis:', sceneAnalysis?.people.length, 'people,', sceneAnalysis?.environment.surfaces.length, 'surfaces');
-            }
-          }
-          message.destroy('scene-analyze');
-        } catch (e) {
-          console.warn('[Photo] Scene analysis failed, continuing without:', e);
-          message.destroy('scene-analyze');
-        }
-      }
-
-      for (let i = 0; i < photoPreviews.length; i++) {
-        setCurrentImageIndex(i + 1);
-        // Start delay for subsequent images to prevent rate limiting
-        if (i > 0) await new Promise((r) => setTimeout(r, 5000));
-
-        const compressedDataUrl = await compressImage(photoPreviews[i]);
-
-        // 1. Start Job (pass styleReference from first result for consistency)
-        let startData;
-        try {
-          const startRes = await fetch('/api/ai/start', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image: compressedDataUrl,
-              styleId: selectedStyle.id,
-              userId: userId,
-              ...(styleReference && { styleReference }),
-              ...(sceneAnalysis && { sceneAnalysis }),
-            }),
-          });
-
-          if (!startRes.ok) {
-            const errorText = await startRes.text();
-            // Check if it's JSON error or HTML error
-            try {
-              const errorJson = JSON.parse(errorText);
-              // Check credit/quota limits
-              if (errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
-                message.warning({ content: t('api_limit_exceeded'), duration: 6 });
-                return;
-              }
-              throw new Error(errorJson.error || errorJson.message || `Server Error: ${startRes.status}`);
-            } catch (e) {
-              if ((e as Error).message.includes('INSUFFICIENT') || (e as Error).message.includes('ANONYMOUS_LIMIT')) throw e;
-              throw new Error(`Server connection failed (${startRes.status}). Please try again.`);
-            }
-          }
-
-          startData = await startRes.json();
-        } catch (fetchError) {
-          console.error('Fetch start error:', fetchError);
-          throw new Error((fetchError as Error).message || 'Failed to start conversion');
-        }
-
-        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED' || startData.error === 'INSUFFICIENT_CREDITS' || startData.error === 'ANONYMOUS_LIMIT_REACHED') {
-          message.warning({ content: startData.message || t('api_limit_exceeded'), duration: 6 });
-          break;
-        }
-        if (startData.error) throw new Error(startData.error);
-
-        // Synchronous Response Handling
-        if (startData.success && startData.result_url) {
-          generatedImages.push({ result: startData.result_url, original: compressedDataUrl });
-          // Save first result as style anchor for subsequent images
-          if (i === 0) {
-            styleReference = startData.result_url;
-          }
-          if (startData.retried) {
-            message.info(t('ai_retried'));
-          }
-          setProgress(Math.round(((i + 1) / photoPreviews.length) * 80));
-        } else {
-          throw new Error('No result returned from server');
-        }
-      }
-
-      if (generatedImages.length === 0) throw new Error(t('no_converted_images'));
-
-      message.loading({ content: t('saving_gallery'), key: 'photo-save' });
-      setProgress(90);
-
-      for (const img of generatedImages) {
-        await fetch('/api/gallery', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: img.result,
-            userId: userId,
-            originalImage: img.original,
-          }),
-        });
-      }
-
-      setProgress(100);
-      message.success({
-        content: t('convert_complete', { count: generatedImages.length }),
-        key: 'photo-save',
-      });
-      clearSession();
-      router.push(`/${locale}/gallery?tab=image&showResult=true`);
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      message.error(t('convert_error', { message: errorMessage }));
-    } finally {
-      setConverting(false);
-      // cleanup complete
+    if (photoPreviews.length === 1) {
+      // Single photo: direct conversion (no job overhead)
+      return handleSinglePhotoConvert();
     }
+
+    // Multi-photo: use background job
+    return submitConversionJob(photoPreviews, 'photo');
   };
 
   const handleVideoConvert = async () => {
@@ -551,182 +658,7 @@ export default function Home() {
     }
 
     const imagesToConvert = selectedFrameIndices.map((idx) => extractedFrames[idx]);
-    setConverting(true);
-    setProgress(0);
-    setTotalImagesToConvert(imagesToConvert.length);
-    setCurrentImageIndex(0);
-
-    const convertedImages: string[] = [];
-    let styleReference: string | undefined; // First result used as style anchor
-
-    try {
-      // Pre-analyze first frame (helps AI redraw ALL elements including backgrounds)
-      let sceneAnalysis: SceneAnalysis | undefined;
-      try {
-        message.loading({ content: t('analyzing_scene'), key: 'episode' });
-        const firstCompressed = await compressImage(imagesToConvert[0]);
-        const analyzeRes = await fetch('/api/ai/analyze-scene', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: firstCompressed }),
-        });
-        if (analyzeRes.ok) {
-          const analyzeData = await analyzeRes.json();
-          if (analyzeData.success) {
-            sceneAnalysis = analyzeData.analysis;
-            console.log('[Video] Scene analysis:', sceneAnalysis?.people.length, 'people,', sceneAnalysis?.environment.surfaces.length, 'surfaces');
-          }
-        }
-      } catch (e) {
-        console.warn('[Video] Scene analysis failed, continuing without:', e);
-      }
-
-      message.loading({
-        content: t('convert_start', { count: imagesToConvert.length }),
-        key: 'episode',
-      });
-
-      for (let i = 0; i < imagesToConvert.length; i++) {
-        setCurrentImageIndex(i + 1);
-        message.loading({
-          content: t('converting_progress', { current: i + 1, total: imagesToConvert.length }),
-          key: 'episode',
-        });
-
-        if (i > 0) await new Promise((r) => setTimeout(r, 2000));
-
-        const compressedDataUrl = await compressImage(imagesToConvert[i]);
-
-        let startData;
-        try {
-          const startRes = await fetch('/api/ai/start', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image: compressedDataUrl,
-              styleId: selectedStyle.id,
-              userId: userId,
-              ...(styleReference && { styleReference }),
-              ...(sceneAnalysis && { sceneAnalysis }),
-            }),
-          });
-
-          if (!startRes.ok) {
-            const errorText = await startRes.text();
-            try {
-              const errorJson = JSON.parse(errorText);
-              // Check specific quota/credit limits
-              if (errorJson.error === 'DAILY_LIMIT_EXCEEDED' || errorJson.error === 'QUOTA_EXCEEDED' || errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
-                message.warning({
-                  content: errorJson.message || t('api_limit_exceeded'),
-                  key: 'episode',
-                });
-                return; // Exit function on limit
-              }
-              throw new Error(errorJson.error || `Server Error: ${startRes.status}`);
-            } catch (e) {
-              if ((e as Error).message.includes('DAILY_LIMIT')) throw e;
-              throw new Error(`Server error (${startRes.status}). The service might be temporarily unavailable.`);
-            }
-          }
-          startData = await startRes.json();
-        } catch (fetchError) {
-          console.error('Video fetch start error:', fetchError);
-          throw fetchError;
-        }
-
-        if (startData.error === 'DAILY_LIMIT_EXCEEDED' || startData.error === 'QUOTA_EXCEEDED' || startData.error === 'INSUFFICIENT_CREDITS' || startData.error === 'ANONYMOUS_LIMIT_REACHED') {
-          message.warning({
-            content: startData.message || t('api_limit_exceeded'),
-            key: 'episode',
-          });
-          break;
-        }
-        if (startData.error) throw new Error(startData.error);
-
-        if (startData.success && startData.result_url) {
-          convertedImages.push(startData.result_url);
-          // Save first result as style anchor for subsequent frames
-          if (i === 0) {
-            styleReference = startData.result_url;
-          }
-          if (startData.retried) {
-            message.info(t('ai_retried'));
-          }
-        } else {
-          throw new Error('No result returned from server');
-        }
-
-        setProgress(Math.round(((i + 1) / imagesToConvert.length) * 70));
-      }
-
-      if (convertedImages.length === 0) throw new Error(t('insufficient_images'));
-
-      // Save each converted image individually for episode source tracking
-      message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
-      const sourceImageIds: string[] = [];
-      for (const img of convertedImages) {
-        try {
-          const imgSaveRes = await fetch('/api/webtoon/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: img, userId: userId, type: 'frame' }),
-          });
-          if (imgSaveRes.ok) {
-            const imgData = await imgSaveRes.json();
-            if (imgData.imageId) sourceImageIds.push(imgData.imageId);
-          }
-        } catch { /* continue even if individual save fails */ }
-      }
-      setProgress(80);
-
-      let finalImage: string;
-      if (convertedImages.length === 1) {
-        finalImage = convertedImages[0];
-      } else {
-        message.loading({ content: t('stitching'), key: 'episode' });
-        finalImage = await stitchImagesVertically(convertedImages);
-        message.loading({ content: t('saving_mywebtoon'), key: 'episode' });
-      }
-      setProgress(90);
-
-      const saveRes = await fetch('/api/webtoon/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: finalImage,
-          userId: userId,
-          ...(sourceImageIds.length > 0 && { sourceImageIds }),
-        }),
-      });
-
-      if (!saveRes.ok) {
-        const errData = await saveRes.json().catch(() => ({}));
-        throw new Error(errData.error || t('save_failed'));
-      }
-
-      setProgress(100);
-      message.success({
-        content: t('episode_complete', { count: convertedImages.length }),
-        key: 'episode',
-        duration: 3,
-      });
-
-      clearSession();
-      await new Promise((r) => setTimeout(r, 500));
-      router.push(`/${locale}/gallery?tab=webtoon&showResult=true`);
-    } catch (e) {
-      console.error('Video convert error:', e);
-      const errorMessage = e instanceof Error ? e.message : t('unknown_error');
-      message.error({
-        content: t('convert_error', { message: errorMessage }),
-        key: 'episode',
-        duration: 5,
-      });
-    } finally {
-      setConverting(false);
-      // cleanup complete
-    }
+    return submitConversionJob(imagesToConvert, 'video');
   };
 
   // ============ Common Handlers ============
