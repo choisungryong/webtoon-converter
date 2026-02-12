@@ -47,7 +47,12 @@ Rate each dimension 1-10 where 10 is perfect:
 
 2. character_consistency: Do ALL people in the image look like they were drawn by the same artist in the same style? Score 3 if one person looks illustrated but another looks photographic.
 
-3. environment_completeness: Is the ENTIRE background illustrated? Check: does the sky look drawn or photographic? Do walls/floors have illustrated texture or photographic texture? Dark or blurry backgrounds are often still photographs — score 4 or below if any surface has photographic texture even if dark.
+3. environment_completeness: Is the ENTIRE background illustrated? Check each area:
+   - Sky/ceiling: drawn gradients or flat color? Or photographic?
+   - Walls/buildings: drawn lines and flat color? Or photographic brick/concrete texture?
+   - Ground/floor: illustrated? Or photographic asphalt/tile?
+   - Out-of-focus/blurred areas: these are almost ALWAYS still photographs. Blur = camera = photo = FAIL.
+   Score 4 or below if ANY background area has photographic texture, camera noise, lens blur, or bokeh — even if it is dark.
 
 Reply with ONLY valid JSON, no explanation:
 {"illustration_completeness": N, "character_consistency": N, "environment_completeness": N}`;

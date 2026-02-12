@@ -20,7 +20,9 @@ You MUST redraw EVERY element — every person (foreground AND background), ever
 No element may retain a photographic appearance. Every single pixel of the output must be hand-drawn illustration with visible line art and cel-shading.
 This is NOT a photo edit — this is a complete artistic recreation.
 
-CRITICAL: You must convert ALL people in the scene, not just one person. If there are 3 people in the photo, all 3 must become illustrations. Background bystanders and secondary characters are just as important as the main subject. A result where only 1 person is illustrated and others remain photographic is a COMPLETE FAILURE.`;
+CRITICAL — TWO COMMON FAILURES YOU MUST AVOID:
+1. PEOPLE: You must convert ALL people in the scene, not just one. If there are 3 people, all 3 must become illustrations. A result where only the main character is illustrated = FAILURE.
+2. ENVIRONMENT: You must redraw the ENTIRE background — walls, floor, sky, street, buildings, furniture, trees. A common mistake is converting the people but leaving the background as a blurred or darkened photograph. Photographic backgrounds are easy to spot: they have camera noise, lens blur, photographic lighting gradients, or real-world textures. Replace ALL of these with flat colors, drawn textures, line art, or painted strokes. If the background could pass as a photograph, it is WRONG.`;
 
 // ─── Step 4: Strict Rules ───────────────────────────────────────────────────
 
@@ -28,9 +30,10 @@ const STRICT_RULES = `[STRICT RULES — VIOLATIONS WILL FAIL QUALITY CHECK]
 • ABSOLUTELY NOT photorealistic — no surface, person, or area may look like a real photograph
 • ALL background people/bystanders must have drawn outlines and cel-shading — they are NOT optional
 • If there are N people in the reference photo, ALL N must be converted to illustration — converting only 1 person is a FAILURE
-• The ENTIRE sky, ground, walls, and streets must be illustrated with drawn textures
-• Every building, tree, vehicle, and furniture piece needs visible illustrated outlines
 • Photographic skin texture on ANY person = FAILURE. Every person needs drawn skin with cel-shading.
+• The ENTIRE background must be redrawn: sky, ground, walls, streets, buildings, furniture, trees — ALL with illustrated textures or flat colors
+• Blurred backgrounds, dark out-of-focus areas, and camera bokeh are STILL photographs — replace them with drawn/painted equivalents
+• Photographic camera noise, lens flare, or lighting gradients on any surface = FAILURE
 • Preserve exact composition, poses, expressions, and number of people with correct anatomy
 • Produce a clean image: no text, speech bubbles, or watermarks`;
 
@@ -68,22 +71,22 @@ REMINDER: Every person in the scene including those in the background must have 
 
 export const RETRY_PROMPTS = [
   `[FAILED QUALITY CHECK — ATTEMPT 2]
-Your previous output FAILED because you only converted some people while leaving others as photographs.
-THIS IS THE #1 PROBLEM: You converted the main character but left other people in the scene looking like real photographs with real skin, real hair, and real clothing textures.
-THIS ATTEMPT MUST FIX:
-1. Count EVERY person in the reference photo. EVERY SINGLE ONE must be redrawn as illustration with outlines and cel-shading — foreground, background, partially visible, everyone.
-2. Redraw the ENTIRE sky, ground, walls, streets, and all surfaces with illustrated textures
-3. Check your output: if ANY person has photographic skin/hair/clothing, start over
+Your previous output FAILED for TWO reasons:
+PROBLEM 1 — PEOPLE: You converted the main character but left other people looking like real photographs with real skin/hair/clothing.
+PROBLEM 2 — ENVIRONMENT: The background still looks like a photograph — it has camera noise, photographic blur, or real-world textures instead of drawn/painted surfaces.
+THIS ATTEMPT MUST FIX BOTH:
+1. Count EVERY person in the reference photo. EVERY SINGLE ONE must be redrawn as illustration with outlines and cel-shading.
+2. The background is NOT optional: redraw EVERY surface — sky, ground, walls, streets, buildings, furniture — with flat colors, drawn line art, or painted textures. No blurred photographic backgrounds.
+3. Check your output: zoom into the background. If it has camera noise, lens blur, or photographic gradients, it is WRONG.
 Start from scratch and ensure zero photographic remnants anywhere.
 
 `,
   `[SECOND FAILED QUALITY CHECK — FINAL ATTEMPT]
-STILL FAILING: Some people and surfaces remain photographic.
+STILL FAILING: People and/or environment remain photographic.
 You MUST create a 100% hand-drawn illustration where every single pixel is artwork.
-Draw thick visible outlines around EVERY person — main character AND every bystander AND every background person.
-There must be ZERO photographic skin, ZERO photographic hair, ZERO photographic clothing on any person.
-Fill EVERY surface — sky, ground, walls, roads — with flat illustrated colors and drawn textures.
-If any person or area could be mistaken for a photograph, you have FAILED.
+PEOPLE: Draw thick visible outlines around EVERY person — main character AND every bystander. ZERO photographic skin/hair/clothing.
+ENVIRONMENT: Fill EVERY surface — sky, ground, walls, roads, buildings — with flat illustrated colors and drawn textures. Even dark or blurry areas must be repainted as illustration. A darkened photo background is NOT an illustrated background.
+If any person or any background area could be mistaken for a photograph, you have FAILED.
 Redraw the ENTIRE scene from scratch as a cartoon/manhwa illustration.
 
 `,
