@@ -66,6 +66,7 @@
         "convert_btn_video": "✨ Convert to Webtoon",
         "step4_complete": "Done! 💬 Add speech bubbles and save to gallery",
         "save_failed": "Save failed",
+        "analyzing_scene": "Analyzing scene...",
         "ai_retried": "AI retried for a better result",
         "try_different_photo": "This photo is difficult to convert. Try a different photo.",
         "step_photo_short": "Photo",

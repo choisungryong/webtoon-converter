@@ -166,6 +166,46 @@ export interface WorkersAI {
 }
 
 // ============================================
+// Scene Analysis Types
+// ============================================
+
+export interface ScenePersonInfo {
+  role: 'main' | 'bystander';
+  description: string;
+  position: string; // e.g. "center", "left background", "right foreground"
+}
+
+export interface SceneEnvironment {
+  description: string;
+  surfaces: string[]; // e.g. ["concrete sidewalk", "brick wall", "overcast sky"]
+  lighting: string; // e.g. "warm afternoon sunlight", "fluorescent indoor"
+}
+
+export interface SceneAnalysis {
+  people: ScenePersonInfo[];
+  environment: SceneEnvironment;
+  colorPalette: string[];
+  objectCount: number;
+}
+
+// ============================================
+// Quality Validation Types
+// ============================================
+
+export interface QualityDimension {
+  name: string;
+  score: number;
+  threshold: number;
+  pass: boolean;
+}
+
+export interface QualityValidation {
+  pass: boolean;
+  dimensions: QualityDimension[];
+  failedDimensions: string[];
+}
+
+// ============================================
 // Error Types
 // ============================================
 

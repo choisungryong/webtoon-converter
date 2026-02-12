@@ -30,6 +30,7 @@ import {
 // Types & Data
 import { StyleOption, STYLE_OPTIONS, DEFAULT_STYLE } from '../../data/styles';
 import { saveSession, loadSession, clearSession } from '../../lib/sessionStore';
+import type { SceneAnalysis } from '../../types';
 
 // Constants
 const MAX_PHOTOS = 5;
@@ -410,6 +411,31 @@ export default function Home() {
     let styleReference: string | undefined; // First result used as style anchor
 
     try {
+      // Pre-analyze first photo for multi-photo mode (helps AI redraw everything)
+      let sceneAnalysis: SceneAnalysis | undefined;
+      if (photoPreviews.length >= 2) {
+        try {
+          message.loading({ content: t('analyzing_scene'), key: 'scene-analyze' });
+          const firstCompressed = await compressImage(photoPreviews[0]);
+          const analyzeRes = await fetch('/api/ai/analyze-scene', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: firstCompressed }),
+          });
+          if (analyzeRes.ok) {
+            const analyzeData = await analyzeRes.json();
+            if (analyzeData.success) {
+              sceneAnalysis = analyzeData.analysis;
+              console.log('[Photo] Scene analysis:', sceneAnalysis?.people.length, 'people,', sceneAnalysis?.environment.surfaces.length, 'surfaces');
+            }
+          }
+          message.destroy('scene-analyze');
+        } catch (e) {
+          console.warn('[Photo] Scene analysis failed, continuing without:', e);
+          message.destroy('scene-analyze');
+        }
+      }
+
       for (let i = 0; i < photoPreviews.length; i++) {
         setCurrentImageIndex(i + 1);
         // Start delay for subsequent images to prevent rate limiting
@@ -428,6 +454,7 @@ export default function Home() {
               styleId: selectedStyle.id,
               userId: userId,
               ...(styleReference && { styleReference }),
+              ...(sceneAnalysis && { sceneAnalysis }),
             }),
           });
 
@@ -533,6 +560,27 @@ export default function Home() {
     let styleReference: string | undefined; // First result used as style anchor
 
     try {
+      // Pre-analyze first frame (helps AI redraw ALL elements including backgrounds)
+      let sceneAnalysis: SceneAnalysis | undefined;
+      try {
+        message.loading({ content: t('analyzing_scene'), key: 'episode' });
+        const firstCompressed = await compressImage(imagesToConvert[0]);
+        const analyzeRes = await fetch('/api/ai/analyze-scene', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: firstCompressed }),
+        });
+        if (analyzeRes.ok) {
+          const analyzeData = await analyzeRes.json();
+          if (analyzeData.success) {
+            sceneAnalysis = analyzeData.analysis;
+            console.log('[Video] Scene analysis:', sceneAnalysis?.people.length, 'people,', sceneAnalysis?.environment.surfaces.length, 'surfaces');
+          }
+        }
+      } catch (e) {
+        console.warn('[Video] Scene analysis failed, continuing without:', e);
+      }
+
       message.loading({
         content: t('convert_start', { count: imagesToConvert.length }),
         key: 'episode',
@@ -559,6 +607,7 @@ export default function Home() {
               styleId: selectedStyle.id,
               userId: userId,
               ...(styleReference && { styleReference }),
+              ...(sceneAnalysis && { sceneAnalysis }),
             }),
           });
 
