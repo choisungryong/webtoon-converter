@@ -38,16 +38,16 @@ People: ${peopleChecks}
 Surfaces: ${surfaceChecks}`;
   }
 
-  return `Evaluate this image across three dimensions. Be STRICT — if even one element looks photographic, that dimension should score low.
+  return `Evaluate this image across three dimensions. Be EXTREMELY STRICT — the most common failure is converting ONLY the main character while leaving other people and the background as photographs.
 ${specificChecks}
 
 Rate each dimension 1-10 where 10 is perfect:
 
-1. illustration_completeness: Are ALL people (foreground AND background bystanders) drawn as illustrations with visible outlines and cel-shading? Score 5 or below if ANY person looks photorealistic.
+1. illustration_completeness: Count all visible people. Are ALL of them drawn as illustrations with visible outlines and cel-shading? The most common failure is: main character = illustrated, but background people = still photographic with real skin/hair. Score 3 or below if ANY person still has photorealistic skin, real hair texture, or photographic clothing. Score 5 if main character is illustrated but others are mixed.
 
-2. character_consistency: Is the art style consistent across all characters? Do they look like they were drawn by the same artist? (If only one character, score based on style quality.)
+2. character_consistency: Do ALL people in the image look like they were drawn by the same artist in the same style? Score 3 if one person looks illustrated but another looks photographic.
 
-3. environment_completeness: Is the ENTIRE background illustrated? Check sky/ceiling, ground/floor, walls, buildings, furniture, streets. Score 5 or below if ANY surface looks photographic.
+3. environment_completeness: Is the ENTIRE background illustrated? Check: does the sky look drawn or photographic? Do walls/floors have illustrated texture or photographic texture? Dark or blurry backgrounds are often still photographs — score 4 or below if any surface has photographic texture even if dark.
 
 Reply with ONLY valid JSON, no explanation:
 {"illustration_completeness": N, "character_consistency": N, "environment_completeness": N}`;
@@ -109,11 +109,11 @@ export async function validateIllustrationQuality(
       }
     }
 
-    // Define thresholds
+    // Define thresholds — strict to catch partial conversions
     const thresholds: Record<string, number> = {
-      illustration_completeness: 7,
-      character_consistency: hasStyleAnchor ? 6 : 5, // Relaxed when no anchor
-      environment_completeness: 7,
+      illustration_completeness: 8,
+      character_consistency: hasStyleAnchor ? 7 : 6,
+      environment_completeness: 8,
     };
 
     const dimensions = Object.entries(thresholds).map(([name, threshold]) => {

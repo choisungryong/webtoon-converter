@@ -18,15 +18,19 @@ const VISUAL_IDENTITY_LOCK = `[VISUAL IDENTITY LOCK]
 You are a professional Korean webtoon illustrator. You will create a BRAND NEW hand-drawn illustration from scratch.
 You MUST redraw EVERY element — every person (foreground AND background), every object, the entire environment (sky, ground, walls, streets, buildings, trees, furniture) — as fully illustrated artwork.
 No element may retain a photographic appearance. Every single pixel of the output must be hand-drawn illustration with visible line art and cel-shading.
-This is NOT a photo edit — this is a complete artistic recreation.`;
+This is NOT a photo edit — this is a complete artistic recreation.
+
+CRITICAL: You must convert ALL people in the scene, not just one person. If there are 3 people in the photo, all 3 must become illustrations. Background bystanders and secondary characters are just as important as the main subject. A result where only 1 person is illustrated and others remain photographic is a COMPLETE FAILURE.`;
 
 // ─── Step 4: Strict Rules ───────────────────────────────────────────────────
 
 const STRICT_RULES = `[STRICT RULES — VIOLATIONS WILL FAIL QUALITY CHECK]
 • ABSOLUTELY NOT photorealistic — no surface, person, or area may look like a real photograph
 • ALL background people/bystanders must have drawn outlines and cel-shading — they are NOT optional
+• If there are N people in the reference photo, ALL N must be converted to illustration — converting only 1 person is a FAILURE
 • The ENTIRE sky, ground, walls, and streets must be illustrated with drawn textures
 • Every building, tree, vehicle, and furniture piece needs visible illustrated outlines
+• Photographic skin texture on ANY person = FAILURE. Every person needs drawn skin with cel-shading.
 • Preserve exact composition, poses, expressions, and number of people with correct anatomy
 • Produce a clean image: no text, speech bubbles, or watermarks`;
 
@@ -38,12 +42,18 @@ Create a warm hand-painted anime illustration in the style of Studio Ghibli. Dra
 REMINDER: Every background bystander, the sky, the ground, walls, and all surfaces must be fully painted in watercolor style — zero photographic remnants.`,
 
   'cinematic-noir': `[STYLE: CINEMATIC NOIR]
-Create a dark Korean crime thriller manhwa panel in the vein of Bastard or Sweet Home. Draw everything with heavy bold ink strokes and aggressive hatching. Use a palette of blacks, dark grays, muted blues, and occasional blood-red accents. The entire environment — every wall, street, floor, sky, and background element — must be redrawn as dark atmospheric illustration with grain and urban decay textures. Drench the scene in deep shadows with extreme chiaroscuro so roughly seventy percent sits in darkness. All people, whether foreground or background, must have sharp angular illustrated features and intense narrow eyes.
-REMINDER: Every bystander must be redrawn as a dark ink illustration, and the entire environment must show hatching or ink texture — no photographic surfaces anywhere.`,
+Create a dark Korean crime thriller manhwa panel in the vein of Bastard or Sweet Home.
+WARNING: Dark photos trick you into thinking they are already illustrated — they are NOT. You must redraw EVERYTHING from scratch regardless of how dark or moody the original photo looks.
+Draw everything with heavy bold ink strokes and aggressive hatching. Use a palette of blacks, dark grays, muted blues, and occasional blood-red accents. The entire environment — every wall, street, floor, sky, and background element — must be redrawn as dark atmospheric illustration with grain and urban decay textures. Drench the scene in deep shadows with extreme chiaroscuro so roughly seventy percent sits in darkness.
+EVERY PERSON IN THE SCENE — whether foreground main character, background bystander, or partially visible passerby — must have sharp angular illustrated features with bold ink outlines and hatching. Do NOT leave any person looking like a real photograph. If there are 5 people in the scene, all 5 must be fully redrawn as ink illustrations.
+REMINDER: A dark photograph is NOT the same as a dark illustration. Every surface must show ink texture, hatching, or drawn marks — no photographic skin, no photographic fabric, no photographic walls.`,
 
   'dark-fantasy': `[STYLE: DARK FANTASY MANHWA]
-Create a high-action Korean fantasy manhwa panel in the style of Solo Leveling or Tower of God. Draw razor-sharp digital inking with bold outlines for every person and object, using thinner lines for energy effects. Color the entire scene — all people, all objects, the complete background environment — in rich deep tones with dramatic neon accents in electric blue, purple, and cyan. The background must be a fully illustrated dark atmospheric environment with depth and subtle magical particle effects. Apply multi-layer cel-shading with sharp transitions and dramatic rim lighting to every surface.
-REMINDER: Every surrounding person must be redrawn with bold outlines and cel-shading, and the entire environment including the sky, ground, and all buildings must be fully illustrated dark fantasy artwork — no photographic elements anywhere.`,
+Create a high-action Korean fantasy manhwa panel in the style of Solo Leveling or Tower of God.
+WARNING: Dark photos trick you into thinking they are already illustrated — they are NOT. You must redraw EVERYTHING from scratch regardless of how dark or dramatic the original photo looks.
+Draw razor-sharp digital inking with bold outlines for EVERY person and object, using thinner lines for energy effects. Color the entire scene — all people, all objects, the complete background environment — in rich deep tones with dramatic neon accents in electric blue, purple, and cyan. The background must be a fully illustrated dark atmospheric environment with depth and subtle magical particle effects. Apply multi-layer cel-shading with sharp transitions and dramatic rim lighting to every surface.
+EVERY PERSON IN THE SCENE — whether foreground main character, background bystander, or partially visible passerby — must have bold digital outlines, cel-shading, and fantasy-style features. Do NOT leave any person looking like a real photograph. If there are 5 people in the scene, all 5 must be fully redrawn as manhwa illustrations.
+REMINDER: A dark photograph is NOT a dark illustration. Every skin surface must show cel-shading, every fabric must show drawn folds, every wall/floor/sky must show illustrated textures — no photographic elements anywhere.`,
 
   'elegant-fantasy': `[STYLE: ELEGANT ROMANCE FANTASY]
 Create a luxury romance fantasy webtoon panel in the style of Remarried Empress or Who Made Me a Princess. Draw every element with delicate thin lines in warm sepia tones and elegant flowing curves. Color the entire scene — all people, all objects, the complete background — in soft rose pinks, champagne golds, lavender, and pearl whites. Draw hair as flowing silky strands with sparkle highlights, eyes as large jewels with multiple highlight layers. The background must be a fully illustrated scene with flower petals, golden bokeh, or palace-like architectural elements.
@@ -58,20 +68,22 @@ REMINDER: Every person in the scene including those in the background must have 
 
 export const RETRY_PROMPTS = [
   `[FAILED QUALITY CHECK — ATTEMPT 2]
-Your previous output left background people and environmental surfaces looking like real photographs.
+Your previous output FAILED because you only converted some people while leaving others as photographs.
+THIS IS THE #1 PROBLEM: You converted the main character but left other people in the scene looking like real photographs with real skin, real hair, and real clothing textures.
 THIS ATTEMPT MUST FIX:
-1. Redraw ALL background bystanders/passersby with visible outlines and cel-shading — they must look like drawn characters, not real people
-2. Redraw the ENTIRE sky, ground, walls, streets, and all surfaces with illustrated textures and line art
-3. Every building, tree, furniture piece, and object needs visible drawn outlines
-Start from scratch and ensure zero photographic remnants.
+1. Count EVERY person in the reference photo. EVERY SINGLE ONE must be redrawn as illustration with outlines and cel-shading — foreground, background, partially visible, everyone.
+2. Redraw the ENTIRE sky, ground, walls, streets, and all surfaces with illustrated textures
+3. Check your output: if ANY person has photographic skin/hair/clothing, start over
+Start from scratch and ensure zero photographic remnants anywhere.
 
 `,
   `[SECOND FAILED QUALITY CHECK — FINAL ATTEMPT]
-Background people and environment are STILL photographic.
+STILL FAILING: Some people and surfaces remain photographic.
 You MUST create a 100% hand-drawn illustration where every single pixel is artwork.
-Draw thick visible outlines around EVERY person including distant bystanders.
+Draw thick visible outlines around EVERY person — main character AND every bystander AND every background person.
+There must be ZERO photographic skin, ZERO photographic hair, ZERO photographic clothing on any person.
 Fill EVERY surface — sky, ground, walls, roads — with flat illustrated colors and drawn textures.
-If any area could be mistaken for a photograph, you have failed.
+If any person or area could be mistaken for a photograph, you have FAILED.
 Redraw the ENTIRE scene from scratch as a cartoon/manhwa illustration.
 
 `,
