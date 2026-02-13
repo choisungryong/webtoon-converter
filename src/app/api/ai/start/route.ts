@@ -9,7 +9,9 @@ import type { SceneAnalysis } from '../../../../types';
 
 export const runtime = 'edge';
 
-const MAX_RETRIES = 2;
+// Synchronous endpoint: single attempt only to stay within Cloudflare's time limit.
+// Retries + quality gate are handled by the background job processor for multi-image.
+const MAX_RETRIES = 0;
 const RATE_LIMIT_PER_MINUTE = 10;
 
 /** Simple per-user rate limiting using usage_logs table */
@@ -206,8 +208,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('API Start Error:', error);
-    const msg = (error as Error).message;
-    const safeMsg = msg.includes('Invalid image format') ? msg : 'Internal server error';
+    const msg = (error as Error).message || '';
+    // Pass through known safe error messages; sanitize unknown ones
+    const knownPatterns = ['Invalid image format', 'Gemini', 'timeout', 'generation failed'];
+    const safeMsg = knownPatterns.some(p => msg.includes(p)) ? msg.substring(0, 200) : 'Internal server error';
     return NextResponse.json(
       { error: safeMsg },
       { status: 500 }
