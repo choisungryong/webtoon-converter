@@ -191,8 +191,38 @@ export default function Home() {
 
     let consecutiveFailures = 0;
     const MAX_POLL_FAILURES = 20; // 20 * 3s = 60s of no response → give up
+    const MAX_POLL_DURATION_MS = 5 * 60 * 1000; // 5 minutes total → give up
+    const pollingStartedAt = Date.now();
+    let lastCompletedImages = -1;
+    let staleCycles = 0;
+    const MAX_STALE_CYCLES = 40; // 40 * 3s = 120s no progress → give up
+
+    const finishPolling = (msgType: 'success' | 'warning' | 'error', content: string, navigateToGallery = false) => {
+      stopPolling();
+      sessionStorage.removeItem('activeJobId');
+      sessionStorage.removeItem('activeJobType');
+      setActiveJobId(null);
+      if (msgType === 'success') {
+        message.success({ content, key: 'job-poll' });
+      } else if (msgType === 'warning') {
+        message.warning({ content, key: 'job-poll', duration: 5 });
+      } else {
+        message.error({ content, key: 'job-poll', duration: 5 });
+      }
+      if (navigateToGallery) {
+        clearSession();
+        router.push(`/${locale}/gallery?tab=image&showResult=true`);
+      }
+      setConverting(false);
+    };
 
     pollIntervalRef.current = setInterval(async () => {
+      // Global timeout: stop after 5 minutes regardless
+      if (Date.now() - pollingStartedAt > MAX_POLL_DURATION_MS) {
+        finishPolling('error', t('conversion_failed'));
+        return;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
@@ -202,12 +232,7 @@ export default function Home() {
         if (!res.ok) {
           consecutiveFailures++;
           if (consecutiveFailures >= MAX_POLL_FAILURES) {
-            stopPolling();
-            sessionStorage.removeItem('activeJobId');
-            sessionStorage.removeItem('activeJobType');
-            setActiveJobId(null);
-            message.error({ content: t('conversion_failed'), key: 'job-poll' });
-            setConverting(false);
+            finishPolling('error', t('conversion_failed'));
           }
           return;
         }
@@ -225,50 +250,63 @@ export default function Home() {
         setCurrentImageIndex(data.completedImages);
         setProgress(Math.round((data.completedImages / data.totalImages) * 80));
 
-        if (['completed', 'failed', 'partial'].includes(data.status)) {
-          stopPolling();
-          sessionStorage.removeItem('activeJobId');
-          sessionStorage.removeItem('activeJobType');
-          setActiveJobId(null);
+        // Detect stale progress: same completedImages for too long
+        if (data.completedImages === lastCompletedImages && data.status === 'processing') {
+          staleCycles++;
+          if (staleCycles >= MAX_STALE_CYCLES) {
+            // If some images completed, treat as partial success
+            if (data.resultIds.length > 0) {
+              finishPolling('warning', t('job_partial', {
+                success: data.resultIds.length,
+                failed: data.totalImages - data.resultIds.length,
+              }), true);
+            } else {
+              finishPolling('error', t('conversion_failed'));
+            }
+            return;
+          }
+        } else {
+          staleCycles = 0;
+          lastCompletedImages = data.completedImages;
+        }
 
-          if (data.status === 'completed') {
+        // All images processed but status stuck on 'processing' (worker killed before final update)
+        if (data.status === 'processing' && data.completedImages >= data.totalImages && data.totalImages > 0) {
+          if (data.resultIds.length > 0) {
             setProgress(100);
-            message.success({
-              content: t('convert_complete', { count: data.resultIds.length }),
-              key: 'job-poll',
-            });
-            clearSession();
-            router.push(`/${locale}/gallery?tab=image&showResult=true`);
-          } else if (data.status === 'partial') {
-            setProgress(100);
-            message.warning({
-              content: t('job_partial', {
+            if (data.failedIndices.length > 0) {
+              finishPolling('warning', t('job_partial', {
                 success: data.resultIds.length,
                 failed: data.failedIndices.length,
-              }),
-              key: 'job-poll',
-              duration: 5,
-            });
-            clearSession();
-            router.push(`/${locale}/gallery?tab=image&showResult=true`);
+              }), true);
+            } else {
+              finishPolling('success', t('convert_complete', { count: data.resultIds.length }), true);
+            }
           } else {
-            message.error({
-              content: t('conversion_failed'),
-              key: 'job-poll',
-            });
+            finishPolling('error', t('conversion_failed'));
           }
-          setConverting(false);
+          return;
+        }
+
+        if (['completed', 'failed', 'partial'].includes(data.status)) {
+          if (data.status === 'completed') {
+            setProgress(100);
+            finishPolling('success', t('convert_complete', { count: data.resultIds.length }), true);
+          } else if (data.status === 'partial') {
+            setProgress(100);
+            finishPolling('warning', t('job_partial', {
+              success: data.resultIds.length,
+              failed: data.failedIndices.length,
+            }), true);
+          } else {
+            finishPolling('error', t('conversion_failed'));
+          }
         }
       } catch {
         clearTimeout(timeoutId);
         consecutiveFailures++;
         if (consecutiveFailures >= MAX_POLL_FAILURES) {
-          stopPolling();
-          sessionStorage.removeItem('activeJobId');
-          sessionStorage.removeItem('activeJobType');
-          setActiveJobId(null);
-          message.error({ content: t('conversion_failed'), key: 'job-poll' });
-          setConverting(false);
+          finishPolling('error', t('conversion_failed'));
         }
       }
     }, 3000);
