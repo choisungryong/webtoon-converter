@@ -126,26 +126,33 @@ export default function Home() {
     let staleCycles = 0;
     const MAX_STALE_CYCLES = 40; // 40 * 3s = 120s no progress → give up
 
+    let finished = false;
     const finishPolling = (msgType: 'success' | 'warning' | 'error', content: string, navigateToGallery = false) => {
+      if (finished) return; // Guard against duplicate calls
+      finished = true;
       stopPolling();
       sessionStorage.removeItem('activeJobId');
       sessionStorage.removeItem('activeJobType');
+
+      if (navigateToGallery) {
+        // Navigate IMMEDIATELY - before any React state updates that could interfere
+        const galleryUrl = `/${locale}/gallery?tab=image&showResult=true`;
+        try {
+          window.location.replace(galleryUrl);
+        } catch {
+          window.location.href = galleryUrl;
+        }
+        return; // Don't update state - we're leaving the page
+      }
+
+      // Non-navigation case (errors): update state normally
       setActiveJobId(null);
-      if (msgType === 'success') {
-        message.success({ content, key: 'job-poll' });
-      } else if (msgType === 'warning') {
-        message.warning({ content, key: 'job-poll', duration: 5 });
-      } else {
+      if (msgType === 'error') {
         message.error({ content, key: 'job-poll', duration: 5 });
+      } else {
+        message.warning({ content, key: 'job-poll', duration: 5 });
       }
       setConverting(false);
-      if (navigateToGallery) {
-        clearSession();
-        // Use hard navigation for reliability on mobile
-        setTimeout(() => {
-          window.location.href = `/${locale}/gallery?tab=image&showResult=true`;
-        }, 1000);
-      }
     };
 
     pollIntervalRef.current = setInterval(async () => {
