@@ -55,8 +55,11 @@ export async function callGemini(
 
   if (!geminiRes.ok) {
     const errorText = await geminiRes.text();
-    console.error('Gemini API Error:', errorText);
-    return null;
+    console.error('Gemini API Error:', geminiRes.status, errorText);
+    // Attach error info for callers to inspect
+    const err = new Error(`Gemini ${geminiRes.status}: ${errorText.substring(0, 200)}`);
+    (err as any).geminiStatus = geminiRes.status;
+    throw err;
   }
 
   const geminiData = await geminiRes.json() as any;

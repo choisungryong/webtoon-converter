@@ -82,6 +82,7 @@ export default function Home() {
     type: 'success' | 'partial' | 'error';
     resultCount: number;
     failedCount: number;
+    errorMessage?: string;
   } | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -181,7 +182,7 @@ export default function Home() {
 
         // Helper to determine result from data
         const makeResult = () => {
-          if (data.resultIds.length === 0) return { type: 'error' as const, resultCount: 0, failedCount: data.failedIndices.length };
+          if (data.resultIds.length === 0) return { type: 'error' as const, resultCount: 0, failedCount: data.failedIndices.length, errorMessage: data.errorMessage };
           if (data.failedIndices.length > 0) return { type: 'partial' as const, resultCount: data.resultIds.length, failedCount: data.failedIndices.length };
           return { type: 'success' as const, resultCount: data.resultIds.length, failedCount: 0 };
         };
@@ -657,6 +658,11 @@ export default function Home() {
               <p style={{ color: '#ff6b6b', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
                 {t('conversion_failed')}
               </p>
+              {jobResult.errorMessage && (
+                <p style={{ color: '#999', fontSize: '12px', marginTop: '8px', wordBreak: 'break-all' }}>
+                  {jobResult.errorMessage}
+                </p>
+              )}
             </>
           )}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>

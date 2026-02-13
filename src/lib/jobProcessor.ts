@@ -40,6 +40,7 @@ export async function processConversionJob(
     const resultIds: string[] = [];
     const failedIndices: number[] = [];
     let styleReference: { data: string; mimeType: string } | null = null;
+    let firstErrorMessage = '';
 
     for (let i = 0; i < inputR2Keys.length; i++) {
       // Add delay between images to avoid rate limiting
@@ -58,7 +59,8 @@ export async function processConversionJob(
           sceneAnalysis,
         });
 
-        if (!result) {
+        if (!result || !result.imageBase64) {
+          if (result?.error && !firstErrorMessage) firstErrorMessage = result.error;
           failedIndices.push(i);
           await updateJobProgress(db, jobId, i + 1, resultIds, failedIndices);
           continue;
@@ -106,8 +108,8 @@ export async function processConversionJob(
     }
 
     await db.prepare(
-      `UPDATE conversion_jobs SET status = ?, completed_at = ?, result_ids = ?, failed_indices = ? WHERE id = ?`
-    ).bind(finalStatus, Date.now(), JSON.stringify(resultIds), JSON.stringify(failedIndices), jobId).run();
+      `UPDATE conversion_jobs SET status = ?, completed_at = ?, result_ids = ?, failed_indices = ?, error_message = ? WHERE id = ?`
+    ).bind(finalStatus, Date.now(), JSON.stringify(resultIds), JSON.stringify(failedIndices), firstErrorMessage || null, jobId).run();
 
     // Refund credits for failed images
     if (failedIndices.length > 0 && authUserId) {
@@ -169,27 +171,37 @@ async function convertSingleImage(
     styleRef: { data: string; mimeType: string } | null;
     sceneAnalysis: SceneAnalysis | null;
   },
-): Promise<{ imageBase64: string; mimeType: string } | null> {
+): Promise<{ imageBase64: string; mimeType: string; error?: string } | null> {
   let result: { imageBase64: string; mimeType: string } | null = null;
+  let lastError = '';
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) {
       console.log(`[JobProcessor] Retry attempt ${attempt}/${MAX_RETRIES}`);
     }
 
-    const { parts, temperature } = buildBasicPromptParts(sourceBase64, sourceMimeType, {
-      styleId: options.styleId,
-      styleRef: options.styleRef,
-      sceneAnalysis: options.sceneAnalysis,
-      retryLevel: attempt,
-    });
+    try {
+      const { parts, temperature } = buildBasicPromptParts(sourceBase64, sourceMimeType, {
+        styleId: options.styleId,
+        styleRef: options.styleRef,
+        sceneAnalysis: options.sceneAnalysis,
+        retryLevel: attempt,
+      });
 
-    result = await callGemini(apiKey, parts, temperature);
+      result = await callGemini(apiKey, parts, temperature);
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : 'Unknown Gemini error';
+      console.error(`[JobProcessor] Gemini call error (attempt ${attempt}):`, lastError);
+      result = null;
+    }
 
     if (!result?.imageBase64) {
+      if (!lastError) lastError = 'No image in Gemini response';
       if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, 1000));
       continue;
     }
+
+    lastError = '';
 
     // Quality gate (skip on final attempt)
     if (attempt < MAX_RETRIES) {
@@ -207,5 +219,8 @@ async function convertSingleImage(
     }
   }
 
+  if (!result && lastError) {
+    return { imageBase64: '', mimeType: '', error: lastError };
+  }
   return result;
 }
