@@ -5,6 +5,7 @@ import { refundCredits, CREDIT_COSTS } from '../../../../../lib/credits';
 export const runtime = 'edge';
 
 const STALE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const PENDING_TIMEOUT_MS = 60 * 1000; // 1 minute - if still pending, ctx.waitUntil likely failed
 
 export async function GET(
   request: NextRequest,
@@ -27,6 +28,38 @@ export async function GET(
 
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    // Staleness detection: if stuck in 'pending' (ctx.waitUntil never started processing)
+    if (
+      job.status === 'pending' &&
+      job.created_at &&
+      Date.now() - job.created_at > PENDING_TIMEOUT_MS
+    ) {
+      await env.DB.prepare(
+        `UPDATE conversion_jobs SET status = 'failed', error_message = 'Job failed to start', completed_at = ? WHERE id = ?`
+      ).bind(Date.now(), jobId).run();
+
+      // Refund all credits
+      const totalCount = job.total_images || 0;
+      if (totalCount > 0) {
+        try {
+          const { getUserFromRequest } = await import('../../../../../lib/auth');
+          const authUser = await getUserFromRequest(request, env);
+          if (authUser?.id) {
+            await refundCredits(env.DB, authUser.id, totalCount * CREDIT_COSTS.basic_convert, 'job_pending_refund', jobId);
+          }
+        } catch { /* best effort */ }
+      }
+
+      return NextResponse.json({
+        status: 'failed',
+        completedImages: 0,
+        totalImages: totalCount,
+        resultIds: [],
+        failedIndices: [],
+        errorMessage: 'Job failed to start',
+      });
     }
 
     // Staleness detection: if processing for too long, mark as failed

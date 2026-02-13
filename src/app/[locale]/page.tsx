@@ -516,27 +516,35 @@ export default function Home() {
         compressedImages.push(await compressImage(src));
       }
 
-      // Scene analysis on first image
+      // Scene analysis: only for multi-image jobs (skip for single photo to reduce latency)
       let sceneAnalysis: SceneAnalysis | undefined;
-      try {
-        const analyzeRes = await fetch('/api/ai/analyze-scene', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: compressedImages[0] }),
-        });
-        if (analyzeRes.ok) {
-          const analyzeData = await analyzeRes.json();
-          if (analyzeData.success) {
-            sceneAnalysis = analyzeData.analysis;
+      if (compressedImages.length > 1) {
+        try {
+          const analyzeController = new AbortController();
+          const analyzeTimeout = setTimeout(() => analyzeController.abort(), 20_000);
+          const analyzeRes = await fetch('/api/ai/analyze-scene', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: compressedImages[0] }),
+            signal: analyzeController.signal,
+          });
+          clearTimeout(analyzeTimeout);
+          if (analyzeRes.ok) {
+            const analyzeData = await analyzeRes.json();
+            if (analyzeData.success) {
+              sceneAnalysis = analyzeData.analysis;
+            }
           }
+        } catch (e) {
+          console.warn('[Job] Scene analysis failed, continuing without:', e);
         }
-      } catch (e) {
-        console.warn('[Job] Scene analysis failed, continuing without:', e);
       }
 
       message.loading({ content: t('job_started'), key: 'job-submit' });
 
-      // Submit job
+      // Submit job with timeout
+      const jobController = new AbortController();
+      const jobTimeout = setTimeout(() => jobController.abort(), 30_000);
       const jobRes = await fetch('/api/ai/job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -547,7 +555,9 @@ export default function Home() {
           type: jobType,
           ...(sceneAnalysis && { sceneAnalysis }),
         }),
+        signal: jobController.signal,
       });
+      clearTimeout(jobTimeout);
 
       if (!jobRes.ok) {
         const errorData = await jobRes.json().catch(() => ({ error: 'Unknown error' })) as any;
@@ -569,7 +579,11 @@ export default function Home() {
       startJobPolling(jobId, jobType);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      message.error({ content: t('convert_error', { message: errorMessage }), key: 'job-submit' });
+      if ((e as Error).name === 'AbortError') {
+        message.error({ content: t('convert_error', { message: 'Request timeout' }), key: 'job-submit' });
+      } else {
+        message.error({ content: t('convert_error', { message: errorMessage }), key: 'job-submit' });
+      }
       setConverting(false);
     }
   };
