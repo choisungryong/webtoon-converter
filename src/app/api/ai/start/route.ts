@@ -152,7 +152,12 @@ export async function POST(request: NextRequest) {
         retryLevel: attempt,
       });
 
-      result = await callGemini(apiKey, parts, temperature);
+      try {
+        result = await callGemini(apiKey, parts, temperature);
+      } catch (e) {
+        console.error(`[API/Start] Gemini error (attempt ${attempt}):`, (e as Error).message);
+        result = null;
+      }
 
       if (!result?.imageBase64) {
         // No image at all — wait and retry

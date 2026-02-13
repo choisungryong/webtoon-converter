@@ -473,6 +473,73 @@ export default function Home() {
 
   // ============ Conversion Handlers ============
 
+  /** Direct single-photo conversion via synchronous /api/ai/start */
+  const handleSinglePhotoConvert = async () => {
+    setConverting(true);
+    setProgress(0);
+    setTotalImagesToConvert(1);
+    setCurrentImageIndex(0);
+    setJobResult(null);
+
+    try {
+      const compressedDataUrl = await compressImage(photoPreviews[0]);
+      setProgress(20);
+      setCurrentImageIndex(1);
+
+      const res = await fetch('/api/ai/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: compressedDataUrl,
+          styleId: selectedStyle.id,
+          userId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' })) as any;
+        if (errorData.error === 'INSUFFICIENT_CREDITS' || errorData.error === 'ANONYMOUS_LIMIT_REACHED') {
+          setRequiredCredits(1);
+          setShowCreditsModal(true);
+          setConverting(false);
+          return;
+        }
+        throw new Error(errorData.error || `Server Error: ${res.status}`);
+      }
+
+      const data = await res.json() as { success: boolean; result_url: string };
+      if (!data.success || !data.result_url) {
+        throw new Error('No image in response');
+      }
+
+      setProgress(80);
+
+      // Save to gallery
+      try {
+        await fetch('/api/webtoon/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            images: [data.result_url],
+            userId,
+            type: 'webtoon',
+          }),
+        });
+      } catch {
+        console.warn('[SinglePhoto] Save to gallery failed');
+      }
+
+      setProgress(100);
+      setConverting(false);
+      setJobResult({ type: 'success', resultCount: 1, failedCount: 0 });
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      message.error({ content: t('convert_error', { message: errorMessage }) });
+      setConverting(false);
+      setJobResult({ type: 'error', resultCount: 0, failedCount: 1, errorMessage });
+    }
+  };
+
   /** Submit conversion as background job (all photos + video frames) */
   const submitConversionJob = async (
     imageSources: string[],
@@ -569,7 +636,11 @@ export default function Home() {
       return;
     }
 
-    // All photos (including single) use background job to avoid 504 timeout
+    // Single photo: direct synchronous call (fast, reliable)
+    // Multiple photos: background job system with polling
+    if (photoPreviews.length === 1) {
+      return handleSinglePhotoConvert();
+    }
     return submitConversionJob(photoPreviews, 'photo');
   };
 
