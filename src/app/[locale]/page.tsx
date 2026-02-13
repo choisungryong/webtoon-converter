@@ -138,11 +138,14 @@ export default function Home() {
       } else {
         message.error({ content, key: 'job-poll', duration: 5 });
       }
+      setConverting(false);
       if (navigateToGallery) {
         clearSession();
-        router.push(`/${locale}/gallery?tab=image&showResult=true`);
+        // Use hard navigation for reliability on mobile
+        setTimeout(() => {
+          window.location.href = `/${locale}/gallery?tab=image&showResult=true`;
+        }, 1000);
       }
-      setConverting(false);
     };
 
     pollIntervalRef.current = setInterval(async () => {
@@ -555,7 +558,9 @@ export default function Home() {
           key: 'photo-save',
         });
         clearSession();
-        router.push(`/${locale}/gallery?tab=image&showResult=true`);
+        setTimeout(() => {
+          window.location.href = `/${locale}/gallery?tab=image&showResult=true`;
+        }, 1000);
       } else {
         throw new Error('No result returned from server');
       }
