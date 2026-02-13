@@ -29,7 +29,7 @@ import {
 
 // Types & Data
 import { StyleOption, STYLE_OPTIONS, DEFAULT_STYLE } from '../../data/styles';
-import { saveSession, loadSession, clearSession } from '../../lib/sessionStore';
+import { clearSession } from '../../lib/sessionStore';
 import type { SceneAnalysis, ConversionJobStatus } from '../../types';
 
 // Constants
@@ -85,89 +85,18 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileUploaderRef = useRef<FileUploaderRef>(null);
 
-  // ============ Session Persistence (survives mobile tab kills) ============
-  const [sessionRestored, setSessionRestored] = useState(false);
-
+  // ============ Session Cleanup on Load ============
   useEffect(() => {
-    let cancelled = false;
-    async function restoreSession() {
-      // Skip session restore after OAuth login redirect — start fresh
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('auth') === 'success' || params.get('auth_error')) {
-        sessionStorage.removeItem('wt-mode');
-        sessionStorage.removeItem('wt-style');
-        sessionStorage.removeItem('wt-frame-indices');
-        sessionStorage.removeItem('activeJobId');
-        sessionStorage.removeItem('activeJobType');
-        // Also clear IndexedDB session data from previous account
-        clearSession();
-        if (!cancelled) setSessionRestored(true);
-        return;
-      }
+    // Always start fresh on page load — clear previous work state
+    clearSession(); // clear IndexedDB (photos, frames) + sessionStorage
 
-      try {
-        const savedMode = sessionStorage.getItem('wt-mode') as AppMode | null;
-        const savedStyleId = sessionStorage.getItem('wt-style');
-        const savedIndices = sessionStorage.getItem('wt-frame-indices');
-
-        if (savedMode && (savedMode === 'photo' || savedMode === 'video')) {
-          setMode(savedMode);
-        }
-        if (savedStyleId) {
-          const found = STYLE_OPTIONS.find(s => s.id === savedStyleId);
-          if (found) setSelectedStyle(found);
-        }
-
-        const savedPreviews = await loadSession<string[]>('photoPreviews');
-        if (!cancelled && savedPreviews?.length) {
-          setPhotoPreviews(savedPreviews);
-        }
-
-        const savedFrames = await loadSession<string[]>('extractedFrames');
-        if (!cancelled && savedFrames?.length) {
-          setExtractedFrames(savedFrames);
-          if (savedIndices) {
-            try { setSelectedFrameIndices(JSON.parse(savedIndices)); } catch {}
-          }
-        }
-
-        if ((savedPreviews?.length || savedFrames?.length) && !cancelled) {
-          message.success({ content: t('session_restored'), duration: 2 });
-        }
-      } catch (e) {
-        console.warn('[Session] Restore failed:', e);
-      }
-      if (!cancelled) setSessionRestored(true);
+    // On auth redirect, also clear active job state
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth') === 'success' || params.get('auth_error')) {
+      sessionStorage.removeItem('activeJobId');
+      sessionStorage.removeItem('activeJobType');
     }
-    restoreSession();
-    return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-save state changes to IndexedDB/sessionStorage
-  useEffect(() => {
-    if (!sessionRestored) return;
-    sessionStorage.setItem('wt-mode', mode);
-  }, [mode, sessionRestored]);
-
-  useEffect(() => {
-    if (!sessionRestored) return;
-    sessionStorage.setItem('wt-style', selectedStyle.id);
-  }, [selectedStyle, sessionRestored]);
-
-  useEffect(() => {
-    if (!sessionRestored) return;
-    saveSession('photoPreviews', photoPreviews.length > 0 ? photoPreviews : null);
-  }, [photoPreviews, sessionRestored]);
-
-  useEffect(() => {
-    if (!sessionRestored) return;
-    saveSession('extractedFrames', extractedFrames.length > 0 ? extractedFrames : null);
-  }, [extractedFrames, sessionRestored]);
-
-  useEffect(() => {
-    if (!sessionRestored) return;
-    sessionStorage.setItem('wt-frame-indices', JSON.stringify(selectedFrameIndices));
-  }, [selectedFrameIndices, sessionRestored]);
+  }, []);
 
   // Apply theme to document
   useEffect(() => {
