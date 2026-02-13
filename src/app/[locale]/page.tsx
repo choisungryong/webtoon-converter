@@ -93,12 +93,14 @@ export default function Home() {
     async function restoreSession() {
       // Skip session restore after OAuth login redirect — start fresh
       const params = new URLSearchParams(window.location.search);
-      if (params.get('auth') === 'success') {
+      if (params.get('auth') === 'success' || params.get('auth_error')) {
         sessionStorage.removeItem('wt-mode');
         sessionStorage.removeItem('wt-style');
         sessionStorage.removeItem('wt-frame-indices');
         sessionStorage.removeItem('activeJobId');
         sessionStorage.removeItem('activeJobType');
+        // Also clear IndexedDB session data from previous account
+        clearSession();
         if (!cancelled) setSessionRestored(true);
         return;
       }

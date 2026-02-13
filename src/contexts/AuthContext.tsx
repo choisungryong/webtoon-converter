@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { message } from 'antd';
 
 export interface AuthUser {
   id: string;
@@ -109,12 +110,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
+
     if (params.get('auth') === 'success') {
       fetchUser();
       // Clean up URL
       const url = new URL(window.location.href);
       url.searchParams.delete('auth');
       url.searchParams.delete('new');
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    const authError = params.get('auth_error');
+    if (authError) {
+      const errorMessages: Record<string, string> = {
+        cancelled: '로그인이 취소되었습니다.',
+        invalid_state: '로그인 세션이 만료되었습니다. 다시 시도해주세요.',
+        server_error: '로그인 중 오류가 발생했습니다. 다시 시도해주세요.',
+      };
+      message.error({
+        content: errorMessages[authError] || '로그인에 실패했습니다.',
+        duration: 5,
+      });
+      // Clean up URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('auth_error');
       window.history.replaceState({}, '', url.toString());
     }
   }, [fetchUser]);
