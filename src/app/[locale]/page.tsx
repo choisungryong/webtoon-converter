@@ -172,10 +172,29 @@ export default function Home() {
     sessionStorage.setItem('activeJobId', jobId);
     sessionStorage.setItem('activeJobType', jobType);
 
+    let consecutiveFailures = 0;
+    const MAX_POLL_FAILURES = 20; // 20 * 3s = 60s of no response → give up
+
     pollIntervalRef.current = setInterval(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
       try {
-        const res = await fetch(`/api/ai/job/${jobId}`);
-        if (!res.ok) return;
+        const res = await fetch(`/api/ai/job/${jobId}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) {
+          consecutiveFailures++;
+          if (consecutiveFailures >= MAX_POLL_FAILURES) {
+            stopPolling();
+            sessionStorage.removeItem('activeJobId');
+            sessionStorage.removeItem('activeJobType');
+            setActiveJobId(null);
+            message.error({ content: t('conversion_failed'), key: 'job-poll' });
+            setConverting(false);
+          }
+          return;
+        }
+        consecutiveFailures = 0;
         const data = await res.json() as {
           status: ConversionJobStatus;
           completedImages: number;
@@ -224,7 +243,16 @@ export default function Home() {
           setConverting(false);
         }
       } catch {
-        // Network error during poll, keep retrying
+        clearTimeout(timeoutId);
+        consecutiveFailures++;
+        if (consecutiveFailures >= MAX_POLL_FAILURES) {
+          stopPolling();
+          sessionStorage.removeItem('activeJobId');
+          sessionStorage.removeItem('activeJobType');
+          setActiveJobId(null);
+          message.error({ content: t('conversion_failed'), key: 'job-poll' });
+          setConverting(false);
+        }
       }
     }, 3000);
   };

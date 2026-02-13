@@ -76,8 +76,8 @@ export async function validateIllustrationQuality(
       body: JSON.stringify({
         contents: [{
           parts: [
-            { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
             { text: buildValidationPrompt(sceneAnalysis) },
+            { inlineData: { mimeType: imageMimeType, data: imageBase64 } },
           ],
         }],
         generationConfig: {
