@@ -78,7 +78,9 @@
         "job_started": "서버에서 변환을 시작합니다. 앱을 닫아도 계속됩니다.",
         "job_resuming": "이전 변환 작업을 이어서 확인합니다...",
         "conversion_failed": "변환에 실패했습니다.",
-        "job_partial": "일부 이미지만 변환되었습니다 ({success}장 성공, {failed}장 실패)."
+        "job_partial": "일부 이미지만 변환되었습니다 ({success}장 성공, {failed}장 실패).",
+        "go_to_gallery": "갤러리로 이동",
+        "try_again": "다시 시도"
     },
     "Metadata": {
         "title": "BanaToon - 일상의 바이브를 툰으로 담는다",

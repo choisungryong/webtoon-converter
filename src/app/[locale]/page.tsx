@@ -78,6 +78,11 @@ export default function Home() {
 
   // Background Job State
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [jobResult, setJobResult] = useState<{
+    type: 'success' | 'partial' | 'error';
+    resultCount: number;
+    failedCount: number;
+  } | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Refs
@@ -127,38 +132,22 @@ export default function Home() {
     const MAX_STALE_CYCLES = 40; // 40 * 3s = 120s no progress → give up
 
     let finished = false;
-    const finishPolling = (msgType: 'success' | 'warning' | 'error', content: string, navigateToGallery = false) => {
-      if (finished) return; // Guard against duplicate calls
+    const finishPolling = (result: { type: 'success' | 'partial' | 'error'; resultCount: number; failedCount: number }) => {
+      if (finished) return;
       finished = true;
       stopPolling();
       sessionStorage.removeItem('activeJobId');
       sessionStorage.removeItem('activeJobType');
-
-      if (navigateToGallery) {
-        // Navigate IMMEDIATELY - before any React state updates that could interfere
-        const galleryUrl = `/${locale}/gallery?tab=image&showResult=true`;
-        try {
-          window.location.replace(galleryUrl);
-        } catch {
-          window.location.href = galleryUrl;
-        }
-        return; // Don't update state - we're leaving the page
-      }
-
-      // Non-navigation case (errors): update state normally
       setActiveJobId(null);
-      if (msgType === 'error') {
-        message.error({ content, key: 'job-poll', duration: 5 });
-      } else {
-        message.warning({ content, key: 'job-poll', duration: 5 });
-      }
       setConverting(false);
+      setProgress(result.type !== 'error' ? 100 : 0);
+      setJobResult(result);
     };
 
     pollIntervalRef.current = setInterval(async () => {
       // Global timeout: stop after 5 minutes regardless
       if (Date.now() - pollingStartedAt > MAX_POLL_DURATION_MS) {
-        finishPolling('error', t('conversion_failed'));
+        finishPolling({ type: 'error', resultCount: 0, failedCount: 0 });
         return;
       }
 
@@ -171,7 +160,7 @@ export default function Home() {
         if (!res.ok) {
           consecutiveFailures++;
           if (consecutiveFailures >= MAX_POLL_FAILURES) {
-            finishPolling('error', t('conversion_failed'));
+            finishPolling({ type: 'error', resultCount: 0, failedCount: 0 });
           }
           return;
         }
@@ -185,23 +174,23 @@ export default function Home() {
           errorMessage?: string;
         };
 
-        setTotalImagesToConvert(data.totalImages);
+        const total = data.totalImages || 1;
+        setTotalImagesToConvert(total);
         setCurrentImageIndex(data.completedImages);
-        setProgress(Math.round((data.completedImages / data.totalImages) * 80));
+        setProgress(Math.round((data.completedImages / total) * 80));
+
+        // Helper to determine result from data
+        const makeResult = () => {
+          if (data.resultIds.length === 0) return { type: 'error' as const, resultCount: 0, failedCount: data.failedIndices.length };
+          if (data.failedIndices.length > 0) return { type: 'partial' as const, resultCount: data.resultIds.length, failedCount: data.failedIndices.length };
+          return { type: 'success' as const, resultCount: data.resultIds.length, failedCount: 0 };
+        };
 
         // Detect stale progress: same completedImages for too long
         if (data.completedImages === lastCompletedImages && data.status === 'processing') {
           staleCycles++;
           if (staleCycles >= MAX_STALE_CYCLES) {
-            // If some images completed, treat as partial success
-            if (data.resultIds.length > 0) {
-              finishPolling('warning', t('job_partial', {
-                success: data.resultIds.length,
-                failed: data.totalImages - data.resultIds.length,
-              }), true);
-            } else {
-              finishPolling('error', t('conversion_failed'));
-            }
+            finishPolling(makeResult());
             return;
           }
         } else {
@@ -209,43 +198,21 @@ export default function Home() {
           lastCompletedImages = data.completedImages;
         }
 
-        // All images processed but status stuck on 'processing' (worker killed before final update)
-        if (data.status === 'processing' && data.completedImages >= data.totalImages && data.totalImages > 0) {
-          if (data.resultIds.length > 0) {
-            setProgress(100);
-            if (data.failedIndices.length > 0) {
-              finishPolling('warning', t('job_partial', {
-                success: data.resultIds.length,
-                failed: data.failedIndices.length,
-              }), true);
-            } else {
-              finishPolling('success', t('convert_complete', { count: data.resultIds.length }), true);
-            }
-          } else {
-            finishPolling('error', t('conversion_failed'));
-          }
+        // All images processed but status stuck on 'processing' (worker killed)
+        if (data.status === 'processing' && data.completedImages >= total && total > 0) {
+          finishPolling(makeResult());
           return;
         }
 
+        // Terminal status from server
         if (['completed', 'failed', 'partial'].includes(data.status)) {
-          if (data.status === 'completed') {
-            setProgress(100);
-            finishPolling('success', t('convert_complete', { count: data.resultIds.length }), true);
-          } else if (data.status === 'partial') {
-            setProgress(100);
-            finishPolling('warning', t('job_partial', {
-              success: data.resultIds.length,
-              failed: data.failedIndices.length,
-            }), true);
-          } else {
-            finishPolling('error', t('conversion_failed'));
-          }
+          finishPolling(makeResult());
         }
       } catch {
         clearTimeout(timeoutId);
         consecutiveFailures++;
         if (consecutiveFailures >= MAX_POLL_FAILURES) {
-          finishPolling('error', t('conversion_failed'));
+          finishPolling({ type: 'error', resultCount: 0, failedCount: 0 });
         }
       }
     }, 3000);
@@ -632,6 +599,7 @@ export default function Home() {
     setSelectedFrameIndices([]);
     setAiImages([]);
     setIsSaved(false);
+    setJobResult(null);
     fileUploaderRef.current?.reset();
     clearSession();
   };
@@ -656,6 +624,71 @@ export default function Home() {
   };
 
   // ============ Render Helpers ============
+  const galleryUrl = `/${locale}/gallery?tab=image&showResult=true`;
+
+  const handleGoToGallery = () => {
+    window.location.href = galleryUrl;
+  };
+
+  const renderJobResult = () => {
+    if (!jobResult) return null;
+    return (
+      <GlassCard>
+        <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+          {jobResult.type === 'success' && (
+            <>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>&#10003;</div>
+              <p style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+                {t('convert_complete', { count: jobResult.resultCount })}
+              </p>
+            </>
+          )}
+          {jobResult.type === 'partial' && (
+            <>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>&#9888;</div>
+              <p style={{ color: 'var(--text-primary)', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+                {t('job_partial', { success: jobResult.resultCount, failed: jobResult.failedCount })}
+              </p>
+            </>
+          )}
+          {jobResult.type === 'error' && (
+            <>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>&#10007;</div>
+              <p style={{ color: '#ff6b6b', fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+                {t('conversion_failed')}
+              </p>
+            </>
+          )}
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
+            {jobResult.type !== 'error' && (
+              <button
+                className="accent-btn"
+                onClick={handleGoToGallery}
+                style={{ padding: '14px 32px', fontSize: '16px', fontWeight: 700 }}
+              >
+                {t('go_to_gallery')}
+              </button>
+            )}
+            <button
+              onClick={handleReset}
+              style={{
+                padding: '14px 24px',
+                fontSize: '14px',
+                background: 'rgba(255,255,255,0.1)',
+                color: 'var(--text-primary)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              {t('try_again')}
+            </button>
+          </div>
+        </div>
+      </GlassCard>
+    );
+  };
+
   const renderHelpText = () => {
     let helpContent = '';
     if (mode === 'video') helpContent = t('help_video', { maxFrames: MAX_FRAMES });
@@ -724,14 +757,18 @@ export default function Home() {
 
       {photoPreviews.length > 0 && (
         <>
-          {aiImages.length === 0 && (
+          {!jobResult && aiImages.length === 0 && (
             <StepGuide step={2} text={t('step2_style')} variant="purple" />
           )}
-          <GlassCard>
-            <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
-          </GlassCard>
+          {!jobResult && (
+            <GlassCard>
+              <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
+            </GlassCard>
+          )}
 
-          {converting ? (
+          {jobResult ? (
+            renderJobResult()
+          ) : converting ? (
             <ConvertingProgress
               progress={progress}
               currentImage={currentImageIndex}
@@ -812,7 +849,9 @@ export default function Home() {
             <StyleSelector selectedStyleId={selectedStyle.id} onStyleSelect={setSelectedStyle} />
           </GlassCard>
 
-          {converting ? (
+          {jobResult ? (
+            renderJobResult()
+          ) : converting ? (
             <ConvertingProgress
               progress={progress}
               currentImage={currentImageIndex}

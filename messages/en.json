@@ -78,7 +78,9 @@
         "job_started": "Conversion started on server. You can close the app safely.",
         "job_resuming": "Resuming previous conversion...",
         "conversion_failed": "Conversion failed.",
-        "job_partial": "Partial conversion: {success} succeeded, {failed} failed."
+        "job_partial": "Partial conversion: {success} succeeded, {failed} failed.",
+        "go_to_gallery": "Go to Gallery",
+        "try_again": "Try Again"
     },
     "Metadata": {
         "title": "BanaToon - Capture the Vibe, Make it Toon",
