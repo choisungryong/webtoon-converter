@@ -88,6 +88,18 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     async function restoreSession() {
+      // Skip session restore after OAuth login redirect — start fresh
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('auth') === 'success') {
+        sessionStorage.removeItem('wt-mode');
+        sessionStorage.removeItem('wt-style');
+        sessionStorage.removeItem('wt-frame-indices');
+        sessionStorage.removeItem('activeJobId');
+        sessionStorage.removeItem('activeJobType');
+        if (!cancelled) setSessionRestored(true);
+        return;
+      }
+
       try {
         const savedMode = sessionStorage.getItem('wt-mode') as AppMode | null;
         const savedStyleId = sessionStorage.getItem('wt-style');
