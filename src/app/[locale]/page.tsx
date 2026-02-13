@@ -498,81 +498,7 @@ export default function Home() {
 
   // ============ Conversion Handlers ============
 
-  /** Single-photo conversion: direct /api/ai/start (no job needed) */
-  const handleSinglePhotoConvert = async () => {
-    setConverting(true);
-    setProgress(0);
-    setTotalImagesToConvert(1);
-    setCurrentImageIndex(0);
-
-    try {
-      const compressedDataUrl = await compressImage(photoPreviews[0]);
-      setCurrentImageIndex(1);
-
-      const startRes = await fetch('/api/ai/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: compressedDataUrl,
-          styleId: selectedStyle.id,
-          userId: userId,
-        }),
-      });
-
-      if (!startRes.ok) {
-        const errorText = await startRes.text();
-        try {
-          const errorJson = JSON.parse(errorText);
-          if (errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
-            setRequiredCredits(1);
-            setShowCreditsModal(true);
-            return;
-          }
-          throw new Error(errorJson.error || `Server Error: ${startRes.status}`);
-        } catch (e) {
-          if ((e as Error).message.includes('INSUFFICIENT') || (e as Error).message.includes('ANONYMOUS_LIMIT')) throw e;
-          throw new Error(`Server connection failed (${startRes.status}). Please try again.`);
-        }
-      }
-
-      const startData = await startRes.json() as any;
-      if (startData.error) throw new Error(startData.error);
-
-      if (startData.success && startData.result_url) {
-        setProgress(80);
-        message.loading({ content: t('saving_gallery'), key: 'photo-save' });
-
-        await fetch('/api/gallery', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: startData.result_url,
-            userId: userId,
-            originalImage: compressedDataUrl,
-          }),
-        });
-
-        setProgress(100);
-        message.success({
-          content: t('convert_complete', { count: 1 }),
-          key: 'photo-save',
-        });
-        clearSession();
-        setTimeout(() => {
-          window.location.href = `/${locale}/gallery?tab=image&showResult=true`;
-        }, 1000);
-      } else {
-        throw new Error('No result returned from server');
-      }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      message.error(t('convert_error', { message: errorMessage }));
-    } finally {
-      setConverting(false);
-    }
-  };
-
-  /** Multi-photo/video: submit as background job */
+  /** Submit conversion as background job (all photos + video frames) */
   const submitConversionJob = async (
     imageSources: string[],
     jobType: 'photo' | 'video',
@@ -654,12 +580,7 @@ export default function Home() {
       return;
     }
 
-    if (photoPreviews.length === 1) {
-      // Single photo: direct conversion (no job overhead)
-      return handleSinglePhotoConvert();
-    }
-
-    // Multi-photo: use background job
+    // All photos (including single) use background job to avoid 504 timeout
     return submitConversionJob(photoPreviews, 'photo');
   };
 
