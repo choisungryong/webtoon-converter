@@ -17,6 +17,7 @@ import FrameSelector from '../../components/FrameSelector';
 import ConvertingProgress from '../../components/ConvertingProgress';
 import ResultGallery from '../../components/ResultGallery';
 import SpeechBubbleModal from '../../components/SpeechBubbleModal';
+import InsufficientCreditsModal from '../../components/InsufficientCreditsModal';
 import StepGuide, { StepProgressBar } from '../../components/StepGuide';
 
 // Hooks & Utils
@@ -67,6 +68,8 @@ export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [totalImagesToConvert, setTotalImagesToConvert] = useState(0);
   const [aiImages, setAiImages] = useState<string[]>([]);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [requiredCredits, setRequiredCredits] = useState(1);
 
   // Result & Editor State
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
@@ -549,7 +552,8 @@ export default function Home() {
         try {
           const errorJson = JSON.parse(errorText);
           if (errorJson.error === 'INSUFFICIENT_CREDITS' || errorJson.error === 'ANONYMOUS_LIMIT_REACHED') {
-            message.warning({ content: t('api_limit_exceeded'), duration: 6 });
+            setRequiredCredits(1);
+            setShowCreditsModal(true);
             return;
           }
           throw new Error(errorJson.error || `Server Error: ${startRes.status}`);
@@ -648,7 +652,9 @@ export default function Home() {
       if (!jobRes.ok) {
         const errorData = await jobRes.json().catch(() => ({ error: 'Unknown error' })) as any;
         if (errorData.error === 'INSUFFICIENT_CREDITS' || errorData.error === 'ANONYMOUS_LIMIT_REACHED') {
-          message.warning({ content: t('api_limit_exceeded'), key: 'job-submit', duration: 6 });
+          message.destroy('job-submit');
+          setRequiredCredits(compressedImages.length);
+          setShowCreditsModal(true);
           setConverting(false);
           return;
         }
@@ -990,6 +996,13 @@ export default function Home() {
         imageSrc={editingImageIndex !== null ? aiImages[editingImageIndex] : ''}
         onSave={handleEditImageSave}
         onClose={() => setEditingImageIndex(null)}
+      />
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        show={showCreditsModal}
+        onClose={() => setShowCreditsModal(false)}
+        requiredCredits={requiredCredits}
       />
     </div>
   );
