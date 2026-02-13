@@ -60,9 +60,10 @@ export async function processConversionJob(
         });
 
         if (!result || !result.imageBase64) {
-          if (result?.error && !firstErrorMessage) firstErrorMessage = result.error;
+          const errMsg = result?.error || 'No image generated';
+          if (!firstErrorMessage) firstErrorMessage = errMsg;
           failedIndices.push(i);
-          await updateJobProgress(db, jobId, i + 1, resultIds, failedIndices);
+          await updateJobProgress(db, jobId, i + 1, resultIds, failedIndices, firstErrorMessage);
           continue;
         }
 
@@ -91,9 +92,11 @@ export async function processConversionJob(
         // Update progress
         await updateJobProgress(db, jobId, i + 1, resultIds, failedIndices);
       } catch (imgError) {
-        console.error(`[JobProcessor] Image ${i} failed:`, imgError);
+        const errMsg = imgError instanceof Error ? imgError.message : 'Unknown error';
+        console.error(`[JobProcessor] Image ${i} failed:`, errMsg);
+        if (!firstErrorMessage) firstErrorMessage = errMsg;
         failedIndices.push(i);
-        await updateJobProgress(db, jobId, i + 1, resultIds, failedIndices);
+        await updateJobProgress(db, jobId, i + 1, resultIds, failedIndices, firstErrorMessage);
       }
     }
 
@@ -155,10 +158,11 @@ async function updateJobProgress(
   completedImages: number,
   resultIds: string[],
   failedIndices: number[],
+  errorMessage?: string,
 ): Promise<void> {
   await db.prepare(
-    `UPDATE conversion_jobs SET completed_images = ?, result_ids = ?, failed_indices = ? WHERE id = ?`
-  ).bind(completedImages, JSON.stringify(resultIds), JSON.stringify(failedIndices), jobId).run();
+    `UPDATE conversion_jobs SET completed_images = ?, result_ids = ?, failed_indices = ?, error_message = ? WHERE id = ?`
+  ).bind(completedImages, JSON.stringify(resultIds), JSON.stringify(failedIndices), errorMessage || null, jobId).run();
 }
 
 /** Convert a single image with retry + quality validation */

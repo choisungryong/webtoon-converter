@@ -9,6 +9,7 @@ const GEMINI_TIMEOUT_MS = 60_000; // 60 seconds
 
 /**
  * Call Gemini API and extract generated image from response.
+ * Throws on errors so callers can capture the message.
  */
 export async function callGemini(
   apiKey: string,
@@ -45,10 +46,11 @@ export async function callGemini(
     });
   } catch (fetchError) {
     clearTimeout(timeoutId);
-    if ((fetchError as Error).name === 'AbortError') {
-      console.error('Gemini API timeout after', GEMINI_TIMEOUT_MS, 'ms');
+    const name = (fetchError as Error).name;
+    if (name === 'AbortError') {
+      throw new Error(`Gemini API timeout (${GEMINI_TIMEOUT_MS / 1000}s)`);
     }
-    return null;
+    throw new Error(`Gemini fetch failed: ${(fetchError as Error).message}`);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -56,15 +58,26 @@ export async function callGemini(
   if (!geminiRes.ok) {
     const errorText = await geminiRes.text();
     console.error('Gemini API Error:', geminiRes.status, errorText);
-    // Attach error info for callers to inspect
-    const err = new Error(`Gemini ${geminiRes.status}: ${errorText.substring(0, 200)}`);
-    (err as any).geminiStatus = geminiRes.status;
-    throw err;
+    throw new Error(`Gemini ${geminiRes.status}: ${errorText.substring(0, 200)}`);
   }
 
   const geminiData = await geminiRes.json() as any;
   const candidates = geminiData.candidates;
-  if (!candidates || candidates.length === 0) return null;
+
+  if (!candidates || candidates.length === 0) {
+    // Check for safety block
+    const blockReason = geminiData.promptFeedback?.blockReason;
+    if (blockReason) {
+      throw new Error(`Gemini blocked: ${blockReason}`);
+    }
+    throw new Error('Gemini returned no candidates');
+  }
+
+  // Check for finish reason
+  const finishReason = candidates[0]?.finishReason;
+  if (finishReason === 'SAFETY') {
+    throw new Error('Gemini blocked by safety filter');
+  }
 
   const responseParts = candidates[0]?.content?.parts || [];
   for (const part of responseParts) {
@@ -76,5 +89,7 @@ export async function callGemini(
     }
   }
 
-  return null;
+  // Response had text but no image
+  const textParts = responseParts.filter((p: any) => p.text).map((p: any) => p.text).join(' ');
+  throw new Error(`Gemini returned text only: ${textParts.substring(0, 150)}`);
 }
