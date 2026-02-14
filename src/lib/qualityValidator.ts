@@ -9,7 +9,7 @@
 
 import type { SceneAnalysis, QualityValidation } from '../types';
 
-const VALIDATION_TIMEOUT_MS = 15_000;
+const VALIDATION_TIMEOUT_MS = 10_000;
 
 interface ValidateOptions {
   apiKey: string;

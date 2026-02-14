@@ -3,15 +3,14 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 import { getUserFromRequest } from '../../../../lib/auth';
 import { checkAndDeductCredits, refundCredits, CREDIT_COSTS } from '../../../../lib/credits';
 import { buildBasicPromptParts } from '../../../../lib/promptBuilder';
-import { validateIllustrationQuality } from '../../../../lib/qualityValidator';
 import { callGemini } from '../../../../lib/gemini';
 import type { SceneAnalysis } from '../../../../types';
 
 export const runtime = 'edge';
 
-// Synchronous endpoint: single attempt only to stay within Cloudflare's time limit.
-// Retries + quality gate are handled by the background job processor for multi-image.
-const MAX_RETRIES = 0;
+// Allow one retry for single-photo sync path.
+// Quality gate runs only on first attempt; final attempt skips it.
+const MAX_RETRIES = 1;
 const RATE_LIMIT_PER_MINUTE = 10;
 
 /** Simple per-user rate limiting using usage_logs table */
@@ -135,15 +134,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Call Gemini with retry logic + multi-dimensional quality gate
+    // 3. Call Gemini with retry (no quality gate on sync path to avoid timeout)
     let result: { imageBase64: string; mimeType: string } | null = null;
     let retried = false;
+    let lastError = '';
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       const isRetry = attempt > 0;
       if (isRetry) {
         retried = true;
         console.log(`[API/Start] Retry attempt ${attempt}/${MAX_RETRIES}`);
+        await new Promise(r => setTimeout(r, 1000));
       }
 
       // Build prompt parts using 5-Step LOCK system
@@ -157,32 +158,13 @@ export async function POST(request: NextRequest) {
       try {
         result = await callGemini(apiKey, parts, temperature);
       } catch (e) {
-        console.error(`[API/Start] Gemini error (attempt ${attempt}):`, (e as Error).message);
+        lastError = (e as Error).message;
+        console.error(`[API/Start] Gemini error (attempt ${attempt}):`, lastError);
         result = null;
       }
 
-      if (!result?.imageBase64) {
-        // No image at all — wait and retry
-        if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, 1000));
-        continue;
-      }
-
-      // Quality gate: multi-dimensional validation (skip on final attempt)
-      if (attempt < MAX_RETRIES) {
-        const quality = await validateIllustrationQuality({
-          apiKey,
-          imageBase64: result.imageBase64,
-          imageMimeType: result.mimeType,
-          sceneAnalysis: sceneAnalysis || null,
-          hasStyleAnchor: !!styleRef,
-        });
-        if (quality.pass) {
-          console.log(`[API/Start] Quality validation passed`);
-          break;
-        }
-        console.log(`[API/Start] Quality validation failed: ${quality.failedDimensions.join(', ')}, retrying...`);
-        result = null; // force retry
-        await new Promise(r => setTimeout(r, 1000));
+      if (result?.imageBase64) {
+        break; // Success — use this result
       }
     }
 
@@ -191,7 +173,9 @@ export async function POST(request: NextRequest) {
       if (authUser?.id) {
         try { await refundCredits(env.DB, authUser.id, CREDIT_COSTS.basic_convert, 'basic_convert_refund'); } catch { /* best effort */ }
       }
-      return NextResponse.json({ error: 'Image generation failed after retries. Please try again.' }, { status: 502 });
+      const errorDetail = lastError ? `: ${lastError.substring(0, 100)}` : '';
+      console.error(`[API/Start] All attempts failed${errorDetail}`);
+      return NextResponse.json({ error: `Image generation failed${errorDetail}. Please try again.` }, { status: 502 });
     }
 
     // Log successful usage for rate limiting

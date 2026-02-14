@@ -5,7 +5,7 @@
 
 import type { GeminiPart } from '../types';
 
-const GEMINI_TIMEOUT_MS = 60_000; // 60 seconds
+const GEMINI_TIMEOUT_MS = 55_000; // 55 seconds — fits within Cloudflare's execution limits
 
 /**
  * Call Gemini API and extract generated image from response.
@@ -37,10 +37,10 @@ export async function callGemini(
           },
         },
         safetySettings: [
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
         ]
       })
     });
@@ -73,10 +73,10 @@ export async function callGemini(
     throw new Error('Gemini returned no candidates');
   }
 
-  // Check for finish reason
+  // Check for finish reason — handle all block variants
   const finishReason = candidates[0]?.finishReason;
-  if (finishReason === 'SAFETY') {
-    throw new Error('Gemini blocked by safety filter');
+  if (finishReason === 'SAFETY' || finishReason === 'IMAGE_SAFETY' || finishReason === 'PROHIBITED_CONTENT') {
+    throw new Error(`Gemini blocked: ${finishReason}`);
   }
 
   const responseParts = candidates[0]?.content?.parts || [];

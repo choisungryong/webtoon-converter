@@ -486,15 +486,19 @@ export default function Home() {
       setProgress(20);
       setCurrentImageIndex(1);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
       const res = await fetch('/api/ai/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           image: compressedDataUrl,
           styleId: selectedStyle.id,
           userId,
         }),
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' })) as any;
