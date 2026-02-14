@@ -553,6 +553,7 @@ export default function Home() {
     setProgress(0);
     setTotalImagesToConvert(imageSources.length);
     setCurrentImageIndex(0);
+    setJobResult(null);
 
     try {
       // Compress all images
@@ -640,11 +641,7 @@ export default function Home() {
       return;
     }
 
-    // Single photo: direct synchronous call (fast, reliable)
-    // Multiple photos: background job system with polling
-    if (photoPreviews.length === 1) {
-      return handleSinglePhotoConvert();
-    }
+    // All photos go through background job to avoid Cloudflare HTTP timeout
     return submitConversionJob(photoPreviews, 'photo');
   };
 
