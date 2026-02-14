@@ -645,6 +645,8 @@ export default function Home() {
     return submitConversionJob(photoPreviews, 'photo');
   };
 
+  /** Video conversion: process each frame sequentially via /api/ai/start,
+   *  collect results into aiImages for ResultGallery display + webtoon save. */
   const handleVideoConvert = async () => {
     if (selectedFrameIndices.length === 0) {
       message.warning(t('select_scenes_warning'));
@@ -652,15 +654,105 @@ export default function Home() {
     }
 
     if (extractedFrames.length === 0) {
-      message.warning({
-        content: t('video_too_short'),
-        duration: 5,
-      });
+      message.warning({ content: t('video_too_short'), duration: 5 });
       return;
     }
 
-    const imagesToConvert = selectedFrameIndices.map((idx) => extractedFrames[idx]);
-    return submitConversionJob(imagesToConvert, 'video');
+    const framesToConvert = selectedFrameIndices.map((idx) => extractedFrames[idx]);
+    setConverting(true);
+    setProgress(0);
+    setTotalImagesToConvert(framesToConvert.length);
+    setCurrentImageIndex(0);
+    setAiImages([]);
+    setJobResult(null);
+
+    const results: string[] = [];
+    let styleReference: string | undefined;
+
+    // Scene analysis for first frame (helps with consistency)
+    let sceneAnalysis: SceneAnalysis | undefined;
+    if (framesToConvert.length > 1) {
+      try {
+        const analyzeController = new AbortController();
+        const analyzeTimeout = setTimeout(() => analyzeController.abort(), 15_000);
+        const analyzeRes = await fetch('/api/ai/analyze-scene', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: framesToConvert[0] }),
+          signal: analyzeController.signal,
+        });
+        clearTimeout(analyzeTimeout);
+        if (analyzeRes.ok) {
+          const analyzeData = await analyzeRes.json();
+          if (analyzeData.success) sceneAnalysis = analyzeData.analysis;
+        }
+      } catch { /* continue without scene analysis */ }
+    }
+
+    for (let i = 0; i < framesToConvert.length; i++) {
+      setCurrentImageIndex(i + 1);
+      setProgress(Math.round(((i) / framesToConvert.length) * 90));
+
+      try {
+        const compressedDataUrl = await compressImage(framesToConvert[i]);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+        const res = await fetch('/api/ai/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            image: compressedDataUrl,
+            styleId: selectedStyle.id,
+            userId,
+            ...(styleReference && { styleReference }),
+            ...(sceneAnalysis && { sceneAnalysis }),
+          }),
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Unknown error' })) as any;
+          if (errorData.error === 'INSUFFICIENT_CREDITS' || errorData.error === 'ANONYMOUS_LIMIT_REACHED') {
+            setRequiredCredits(framesToConvert.length - i);
+            setShowCreditsModal(true);
+            setConverting(false);
+            return;
+          }
+          console.error(`[VideoConvert] Frame ${i} failed:`, errorData.error);
+          continue; // Skip failed frame, continue with next
+        }
+
+        const data = await res.json() as { success: boolean; result_url: string };
+        if (data.success && data.result_url) {
+          results.push(data.result_url);
+          // Use first result as style reference for consistency
+          if (!styleReference) {
+            styleReference = data.result_url;
+          }
+        }
+      } catch (e) {
+        console.error(`[VideoConvert] Frame ${i} error:`, e);
+        continue; // Skip failed frame
+      }
+    }
+
+    setProgress(100);
+    setConverting(false);
+
+    if (results.length === 0) {
+      message.error(t('conversion_failed'));
+      setJobResult({ type: 'error', resultCount: 0, failedCount: framesToConvert.length });
+    } else {
+      setAiImages(results);
+      if (results.length < framesToConvert.length) {
+        message.warning(t('job_partial', {
+          success: results.length,
+          failed: framesToConvert.length - results.length,
+        }));
+      }
+    }
   };
 
   // ============ Common Handlers ============
