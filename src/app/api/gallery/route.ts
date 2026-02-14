@@ -26,23 +26,28 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       // Strict mode: Only show images for the current user
-      // For 'image' type, also include NULL types (legacy data)
+      // For 'image' tab: show image, generated, webtoon, and legacy NULL types (exclude frame/premium)
       const typeCondition =
-        type === 'image' ? '(type = ? OR type IS NULL)' : 'type = ?';
+        type === 'image'
+          ? "(type IN ('image', 'generated', 'webtoon') OR type IS NULL)"
+          : 'type = ?';
 
-      const stmt = await env.DB.prepare(
-        `SELECT id, r2_key, original_r2_key, type, prompt, created_at FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`
-      ).bind(userId, type, limit, offset);
+      const query = `SELECT id, r2_key, original_r2_key, type, prompt, created_at FROM generated_images WHERE user_id = ? AND ${typeCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+      const stmt = type === 'image'
+        ? await env.DB.prepare(query).bind(userId, limit, offset)
+        : await env.DB.prepare(query).bind(userId, type, limit, offset);
       results = (await stmt.all()).results;
     } else {
-      // Anonymous/Public fallback - Show ONLY anonymous (public) images
+      // Anonymous/Public fallback
       const typeCondition =
-        type === 'image' ? '(type = ? OR type IS NULL)' : 'type = ?';
+        type === 'image'
+          ? "(type IN ('image', 'generated', 'webtoon') OR type IS NULL)"
+          : 'type = ?';
 
-      // Modified to strict anonymous check only
-      const stmt = await env.DB.prepare(
-        `SELECT id, r2_key, original_r2_key, type, prompt, created_at FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`
-      ).bind(type, limit, offset);
+      const query = `SELECT id, r2_key, original_r2_key, type, prompt, created_at FROM generated_images WHERE user_id IS NULL AND ${typeCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+      const stmt = type === 'image'
+        ? await env.DB.prepare(query).bind(limit, offset)
+        : await env.DB.prepare(query).bind(type, limit, offset);
       results = (await stmt.all()).results;
     }
 
