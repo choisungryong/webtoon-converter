@@ -36,10 +36,10 @@ async function logPremiumUsage(db: any, userId: string): Promise<void> {
 }
 
 const SAFETY_SETTINGS = [
-  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
 ];
 
 /**
@@ -60,10 +60,6 @@ async function callGeminiPremium(
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
         temperature,
-        imageConfig: {
-          personGeneration: 'ALLOW_ALL',
-          imageSize: '2K',
-        },
       },
       safetySettings: SAFETY_SETTINGS,
     }),
