@@ -78,6 +78,8 @@
         "job_started": "서버에서 변환을 시작합니다. 앱을 닫아도 계속됩니다.",
         "job_resuming": "이전 변환 작업을 이어서 확인합니다...",
         "conversion_failed": "변환에 실패했습니다.",
+        "saving_webtoon": "웹툰을 저장하는 중...",
+        "save_error": "웹툰 저장에 실패했습니다. 개별 이미지로 표시합니다.",
         "job_partial": "일부 이미지만 변환되었습니다 ({success}장 성공, {failed}장 실패).",
         "go_to_gallery": "갤러리로 이동",
         "try_again": "다시 시도"

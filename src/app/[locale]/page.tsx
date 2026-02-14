@@ -645,8 +645,50 @@ export default function Home() {
     return submitConversionJob(photoPreviews, 'photo');
   };
 
-  /** Video conversion: process each frame sequentially via /api/ai/start,
-   *  collect results into aiImages for ResultGallery display + webtoon save. */
+  /** Combine multiple data-URI images vertically into a single canvas image */
+  const combineImagesVertically = (imageDataUrls: string[]): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const images: HTMLImageElement[] = [];
+      let loadedCount = 0;
+
+      for (const src of imageDataUrls) {
+        const img = new window.Image();
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === imageDataUrls.length) {
+            // All loaded — combine
+            const maxWidth = Math.max(...images.map(i => i.width));
+            const totalHeight = images.reduce((sum, i) => sum + Math.round(i.height * (maxWidth / i.width)), 0);
+
+            let canvas: HTMLCanvasElement | null = document.createElement('canvas');
+            canvas.width = maxWidth;
+            canvas.height = totalHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { reject(new Error('Canvas context failed')); return; }
+
+            let y = 0;
+            for (const img of images) {
+              const scaledHeight = Math.round(img.height * (maxWidth / img.width));
+              ctx.drawImage(img, 0, y, maxWidth, scaledHeight);
+              y += scaledHeight;
+            }
+
+            const result = canvas.toDataURL('image/jpeg', 0.92);
+            // Cleanup
+            canvas.width = 0;
+            canvas.height = 0;
+            canvas = null;
+            resolve(result);
+          }
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = src;
+        images.push(img);
+      }
+    });
+  };
+
+  /** Video conversion: convert each frame → combine vertically → save as webtoon */
   const handleVideoConvert = async () => {
     if (selectedFrameIndices.length === 0) {
       message.warning(t('select_scenes_warning'));
@@ -663,35 +705,35 @@ export default function Home() {
     setProgress(0);
     setTotalImagesToConvert(framesToConvert.length);
     setCurrentImageIndex(0);
-    setAiImages([]);
     setJobResult(null);
 
-    const results: string[] = [];
+    const convertedFrames: string[] = [];
     let styleReference: string | undefined;
 
-    // Scene analysis for first frame (helps with consistency)
+    // Scene analysis for first frame (consistency across frames)
     let sceneAnalysis: SceneAnalysis | undefined;
     if (framesToConvert.length > 1) {
       try {
-        const analyzeController = new AbortController();
-        const analyzeTimeout = setTimeout(() => analyzeController.abort(), 15_000);
-        const analyzeRes = await fetch('/api/ai/analyze-scene', {
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 15_000);
+        const r = await fetch('/api/ai/analyze-scene', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: framesToConvert[0] }),
-          signal: analyzeController.signal,
+          signal: ac.signal,
         });
-        clearTimeout(analyzeTimeout);
-        if (analyzeRes.ok) {
-          const analyzeData = await analyzeRes.json();
-          if (analyzeData.success) sceneAnalysis = analyzeData.analysis;
+        clearTimeout(t);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.success) sceneAnalysis = d.analysis;
         }
-      } catch { /* continue without scene analysis */ }
+      } catch { /* continue without */ }
     }
 
+    // Step 1: Convert each frame sequentially
     for (let i = 0; i < framesToConvert.length; i++) {
       setCurrentImageIndex(i + 1);
-      setProgress(Math.round(((i) / framesToConvert.length) * 90));
+      setProgress(Math.round((i / framesToConvert.length) * 80));
 
       try {
         const compressedDataUrl = await compressImage(framesToConvert[i]);
@@ -721,37 +763,85 @@ export default function Home() {
             return;
           }
           console.error(`[VideoConvert] Frame ${i} failed:`, errorData.error);
-          continue; // Skip failed frame, continue with next
+          continue;
         }
 
         const data = await res.json() as { success: boolean; result_url: string };
         if (data.success && data.result_url) {
-          results.push(data.result_url);
-          // Use first result as style reference for consistency
-          if (!styleReference) {
-            styleReference = data.result_url;
-          }
+          convertedFrames.push(data.result_url);
+          if (!styleReference) styleReference = data.result_url;
         }
       } catch (e) {
         console.error(`[VideoConvert] Frame ${i} error:`, e);
-        continue; // Skip failed frame
+        continue;
       }
     }
 
-    setProgress(100);
-    setConverting(false);
-
-    if (results.length === 0) {
+    if (convertedFrames.length === 0) {
+      setProgress(0);
+      setConverting(false);
       message.error(t('conversion_failed'));
       setJobResult({ type: 'error', resultCount: 0, failedCount: framesToConvert.length });
-    } else {
-      setAiImages(results);
-      if (results.length < framesToConvert.length) {
-        message.warning(t('job_partial', {
-          success: results.length,
-          failed: framesToConvert.length - results.length,
-        }));
+      return;
+    }
+
+    // Step 2: Combine all frames vertically into one webtoon strip
+    setProgress(85);
+    message.loading({ content: t('saving_webtoon'), key: 'webtoon-save' });
+
+    try {
+      const combinedImage = await combineImagesVertically(convertedFrames);
+      setProgress(90);
+
+      // Step 3: Save combined image as webtoon
+      // Also save individual frames as type='frame' (hidden from gallery, used for episodes)
+      const frameIds: string[] = [];
+      for (const frame of convertedFrames) {
+        try {
+          const frameRes = await fetch('/api/webtoon/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: frame, userId, type: 'frame' }),
+          });
+          if (frameRes.ok) {
+            const frameData = await frameRes.json();
+            if (frameData.imageId) frameIds.push(frameData.imageId);
+          }
+        } catch { /* best effort */ }
       }
+
+      // Save the combined webtoon strip
+      const saveRes = await fetch('/api/webtoon/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: combinedImage,
+          userId,
+          type: 'webtoon',
+          sourceImageIds: frameIds,
+        }),
+      });
+
+      setProgress(100);
+      message.destroy('webtoon-save');
+
+      if (saveRes.ok) {
+        setConverting(false);
+        setJobResult({
+          type: 'success',
+          resultCount: convertedFrames.length,
+          failedCount: framesToConvert.length - convertedFrames.length,
+        });
+      } else {
+        throw new Error('Failed to save webtoon');
+      }
+    } catch (e) {
+      console.error('[VideoConvert] Combine/save error:', e);
+      message.destroy('webtoon-save');
+      setConverting(false);
+      // Fallback: show individual frames in ResultGallery
+      setAiImages(convertedFrames);
+      message.warning(t('save_error'));
     }
   };
 
@@ -789,7 +879,8 @@ export default function Home() {
   };
 
   // ============ Render Helpers ============
-  const galleryUrl = `/${locale}/gallery?tab=image&showResult=true`;
+  const galleryTab = mode === 'video' ? 'webtoon' : 'image';
+  const galleryUrl = `/${locale}/gallery?tab=${galleryTab}&showResult=true`;
 
   const handleGoToGallery = () => {
     window.location.href = galleryUrl;
