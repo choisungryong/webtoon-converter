@@ -26,6 +26,7 @@ import type { PanelLayout, KakaoSDK, EpisodeStoryData, PanelStory } from '../../
 import { formatToKoreanDate, getRelativeDateLabel } from '../../../utils/dateUtils';
 import { downloadFile, generateTimestampedFilename } from '../../../utils/fileUtils';
 import { generateUUID, delay } from '../../../utils/commonUtils';
+import { useUserId } from '../../../hooks/useUserId';
 
 // Extend Window interface for Kakao SDK
 declare global {
@@ -66,6 +67,7 @@ function GalleryContent() {
   const locale = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const userId = useUserId();
 
   const [activeTab, setActiveTab] = useState<'image' | 'webtoon' | 'premium'>('image');
   const [savingWebtoon, setSavingWebtoon] = useState(false);
@@ -139,19 +141,7 @@ function GalleryContent() {
     }
   }, [webtoonPreviewImage]);
 
-  const [userId, setUserId] = useState<string>('');
-
-  // Initialize User ID
-  useEffect(() => {
-    const storedUserId = localStorage.getItem('toonsnap_user_id');
-    if (storedUserId) {
-      setUserId(storedUserId);
-    } else {
-      const newUserId = generateUUID();
-      localStorage.setItem('toonsnap_user_id', newUserId);
-      setUserId(newUserId);
-    }
-  }, []);
+  // userId from useUserId() hook — prefers auth user ID, falls back to localStorage UUID
 
   // Handle URL query parameters (tab, showResult)
   useEffect(() => {
@@ -269,7 +259,7 @@ function GalleryContent() {
   const fetchImages = async () => {
     setLoading(true);
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       console.log('Fetching Gallery for User ID:', currentUserId); // DEBUG
       const headers: HeadersInit = {};
       if (currentUserId) {
@@ -315,7 +305,7 @@ function GalleryContent() {
   const fetchPremiumImages = async () => {
     setLoadingPremium(true);
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       const res = await fetch(`/api/premium/gallery?userId=${currentUserId}`);
       const data = await res.json();
       setPremiumImages(data.images || []);
@@ -340,7 +330,7 @@ function GalleryContent() {
     setEpisodeCreating(true);
 
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
 
       const res = await fetch('/api/premium/episode', {
         method: 'POST',
@@ -382,7 +372,7 @@ function GalleryContent() {
     setEpisodeProgress({ current: 0, total: totalPanels });
 
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
 
       // Fetch source image IDs from the webtoon record
       const webtoonRes = await fetch(`/api/gallery/${webtoonPreviewImage.id}/source-images?userId=${currentUserId}`);
@@ -473,7 +463,7 @@ function GalleryContent() {
   // Fetch episodes for premium tab
   const fetchEpisodes = async () => {
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       const res = await fetch(`/api/premium/gallery?userId=${currentUserId}&type=episodes`);
       const data = await res.json();
       setEpisodes(data.episodes || []);
@@ -485,7 +475,7 @@ function GalleryContent() {
   // Load episode detail and show viewer
   const handleViewEpisode = async (epId: string) => {
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       const res = await fetch(`/api/premium/episode/${epId}?userId=${currentUserId}`);
       const data = await res.json();
       if (res.ok) {
@@ -502,7 +492,7 @@ function GalleryContent() {
     if (!window.confirm(t('premium_delete_confirm'))) return;
 
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       const res = await fetch(`/api/premium/gallery?id=${imageId}&userId=${currentUserId}`, {
         method: 'DELETE',
       });
@@ -610,14 +600,14 @@ function GalleryContent() {
       }
 
       // 5. Save to Server
-      const userId = localStorage.getItem('toonsnap_user_id');
-      if (userId) {
+      const saveUserId = userId;
+      if (saveUserId) {
         // Pass source image IDs in selection order for episode creation later
         const sortedIds = sortedSelectedImages.map((img) => img.id);
         const res = await fetch('/api/webtoon/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: webtoonDataUrl, userId, sourceImageIds: sortedIds }),
+          body: JSON.stringify({ image: webtoonDataUrl, userId: saveUserId, sourceImageIds: sortedIds }),
         });
 
         if (!res.ok) {
@@ -652,7 +642,7 @@ function GalleryContent() {
 
     setDeleting(imageId);
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       const res = await fetch(`/api/gallery/${imageId}?userId=${currentUserId}`, {
         method: 'DELETE',
         headers: currentUserId ? { 'x-user-id': currentUserId } : {},
@@ -692,7 +682,7 @@ function GalleryContent() {
 
     setDeleting('bulk');
     try {
-      const currentUserId = localStorage.getItem('toonsnap_user_id');
+      const currentUserId = userId;
       const results = await Promise.all(
         selectedImages.map((id) =>
           fetch(`/api/gallery/${id}?userId=${currentUserId}`, {
@@ -1839,7 +1829,7 @@ function GalleryContent() {
                     setCurrentEpisode({ ...currentEpisode, panels: updatedPanels });
 
                     // Save to server
-                    const currentUserId = localStorage.getItem('toonsnap_user_id');
+                    const currentUserId = userId;
                     const storyData = {
                       title: currentEpisode.title,
                       synopsis: currentEpisode.synopsis,
