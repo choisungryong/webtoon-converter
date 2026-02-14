@@ -32,9 +32,6 @@ export async function callGemini(
         generationConfig: {
           responseModalities: ['TEXT', 'IMAGE'],
           temperature,
-          imageConfig: {
-            personGeneration: 'ALLOW_ALL',
-          },
         },
         safetySettings: [
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
