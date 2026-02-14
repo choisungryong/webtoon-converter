@@ -75,7 +75,7 @@ export async function processConversionJob(
 
         // Save to generated_images DB
         await db.prepare(
-          `INSERT INTO generated_images (id, r2_key, type, user_id, created_at) VALUES (?, ?, 'generated', ?, ?)`
+          `INSERT INTO generated_images (id, r2_key, type, user_id, created_at) VALUES (?, ?, 'image', ?, ?)`
         ).bind(imageId, r2Key, userId, Date.now()).run();
 
         resultIds.push(imageId);
