@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Call cleanup endpoint
         run: |
-          response=$(curl "${{ secrets.SITE_URL }}api/cleanup?key=${{ secrets.CLEANUP_KEY }}")
+          response=$(curl -s -o /dev/null -w "%{http_code}" "https://storycut.qna.kr/api/cleanup?key=${{ secrets.CLEANUP_KEY }}")
           echo "Cleanup response: $response"
           if [ "$response" != "200" ]; then
             echo "Cleanup failed with status $response"
